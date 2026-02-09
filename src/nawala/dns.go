@@ -53,28 +53,16 @@ func queryDNS(ctx context.Context, client *dns.Client, domain, server string, qt
 		server = server + ":53"
 	}
 
-	// Create a channel to receive the result so we can
-	// respect context cancellation.
-	type dnsResult struct {
-		msg *dns.Msg
-		err error
-	}
-	ch := make(chan dnsResult, 1)
-
-	go func() {
-		resp, _, err := client.ExchangeContext(ctx, msg, server)
-		ch <- dnsResult{msg: resp, err: err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("%w: %v", ErrDNSTimeout, ctx.Err())
-	case result := <-ch:
-		if result.err != nil {
-			return nil, result.err
+	resp, _, err := client.ExchangeContext(ctx, msg, server)
+	if err != nil {
+		// Wrap context errors if applicable
+		if ctx.Err() != nil {
+			return nil, fmt.Errorf("%w: %v", ErrDNSTimeout, ctx.Err())
 		}
-		return result.msg, nil
+		return nil, err
 	}
+
+	return resp, nil
 }
 
 // containsKeyword scans all resource records in a DNS response message

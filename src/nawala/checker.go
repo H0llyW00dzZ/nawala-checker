@@ -139,10 +139,20 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	statuses := make([]ServerStatus, len(c.servers))
 	var wg sync.WaitGroup
 
+	// Semaphore to limit concurrency.
+	// We use a buffered channel of size 100 to limit the number
+	// of concurrent goroutines.
+	sem := make(chan struct{}, 100)
+
 	for i, srv := range c.servers {
 		wg.Add(1)
 		go func(idx int, server DNSServer) {
 			defer wg.Done()
+
+			// Acquire semaphore
+			sem <- struct{}{}
+			defer func() { <-sem }() // Release semaphore
+
 			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address)
 		}(i, srv)
 	}
