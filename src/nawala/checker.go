@@ -107,6 +107,20 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 	sem := make(chan struct{}, c.concurrency)
 
 	for i, domain := range domains {
+		// Check context before starting new work
+		select {
+		case <-ctx.Done():
+			// Fill remaining results with context error
+			for j := i; j < len(domains); j++ {
+				results[j] = Result{
+					Domain: domains[j],
+					Error:  ctx.Err(),
+				}
+			}
+			return results, ctx.Err()
+		default:
+		}
+
 		wg.Add(1)
 
 		// Acquire semaphore before spawning goroutine to limit
@@ -116,6 +130,14 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 		go func(idx int, d string) {
 			defer wg.Done()
 			defer func() { <-sem }() // Release semaphore
+			defer func() {
+				if r := recover(); r != nil {
+					results[idx] = Result{
+						Domain: d,
+						Error:  fmt.Errorf("%w: %v", ErrInternalPanic, r),
+					}
+				}
+			}()
 
 			results[idx] = c.checkSingle(ctx, d)
 		}(i, domain)
@@ -158,6 +180,14 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 		go func(idx int, server DNSServer) {
 			defer wg.Done()
 			defer func() { <-sem }() // Release semaphore
+			defer func() {
+				if r := recover(); r != nil {
+					statuses[idx] = ServerStatus{
+						Server: server.Address,
+						Error:  fmt.Errorf("%w: %v", ErrInternalPanic, r),
+					}
+				}
+			}()
 
 			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address)
 		}(i, srv)

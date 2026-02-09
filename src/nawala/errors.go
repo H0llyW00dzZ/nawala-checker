@@ -21,4 +21,7 @@ var (
 
 	// ErrDNSTimeout is returned when a DNS query exceeds the configured timeout.
 	ErrDNSTimeout = errors.New("nawala: DNS query timed out")
+
+	// ErrInternalPanic is returned when an internal panic is recovered during execution.
+	ErrInternalPanic = errors.New("nawala: internal panic recovered")
 )
