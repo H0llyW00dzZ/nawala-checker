@@ -76,7 +76,7 @@ func isValidTLD(label string) bool {
 	}
 
 	// Check for Punycode TLD (starts with xn--)
-	if len(label) >= 4 && strings.EqualFold(label[:4], "xn--") {
+	if len(label) > 4 && strings.EqualFold(label[:4], "xn--") {
 		// Punycode TLDs can contain digits and hyphens (standard hostname rules apply)
 		// We fall through to the general check below
 		return true

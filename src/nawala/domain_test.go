@@ -42,6 +42,8 @@ func TestIsValidDomain(t *testing.T) {
 		{"unicode characters", "example.рф", false}, // we only support ASCII/Punycode
 		{"underscore in label", "exa_mple.com", false},
 		{"underscore in TLD", "example.c_m", false},
+		{"punycode prefix only", "example.xn--", false},
+		{"punycode prefix only case insensitive", "example.XN--", false},
 		{"trailing dot with space", "example.com. ", false},
 		{"double trailing dot", "example.com..", false},
 	}
