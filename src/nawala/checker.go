@@ -105,11 +105,13 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 
 	for i, domain := range domains {
 		wg.Add(1)
+
+		// Acquire semaphore before spawning goroutine to limit
+		// the number of active goroutines.
+		sem <- struct{}{}
+
 		go func(idx int, d string) {
 			defer wg.Done()
-
-			// Acquire semaphore
-			sem <- struct{}{}
 			defer func() { <-sem }() // Release semaphore
 
 			results[idx] = c.checkSingle(ctx, d)
@@ -146,11 +148,12 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 
 	for i, srv := range c.servers {
 		wg.Add(1)
+
+		// Acquire semaphore before spawning goroutine.
+		sem <- struct{}{}
+
 		go func(idx int, server DNSServer) {
 			defer wg.Done()
-
-			// Acquire semaphore
-			sem <- struct{}{}
 			defer func() { <-sem }() // Release semaphore
 
 			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address)
