@@ -106,6 +106,7 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 	// of concurrent goroutines.
 	sem := make(chan struct{}, c.concurrency)
 
+Loop:
 	for i, domain := range domains {
 		// Check context before starting new work
 		select {
@@ -119,7 +120,7 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 			}
 			// Do not return immediately! We must wait for active goroutines.
 			// Break the loop to stop spawning new ones.
-			goto Wait
+			break Loop
 		default:
 		}
 
@@ -145,7 +146,6 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 		}(i, domain)
 	}
 
-Wait:
 	wg.Wait()
 	// Check context one last time to return correct error if we broke early
 	if ctx.Err() != nil {
@@ -178,6 +178,7 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	// of concurrent goroutines.
 	sem := make(chan struct{}, c.concurrency)
 
+Loop:
 	for i, srv := range c.servers {
 		// Check context before starting new work
 		select {
@@ -189,7 +190,7 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 					Error:  ctx.Err(),
 				}
 			}
-			goto Wait
+			break Loop
 		default:
 		}
 
@@ -214,7 +215,6 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 		}(i, srv)
 	}
 
-Wait:
 	wg.Wait()
 	if ctx.Err() != nil {
 		return statuses, ctx.Err()
