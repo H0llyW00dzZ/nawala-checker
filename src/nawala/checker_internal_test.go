@@ -454,7 +454,7 @@ func TestWithConcurrency(t *testing.T) {
 }
 
 func TestCheckRaceCondition(t *testing.T) {
-	// Start a slow DNS server to ensure goroutines are still running 
+	// Start a slow DNS server to ensure goroutines are still running
 	// when we cancel the context.
 	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
 		time.Sleep(50 * time.Millisecond) // Simulate delay
@@ -475,7 +475,7 @@ func TestCheckRaceCondition(t *testing.T) {
 
 	// Create a context that we can cancel
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Check many domains to ensure we have active goroutines
 	// Must exceed default concurrency (100) to ensure the loop blocks on semaphore
 	// and is still running when we cancel.
@@ -498,8 +498,8 @@ func TestCheckRaceCondition(t *testing.T) {
 
 	// Let it start spawning goroutines
 	time.Sleep(10 * time.Millisecond)
-	
-	// CANCEL while it's running! 
+
+	// CANCEL while it's running!
 	cancel()
 
 	<-done
