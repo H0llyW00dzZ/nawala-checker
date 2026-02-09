@@ -1,0 +1,63 @@
+# Copyright (c) 2026 H0llyW00dzZ All rights reserved.
+# 
+# By accessing or using this software, you agree to be bound by the terms
+# of the License Agreement, which you can find at LICENSE files.
+
+name: 🧪 Test Coverage
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.ignore'
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.ignore'
+
+jobs:
+  coverage:
+    name: 🔢 Test Coverage on ${{ matrix.os }} (Go ${{ matrix.go-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm, macos-latest, windows-latest, windows-2022, windows-11-arm]
+        go-version: ['1.25.6', '1.25.7']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Run tests with coverage (with race detector)
+      if: matrix.os != 'windows-11-arm'
+      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      shell: bash
+      # continue-on-error: true
+
+    - name: Run tests with coverage (without race detector)
+      if: matrix.os == 'windows-11-arm'
+      run: go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+      shell: bash
+      # continue-on-error: true
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      if: matrix.os == 'ubuntu-latest'
+      # continue-on-error: true
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      with:
+        files: ./coverage.txt
+        flags: unittests
+        name: codecov-umbrella
