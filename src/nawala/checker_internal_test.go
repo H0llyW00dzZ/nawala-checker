@@ -428,3 +428,28 @@ func TestCheckConcurrencyLimit(t *testing.T) {
 	// Wait for cleanup
 	wg.Wait()
 }
+
+func TestWithConcurrency(t *testing.T) {
+	// Test default concurrency
+	c := New()
+	if c.concurrency != defaultConcurrency {
+		t.Errorf("expected default concurrency %d, got %d", defaultConcurrency, c.concurrency)
+	}
+
+	// Test custom concurrency
+	c = New(WithConcurrency(50))
+	if c.concurrency != 50 {
+		t.Errorf("expected concurrency 50, got %d", c.concurrency)
+	}
+
+	// Test invalid concurrency (should be ignored and remain default)
+	c = New(WithConcurrency(0))
+	if c.concurrency != defaultConcurrency {
+		t.Errorf("expected concurrency %d, got %d", defaultConcurrency, c.concurrency)
+	}
+
+	c = New(WithConcurrency(-1))
+	if c.concurrency != defaultConcurrency {
+		t.Errorf("expected concurrency %d, got %d", defaultConcurrency, c.concurrency)
+	}
+}
