@@ -43,15 +43,10 @@ func parseQueryType(qtype string) uint16 {
 
 // queryDNS sends a DNS query for the given domain to the specified server.
 // It respects context cancellation and the configured timeout.
-func queryDNS(ctx context.Context, domain, server string, qtype uint16, timeout time.Duration) (*dns.Msg, error) {
+func queryDNS(ctx context.Context, client *dns.Client, domain, server string, qtype uint16) (*dns.Msg, error) {
 	msg := new(dns.Msg)
 	msg.SetQuestion(dns.Fqdn(domain), qtype)
 	msg.RecursionDesired = true
-
-	client := &dns.Client{
-		Timeout: timeout,
-		Net:     "udp",
-	}
 
 	// Ensure server has port.
 	if !strings.Contains(server, ":") {
@@ -112,10 +107,10 @@ func containsKeyword(msg *dns.Msg, keyword string) bool {
 
 // checkDNSHealth performs a health check on a single DNS server by
 // resolving "google.com" and measuring the latency.
-func checkDNSHealth(ctx context.Context, server string, timeout time.Duration) ServerStatus {
+func checkDNSHealth(ctx context.Context, client *dns.Client, server string) ServerStatus {
 	start := time.Now()
 
-	resp, err := queryDNS(ctx, "google.com", server, dns.TypeA, timeout)
+	resp, err := queryDNS(ctx, client, "google.com", server, dns.TypeA)
 	latency := time.Since(start).Milliseconds()
 
 	if err != nil {

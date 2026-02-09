@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/miekg/dns"
 )
 
 // Default configuration values.
@@ -39,6 +41,7 @@ type Checker struct {
 	maxRetries int
 	cache      Cache
 	cacheTTL   time.Duration
+	dnsClient  *dns.Client
 }
 
 // New creates a new [Checker] with the default Nawala DNS server
@@ -70,6 +73,12 @@ func New(opts ...Option) *Checker {
 		c.cache = newMemoryCache(c.cacheTTL)
 	}
 
+	// Initialize shared DNS client to reuse connections/resources.
+	c.dnsClient = &dns.Client{
+		Timeout: c.timeout,
+		Net:     "udp",
+	}
+
 	return c
 }
 
@@ -89,10 +98,20 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 	results := make([]Result, len(domains))
 	var wg sync.WaitGroup
 
+	// Semaphore to limit concurrency.
+	// We use a buffered channel of size 100 to limit the number
+	// of concurrent goroutines.
+	sem := make(chan struct{}, 100)
+
 	for i, domain := range domains {
 		wg.Add(1)
 		go func(idx int, d string) {
 			defer wg.Done()
+
+			// Acquire semaphore
+			sem <- struct{}{}
+			defer func() { <-sem }() // Release semaphore
+
 			results[idx] = c.checkSingle(ctx, d)
 		}(i, domain)
 	}
@@ -124,7 +143,7 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 		wg.Add(1)
 		go func(idx int, server DNSServer) {
 			defer wg.Done()
-			statuses[idx] = checkDNSHealth(ctx, server.Address, c.timeout)
+			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address)
 		}(i, srv)
 	}
 
@@ -199,7 +218,10 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
 		if attempt > 0 {
 			// Exponential backoff: 1s, 2s, 4s, ...
-			backoff := time.Duration(1<<uint(attempt-1)) * time.Second
+			backoff := min(
+				// Cap backoff to prevent overflow or excessive waits.
+				time.Duration(1<<uint(attempt-1))*time.Second, 30*time.Second)
+
 			select {
 			case <-ctx.Done():
 				return Result{}, ctx.Err()
@@ -207,7 +229,7 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 			}
 		}
 
-		resp, err := queryDNS(ctx, domain, srv.Address, qtype, c.timeout)
+		resp, err := queryDNS(ctx, c.dnsClient, domain, srv.Address, qtype)
 		if err != nil {
 			lastErr = err
 			continue
