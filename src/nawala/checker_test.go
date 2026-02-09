@@ -7,6 +7,7 @@ package nawala_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -33,6 +34,9 @@ func TestIsValidDomain(t *testing.T) {
 		{"invalid special chars", "exam!ple.com", false},
 		{"invalid spaces", "example .com", false},
 		{"invalid too short label", "a.com", false},
+		{"invalid TLD with digits", "example.c0m", false},
+		{"invalid TLD with hyphen", "example.c-m", false},
+		{"invalid label too long", "example." + strings.Repeat("a", 64) + ".com", false},
 	}
 
 	for _, tt := range tests {
