@@ -10,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
 )
 
@@ -34,9 +37,7 @@ func TestIsValidDomain(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := nawala.IsValidDomain(tt.domain); got != tt.want {
-				t.Errorf("IsValidDomain(%q) = %v, want %v", tt.domain, got, tt.want)
-			}
+			assert.Equal(t, tt.want, nawala.IsValidDomain(tt.domain), "IsValidDomain(%q)", tt.domain)
 		})
 	}
 }
@@ -45,11 +46,8 @@ func TestNewDefaults(t *testing.T) {
 	c := nawala.New()
 
 	servers := c.Servers()
-	if len(servers) != 2 {
-		t.Fatalf("expected 2 default servers, got %d", len(servers))
-	}
+	require.Len(t, servers, 2, "expected 2 default servers")
 
-	// Verify the default servers match the expected configuration.
 	expected := []struct {
 		address   string
 		keyword   string
@@ -60,16 +58,9 @@ func TestNewDefaults(t *testing.T) {
 	}
 
 	for i, want := range expected {
-		got := servers[i]
-		if got.Address != want.address {
-			t.Errorf("server[%d].Address = %q, want %q", i, got.Address, want.address)
-		}
-		if got.Keyword != want.keyword {
-			t.Errorf("server[%d].Keyword = %q, want %q", i, got.Keyword, want.keyword)
-		}
-		if got.QueryType != want.queryType {
-			t.Errorf("server[%d].QueryType = %q, want %q", i, got.QueryType, want.queryType)
-		}
+		assert.Equal(t, want.address, servers[i].Address, "server[%d].Address", i)
+		assert.Equal(t, want.keyword, servers[i].Keyword, "server[%d].Keyword", i)
+		assert.Equal(t, want.queryType, servers[i].QueryType, "server[%d].QueryType", i)
 	}
 }
 
@@ -85,12 +76,8 @@ func TestWithOptions(t *testing.T) {
 	)
 
 	servers := c.Servers()
-	if len(servers) != 1 {
-		t.Fatalf("expected 1 custom server, got %d", len(servers))
-	}
-	if servers[0].Address != "1.1.1.1" {
-		t.Errorf("server address = %q, want %q", servers[0].Address, "1.1.1.1")
-	}
+	require.Len(t, servers, 1, "expected 1 custom server")
+	assert.Equal(t, "1.1.1.1", servers[0].Address)
 }
 
 func TestWithDNSServerAddAndReplace(t *testing.T) {
@@ -101,9 +88,7 @@ func TestWithDNSServerAddAndReplace(t *testing.T) {
 	)
 
 	servers := c.Servers()
-	if len(servers) != 3 { // 2 default + 1 added
-		t.Fatalf("expected 3 servers, got %d", len(servers))
-	}
+	require.Len(t, servers, 3, "expected 3 servers (2 default + 1 added)")
 
 	// Replace the first default server.
 	c2 := nawala.New(
@@ -113,12 +98,8 @@ func TestWithDNSServerAddAndReplace(t *testing.T) {
 	)
 
 	servers2 := c2.Servers()
-	if len(servers2) != 2 { // replaced, not added
-		t.Fatalf("expected 2 servers after replace, got %d", len(servers2))
-	}
-	if servers2[0].Keyword != "replaced" {
-		t.Errorf("server[0].Keyword = %q, want %q", servers2[0].Keyword, "replaced")
-	}
+	require.Len(t, servers2, 2, "expected 2 servers after replace")
+	assert.Equal(t, "replaced", servers2[0].Keyword)
 }
 
 func TestCheckInvalidDomain(t *testing.T) {
@@ -126,13 +107,8 @@ func TestCheckInvalidDomain(t *testing.T) {
 	ctx := context.Background()
 
 	result, err := c.CheckOne(ctx, "invalid")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if result.Error == nil {
-		t.Error("expected error for invalid domain, got nil")
-	}
+	require.NoError(t, err)
+	assert.Error(t, result.Error, "expected error for invalid domain")
 }
 
 func TestCheckNoDNSServers(t *testing.T) {
@@ -142,9 +118,7 @@ func TestCheckNoDNSServers(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := c.Check(ctx, "example.com")
-	if err != nawala.ErrNoDNSServers {
-		t.Errorf("expected ErrNoDNSServers, got %v", err)
-	}
+	assert.ErrorIs(t, err, nawala.ErrNoDNSServers)
 }
 
 func TestCacheHitMiss(t *testing.T) {
@@ -153,7 +127,7 @@ func TestCacheHitMiss(t *testing.T) {
 	)
 
 	// FlushCache should not panic on empty cache.
-	c.FlushCache()
+	assert.NotPanics(t, func() { c.FlushCache() })
 }
 
 func TestWithNilCache(t *testing.T) {
@@ -165,12 +139,8 @@ func TestWithNilCache(t *testing.T) {
 
 	// Should not panic when cache is nil.
 	result, err := c.CheckOne(ctx, "invalid")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result.Error == nil {
-		t.Error("expected error for invalid domain")
-	}
+	require.NoError(t, err)
+	assert.Error(t, result.Error, "expected error for invalid domain")
 }
 
 // TestLiveDNSCheck performs a real DNS check against Nawala servers.
@@ -188,9 +158,7 @@ func TestLiveDNSCheck(t *testing.T) {
 
 	// Check DNS server status first.
 	statuses, err := c.DNSStatus(ctx)
-	if err != nil {
-		t.Fatalf("DNSStatus failed: %v", err)
-	}
+	require.NoError(t, err, "DNSStatus failed")
 
 	onlineCount := 0
 	for _, s := range statuses {
@@ -206,11 +174,8 @@ func TestLiveDNSCheck(t *testing.T) {
 
 	// Check a domain that should not be blocked (google.com).
 	result, err := c.CheckOne(ctx, "google.com")
-	if err != nil {
-		t.Fatalf("CheckOne failed: %v", err)
-	}
-	if result.Error != nil {
-		t.Fatalf("unexpected result error: %v", result.Error)
-	}
+	require.NoError(t, err, "CheckOne failed")
+	require.NoError(t, result.Error, "unexpected result error")
+
 	t.Logf("google.com: blocked=%v (server=%s)", result.Blocked, result.Server)
 }
