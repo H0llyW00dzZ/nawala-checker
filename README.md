@@ -87,6 +87,9 @@ c := nawala.New(
         Keyword:   "blocked",
         QueryType: "A",
     }),
+
+    // Limit concurrent checks to 50 goroutines.
+    nawala.WithConcurrency(50),
 )
 ```
 
@@ -98,6 +101,7 @@ c := nawala.New(
 | `WithMaxRetries(n)` | `2` | Max retry attempts per query (total = n+1) |
 | `WithCacheTTL(d)` | `5m` | TTL for the built-in in-memory cache |
 | `WithCache(c)` | in-memory | Custom `Cache` implementation (pass `nil` to disable) |
+| `WithConcurrency(n)` | `100` | Max concurrent DNS checks (semaphore size) |
 | `WithServer(s)` | — | Add or replace a single DNS server |
 | `WithServers(s)` | Nawala defaults | Replace all DNS servers |
 
