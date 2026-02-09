@@ -7,6 +7,9 @@
 
 A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters (Nawala/Kominfo). It works by querying configurable DNS servers and scanning the responses for blocking keywords such as `internetpositif.id` redirects.
 
+> [!IMPORTANT]
+> This SDK requires an **Indonesian network** to function correctly. Nawala DNS servers only return blocking responses when queried from within Indonesia. If running on cloud infrastructure (e.g., VPS), you must use a pure Indonesian VPS with no routing through networks outside Indonesia.
+
 ## Features
 
 - **Concurrent domain checking** — check multiple domains in parallel with a single call
@@ -15,10 +18,11 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 - **Built-in caching** — in-memory cache with configurable TTL to avoid redundant queries
 - **Custom cache backends** — plug in Redis, memcached, or any backend via the `Cache` interface
 - **Server health checks** — monitor online/offline status and latency of DNS servers
+- **Panic recovery** — goroutines are protected from panics with automatic recovery and typed errors
 - **Functional options** — clean, idiomatic Go configuration pattern
 - **Context-aware** — full support for timeouts and cancellation via `context.Context`
 - **Domain validation** — automatic normalization and validation of domain names
-- **Typed errors** — sentinel errors for `errors.Is` matching (`ErrNoDNSServers`, `ErrAllDNSFailed`, `ErrInvalidDomain`, `ErrDNSTimeout`)
+- **Typed errors** — sentinel errors for `errors.Is` matching (`ErrNoDNSServers`, `ErrAllDNSFailed`, `ErrInvalidDomain`, `ErrDNSTimeout`, `ErrInternalPanic`)
 
 ## Installation
 
@@ -126,6 +130,14 @@ c.FlushCache()
 servers := c.Servers()
 ```
 
+### Validation
+
+```go
+// Validate a domain name before checking.
+ok := nawala.IsValidDomain("example.com") // true
+ok  = nawala.IsValidDomain("invalid")     // false (single label, no TLD)
+```
+
 ### Types
 
 ```go
@@ -151,6 +163,18 @@ type DNSServer struct {
     Keyword   string  // Blocking keyword to search for in responses
     QueryType string  // DNS record type: "A", "AAAA", "CNAME", "TXT", etc.
 }
+```
+
+### Errors
+
+```go
+var (
+    ErrNoDNSServers  // No DNS servers configured
+    ErrAllDNSFailed  // All DNS servers failed to respond
+    ErrInvalidDomain // Domain name failed validation
+    ErrDNSTimeout    // DNS query exceeded the configured timeout
+    ErrInternalPanic // An internal panic was recovered during execution
+)
 ```
 
 ### Custom Cache
@@ -196,24 +220,10 @@ Nawala blocks domains by returning CNAME redirects to known block pages (`intern
 
 ```
 nawala-checker/
-├── examples/
-│   ├── basic/          # Basic usage example
-│   ├── custom/         # Custom configuration example
-│   └── status/         # DNS server health check example
-├── src/
-│   └── nawala/
-│       ├── cache.go        # Cache interface and in-memory implementation
-│       ├── checker.go      # Core Checker type and check logic
-│       ├── checker_test.go # Unit and integration tests
-│       ├── dns.go          # DNS query, keyword detection, health checks
-│       ├── docs.go         # Package documentation
-│       ├── domain.go       # Domain validation and normalization
-│       ├── errors.go       # Sentinel errors
-│       ├── option.go       # Functional options
-│       └── result.go       # Result, ServerStatus, DNSServer types
-├── go.mod
-├── go.sum
-└── LICENSE
+├── .github/            # CI workflows and Dependabot configuration
+├── examples/           # Runnable usage examples (basic, custom, status)
+└── src/
+    └── nawala/          # Core SDK package (checker, cache, DNS, options, types)
 ```
 
 ## Testing
@@ -225,8 +235,14 @@ go test ./src/nawala/...
 # Run all tests including live DNS checks.
 go test -v ./src/nawala/...
 
+# Run with race detector.
+go test -race ./src/nawala/...
+
 # Skip live DNS tests.
 go test -short ./src/nawala/...
+
+# Run with coverage.
+go test -cover ./src/nawala/...
 ```
 
 ## License
