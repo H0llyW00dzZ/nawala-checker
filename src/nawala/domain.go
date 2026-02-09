@@ -14,7 +14,10 @@ import "strings"
 // letters, digits, or hyphens, and must not start or end with a hyphen.
 // The TLD (last label) must be at least 2 characters and contain only letters.
 func IsValidDomain(domain string) bool {
-	if domain == "" {
+	// Remove optional trailing dot for FQDN validation
+	domain = strings.TrimSuffix(domain, ".")
+
+	if domain == "" || len(domain) > 255 {
 		return false
 	}
 
@@ -24,33 +27,48 @@ func IsValidDomain(domain string) bool {
 	}
 
 	for i, label := range labels {
-		if len(label) < 2 || len(label) > 63 {
+		// Labels must be 1-63 characters (RFC 1035)
+		if len(label) == 0 || len(label) > 63 {
 			return false
 		}
 
-		// Labels must not start or end with a hyphen.
+		// Labels must not start or end with a hyphen
 		if label[0] == '-' || label[len(label)-1] == '-' {
 			return false
 		}
 
 		isTLD := i == len(labels)-1
 
+		// Special handling for TLDs
+		if isTLD {
+			// TLD must be at least 2 characters
+			if len(label) < 2 {
+				return false
+			}
+
+			// Check for Punycode TLD (starts with xn--)
+			if strings.HasPrefix(strings.ToLower(label), "xn--") {
+				// Punycode TLDs can contain digits and hyphens (standard hostname rules apply)
+				// We fall through to the general check below
+			} else {
+				// Standard TLDs must be letters only
+				for _, c := range label {
+					if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+						return false
+					}
+				}
+				continue // Skip general check since we already validated strict alpha
+			}
+		}
+
 		for _, c := range label {
 			switch {
 			case c >= 'a' && c <= 'z':
-				// ok
 			case c >= 'A' && c <= 'Z':
-				// ok
 			case c >= '0' && c <= '9':
-				if isTLD {
-					return false // TLD must be letters only.
-				}
 			case c == '-':
-				if isTLD {
-					return false // TLD must be letters only.
-				}
 			default:
-				return false
+				return false // Invalid character
 			}
 		}
 	}

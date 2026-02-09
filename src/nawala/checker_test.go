@@ -33,7 +33,7 @@ func TestIsValidDomain(t *testing.T) {
 		{"invalid ends with hyphen", "example-.com", false},
 		{"invalid special chars", "exam!ple.com", false},
 		{"invalid spaces", "example .com", false},
-		{"invalid too short label", "a.com", false},
+		{"valid short label", "a.com", true},
 		{"invalid TLD with digits", "example.c0m", false},
 		{"invalid TLD with hyphen", "example.c-m", false},
 		{"invalid label too long", "example." + strings.Repeat("a", 64) + ".com", false},
