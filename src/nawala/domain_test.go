@@ -38,6 +38,12 @@ func TestIsValidDomain(t *testing.T) {
 		{"invalid char", "exa_mple.com", false}, // underscores not allowed in hostnames usually, though technically valid in DNS, we stick to hostname rules here as per original intent
 		{"too long label", "thislabeliswaytoolongandshoulddefinitelyfailbecausethelimitissixtythreecharacters.com", false},
 		{"TLD numeric", "example.123", false},
+		{"mixed case punycode TLD", "example.Xn--P1ai", true},
+		{"unicode characters", "example.рф", false}, // we only support ASCII/Punycode
+		{"underscore in label", "exa_mple.com", false},
+		{"underscore in TLD", "example.c_m", false},
+		{"trailing dot with space", "example.com. ", false},
+		{"double trailing dot", "example.com..", false},
 	}
 
 	for _, tt := range tests {
