@@ -8,6 +8,9 @@ package nawala
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMemoryCacheGetSet(t *testing.T) {
@@ -15,21 +18,17 @@ func TestMemoryCacheGetSet(t *testing.T) {
 
 	// Miss on empty cache.
 	_, ok := c.Get("miss")
-	if ok {
-		t.Error("expected miss on empty cache")
-	}
+	assert.False(t, ok, "expected miss on empty cache")
 
 	// Set and hit.
 	want := Result{Domain: "example.com", Blocked: true, Server: "1.2.3.4"}
 	c.Set("hit", want)
 
 	got, ok := c.Get("hit")
-	if !ok {
-		t.Fatal("expected hit after Set")
-	}
-	if got.Domain != want.Domain || got.Blocked != want.Blocked || got.Server != want.Server {
-		t.Errorf("Get = %+v, want %+v", got, want)
-	}
+	require.True(t, ok, "expected hit after Set")
+	assert.Equal(t, want.Domain, got.Domain)
+	assert.Equal(t, want.Blocked, got.Blocked)
+	assert.Equal(t, want.Server, got.Server)
 }
 
 func TestMemoryCacheExpiration(t *testing.T) {
@@ -38,24 +37,20 @@ func TestMemoryCacheExpiration(t *testing.T) {
 	c.Set("expiring", Result{Domain: "test.com"})
 
 	// Immediately should be a hit.
-	if _, ok := c.Get("expiring"); !ok {
-		t.Fatal("expected hit before expiration")
-	}
+	_, ok := c.Get("expiring")
+	require.True(t, ok, "expected hit before expiration")
 
 	// Wait for expiration.
 	time.Sleep(100 * time.Millisecond)
 
-	if _, ok := c.Get("expiring"); ok {
-		t.Error("expected miss after expiration")
-	}
+	_, ok = c.Get("expiring")
+	assert.False(t, ok, "expected miss after expiration")
 
 	// Verify the expired entry was lazily deleted.
 	c.mu.RLock()
 	_, exists := c.entries["expiring"]
 	c.mu.RUnlock()
-	if exists {
-		t.Error("expected expired entry to be lazily deleted")
-	}
+	assert.False(t, exists, "expected expired entry to be lazily deleted")
 }
 
 func TestMemoryCacheFlush(t *testing.T) {
@@ -66,10 +61,9 @@ func TestMemoryCacheFlush(t *testing.T) {
 
 	c.Flush()
 
-	if _, ok := c.Get("a"); ok {
-		t.Error("expected miss after Flush")
-	}
-	if _, ok := c.Get("b"); ok {
-		t.Error("expected miss after Flush")
-	}
+	_, ok := c.Get("a")
+	assert.False(t, ok, "expected miss after Flush for key 'a'")
+
+	_, ok = c.Get("b")
+	assert.False(t, ok, "expected miss after Flush for key 'b'")
 }

@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseQueryType(t *testing.T) {
@@ -37,26 +39,19 @@ func TestParseQueryType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("input=%q", tt.input), func(t *testing.T) {
-			got := parseQueryType(tt.input)
-			if got != tt.want {
-				t.Errorf("parseQueryType(%q) = %d, want %d", tt.input, got, tt.want)
-			}
+			assert.Equal(t, tt.want, parseQueryType(tt.input))
 		})
 	}
 }
 
 func TestContainsKeyword(t *testing.T) {
 	t.Run("nil message", func(t *testing.T) {
-		if containsKeyword(nil, "anything") {
-			t.Error("expected false for nil message")
-		}
+		assert.False(t, containsKeyword(nil, "anything"))
 	})
 
 	t.Run("empty message", func(t *testing.T) {
 		msg := new(dns.Msg)
-		if containsKeyword(msg, "anything") {
-			t.Error("expected false for empty message")
-		}
+		assert.False(t, containsKeyword(msg, "anything"))
 	})
 
 	t.Run("keyword in Answer section", func(t *testing.T) {
@@ -67,9 +62,7 @@ func TestContainsKeyword(t *testing.T) {
 				Target: "internetpositif.id.",
 			},
 		}
-		if !containsKeyword(msg, "internetpositif") {
-			t.Error("expected true for keyword in Answer")
-		}
+		assert.True(t, containsKeyword(msg, "internetpositif"))
 	})
 
 	t.Run("keyword in Ns section", func(t *testing.T) {
@@ -80,9 +73,7 @@ func TestContainsKeyword(t *testing.T) {
 				Ns:  "internetpositif.ns.",
 			},
 		}
-		if !containsKeyword(msg, "internetpositif") {
-			t.Error("expected true for keyword in Ns")
-		}
+		assert.True(t, containsKeyword(msg, "internetpositif"))
 	})
 
 	t.Run("keyword in Extra section", func(t *testing.T) {
@@ -93,9 +84,7 @@ func TestContainsKeyword(t *testing.T) {
 				Txt: []string{"blocked by internetpositif"},
 			},
 		}
-		if !containsKeyword(msg, "internetpositif") {
-			t.Error("expected true for keyword in Extra")
-		}
+		assert.True(t, containsKeyword(msg, "internetpositif"))
 	})
 
 	t.Run("keyword not found", func(t *testing.T) {
@@ -106,9 +95,7 @@ func TestContainsKeyword(t *testing.T) {
 				A:   net.ParseIP("1.2.3.4"),
 			},
 		}
-		if containsKeyword(msg, "internetpositif") {
-			t.Error("expected false when keyword not in any section")
-		}
+		assert.False(t, containsKeyword(msg, "internetpositif"))
 	})
 
 	t.Run("case insensitive", func(t *testing.T) {
@@ -119,9 +106,7 @@ func TestContainsKeyword(t *testing.T) {
 				Target: "INTERNETPOSITIF.id.",
 			},
 		}
-		if !containsKeyword(msg, "internetpositif") {
-			t.Error("expected true for case-insensitive match")
-		}
+		assert.True(t, containsKeyword(msg, "internetpositif"))
 	})
 }
 
@@ -131,9 +116,7 @@ func startTestDNSServer(t *testing.T, handler dns.HandlerFunc) (string, func()) 
 	t.Helper()
 
 	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("failed to listen: %v", err)
-	}
+	require.NoError(t, err, "failed to listen")
 
 	server := &dns.Server{
 		PacketConn: pc,
@@ -144,10 +127,9 @@ func startTestDNSServer(t *testing.T, handler dns.HandlerFunc) (string, func()) 
 	go func() {
 		server.NotifyStartedFunc = func() { close(started) }
 		if err := server.ActivateAndServe(); err != nil {
-			// Server shutdown is expected, only log unexpected errors.
+			// Server shutdown is expected after started.
 			select {
 			case <-started:
-				// Already started, shutdown is expected.
 			default:
 				t.Logf("DNS server error: %v", err)
 			}
@@ -184,30 +166,23 @@ func TestQueryDNS(t *testing.T) {
 
 		ctx := context.Background()
 		msg, err := queryDNS(ctx, "example.com", addr, dns.TypeA, 5*time.Second)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(msg.Answer) == 0 {
-			t.Fatal("expected answer records, got none")
-		}
+		require.NoError(t, err)
+		assert.NotEmpty(t, msg.Answer, "expected answer records")
 	})
 
 	t.Run("context cancelled", func(t *testing.T) {
-		// Use a server that never responds (simulate by using a handler that sleeps).
 		handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
-			time.Sleep(10 * time.Second) // Never respond in time.
+			time.Sleep(10 * time.Second)
 		})
 
 		addr, cleanup := startTestDNSServer(t, handler)
 		defer cleanup()
 
 		ctx, cancel := context.WithCancel(context.Background())
-		cancel() // Cancel immediately.
+		cancel()
 
 		_, err := queryDNS(ctx, "example.com", addr, dns.TypeA, 5*time.Second)
-		if err == nil {
-			t.Fatal("expected error for cancelled context, got nil")
-		}
+		assert.Error(t, err, "expected error for cancelled context")
 	})
 
 	t.Run("server with port already specified", func(t *testing.T) {
@@ -220,12 +195,9 @@ func TestQueryDNS(t *testing.T) {
 		addr, cleanup := startTestDNSServer(t, handler)
 		defer cleanup()
 
-		// addr already contains "ip:port", queryDNS should handle it.
 		ctx := context.Background()
 		_, err := queryDNS(ctx, "example.com", addr, dns.TypeA, 5*time.Second)
-		if err != nil {
-			t.Fatalf("unexpected error with explicit port: %v", err)
-		}
+		assert.NoError(t, err)
 	})
 
 	t.Run("server without port", func(t *testing.T) {
@@ -238,8 +210,7 @@ func TestQueryDNS(t *testing.T) {
 		addr, cleanup := startTestDNSServer(t, handler)
 		defer cleanup()
 
-		// Extract just the IP and use it without port — it will auto-append ":53"
-		// which won't match our test server, so this tests the port-appending logic.
+		// Extract just the IP — queryDNS will auto-append ":53".
 		host, _, _ := net.SplitHostPort(addr)
 		ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 		defer cancel()
@@ -249,7 +220,6 @@ func TestQueryDNS(t *testing.T) {
 		if err == nil {
 			t.Log("query to port 53 unexpectedly succeeded (port 53 may be running)")
 		}
-		// Either way, the ":53" append code path is covered.
 	})
 }
 
@@ -276,26 +246,17 @@ func TestCheckDNSHealth(t *testing.T) {
 
 		ctx := context.Background()
 		status := checkDNSHealth(ctx, addr, 5*time.Second)
-		if !status.Online {
-			t.Errorf("expected Online=true, got false (error: %v)", status.Error)
-		}
-		if status.LatencyMs < 0 {
-			t.Errorf("expected non-negative latency, got %d", status.LatencyMs)
-		}
+		assert.True(t, status.Online, "expected Online=true")
+		assert.GreaterOrEqual(t, status.LatencyMs, int64(0))
 	})
 
 	t.Run("unreachable server", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		// Use an address that won't have a DNS server.
 		status := checkDNSHealth(ctx, "127.0.0.1:19999", 500*time.Millisecond)
-		if status.Online {
-			t.Error("expected Online=false for unreachable server")
-		}
-		if status.Error == nil {
-			t.Error("expected error for unreachable server")
-		}
+		assert.False(t, status.Online, "expected Online=false for unreachable server")
+		assert.Error(t, status.Error)
 	})
 
 	t.Run("non-success rcode", func(t *testing.T) {
@@ -311,11 +272,7 @@ func TestCheckDNSHealth(t *testing.T) {
 
 		ctx := context.Background()
 		status := checkDNSHealth(ctx, addr, 5*time.Second)
-		if status.Online {
-			t.Error("expected Online=false for SERVFAIL response")
-		}
-		if status.Error == nil {
-			t.Error("expected error for non-success rcode")
-		}
+		assert.False(t, status.Online, "expected Online=false for SERVFAIL")
+		assert.Error(t, status.Error)
 	})
 }
