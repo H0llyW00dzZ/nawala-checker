@@ -30,13 +30,13 @@ func main() {
 		}),
 
 		// Increase timeout for slow networks.
-		nawala.WithTimeout(15 * time.Second),
+		nawala.WithTimeout(15*time.Second),
 
 		// Allow more retries.
 		nawala.WithMaxRetries(3),
 
 		// Cache results for 10 minutes.
-		nawala.WithCacheTTL(10 * time.Minute),
+		nawala.WithCacheTTL(10*time.Minute),
 	)
 
 	ctx := context.Background()

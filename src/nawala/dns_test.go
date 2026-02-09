@@ -255,7 +255,7 @@ func TestCheckDNSHealth(t *testing.T) {
 		assert.GreaterOrEqual(t, status.LatencyMs, int64(0))
 	})
 
-		t.Run("unreachable server", func(t *testing.T) {
+	t.Run("unreachable server", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
