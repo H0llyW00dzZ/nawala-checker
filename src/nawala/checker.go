@@ -106,7 +106,24 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 	// of concurrent goroutines.
 	sem := make(chan struct{}, c.concurrency)
 
+Loop:
 	for i, domain := range domains {
+		// Check context before starting new work
+		select {
+		case <-ctx.Done():
+			// Fill remaining results with context error
+			for j := i; j < len(domains); j++ {
+				results[j] = Result{
+					Domain: domains[j],
+					Error:  ctx.Err(),
+				}
+			}
+			// Do not return immediately! We must wait for active goroutines.
+			// Break the loop to stop spawning new ones.
+			break Loop
+		default:
+		}
+
 		wg.Add(1)
 
 		// Acquire semaphore before spawning goroutine to limit
@@ -116,12 +133,24 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 		go func(idx int, d string) {
 			defer wg.Done()
 			defer func() { <-sem }() // Release semaphore
+			defer func() {
+				if r := recover(); r != nil {
+					results[idx] = Result{
+						Domain: d,
+						Error:  fmt.Errorf("%w: %v", ErrInternalPanic, r),
+					}
+				}
+			}()
 
 			results[idx] = c.checkSingle(ctx, d)
 		}(i, domain)
 	}
 
 	wg.Wait()
+	// Check context one last time to return correct error if we broke early
+	if ctx.Err() != nil {
+		return results, ctx.Err()
+	}
 	return results, nil
 }
 
@@ -149,7 +178,22 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	// of concurrent goroutines.
 	sem := make(chan struct{}, c.concurrency)
 
+Loop:
 	for i, srv := range c.servers {
+		// Check context before starting new work
+		select {
+		case <-ctx.Done():
+			// Fill remaining results with context error
+			for j := i; j < len(c.servers); j++ {
+				statuses[j] = ServerStatus{
+					Server: c.servers[j].Address,
+					Error:  ctx.Err(),
+				}
+			}
+			break Loop
+		default:
+		}
+
 		wg.Add(1)
 
 		// Acquire semaphore before spawning goroutine.
@@ -158,12 +202,23 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 		go func(idx int, server DNSServer) {
 			defer wg.Done()
 			defer func() { <-sem }() // Release semaphore
+			defer func() {
+				if r := recover(); r != nil {
+					statuses[idx] = ServerStatus{
+						Server: server.Address,
+						Error:  fmt.Errorf("%w: %v", ErrInternalPanic, r),
+					}
+				}
+			}()
 
 			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address)
 		}(i, srv)
 	}
 
 	wg.Wait()
+	if ctx.Err() != nil {
+		return statuses, ctx.Err()
+	}
 	return statuses, nil
 }
 

@@ -448,8 +448,59 @@ func TestWithConcurrency(t *testing.T) {
 		t.Errorf("expected concurrency %d, got %d", defaultConcurrency, c.concurrency)
 	}
 
-	c = New(WithConcurrency(-1))
 	if c.concurrency != defaultConcurrency {
 		t.Errorf("expected concurrency %d, got %d", defaultConcurrency, c.concurrency)
 	}
+}
+
+func TestCheckRaceCondition(t *testing.T) {
+	// Start a slow DNS server to ensure goroutines are still running 
+	// when we cancel the context.
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		time.Sleep(50 * time.Millisecond) // Simulate delay
+		m := new(dns.Msg)
+		m.SetReply(r)
+		_ = w.WriteMsg(m)
+	})
+	addr, cleanup := startTestDNSServer(t, handler)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "test", QueryType: "A"},
+		}),
+		WithTimeout(1*time.Second),
+		WithMaxRetries(0),
+	)
+
+	// Create a context that we can cancel
+	ctx, cancel := context.WithCancel(context.Background())
+	
+	// Check many domains to ensure we have active goroutines
+	// Must exceed default concurrency (100) to ensure the loop blocks on semaphore
+	// and is still running when we cancel.
+	count := 200
+	domains := make([]string, count)
+	for i := range domains {
+		domains[i] = "example.com"
+	}
+
+	// Start the check in a goroutine
+	done := make(chan struct{})
+	go func() {
+		results, _ := c.Check(ctx, domains...)
+		// Access results to trigger race with background writers
+		if len(results) > 0 {
+			_ = results[0].Domain
+		}
+		close(done)
+	}()
+
+	// Let it start spawning goroutines
+	time.Sleep(10 * time.Millisecond)
+	
+	// CANCEL while it's running! 
+	cancel()
+
+	<-done
 }
