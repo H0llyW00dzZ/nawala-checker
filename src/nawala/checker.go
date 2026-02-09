@@ -117,7 +117,9 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 					Error:  ctx.Err(),
 				}
 			}
-			return results, ctx.Err()
+			// Do not return immediately! We must wait for active goroutines.
+			// Break the loop to stop spawning new ones.
+			goto Wait
 		default:
 		}
 
@@ -143,7 +145,12 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 		}(i, domain)
 	}
 
+Wait:
 	wg.Wait()
+	// Check context one last time to return correct error if we broke early
+	if ctx.Err() != nil {
+		return results, ctx.Err()
+	}
 	return results, nil
 }
 
@@ -172,6 +179,20 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	sem := make(chan struct{}, c.concurrency)
 
 	for i, srv := range c.servers {
+		// Check context before starting new work
+		select {
+		case <-ctx.Done():
+			// Fill remaining results with context error
+			for j := i; j < len(c.servers); j++ {
+				statuses[j] = ServerStatus{
+					Server: c.servers[j].Address,
+					Error:  ctx.Err(),
+				}
+			}
+			goto Wait
+		default:
+		}
+
 		wg.Add(1)
 
 		// Acquire semaphore before spawning goroutine.
@@ -193,7 +214,11 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 		}(i, srv)
 	}
 
+Wait:
 	wg.Wait()
+	if ctx.Err() != nil {
+		return statuses, ctx.Err()
+	}
 	return statuses, nil
 }
 
