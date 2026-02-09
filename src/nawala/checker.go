@@ -282,13 +282,26 @@ func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
 	}
 }
 
-// queryWithRetries sends a DNS query with retry logic and exponential backoff.
+// queryWithRetries sends a DNS query with retry logic.
+//
+// Because Nawala/Kominfo DNS servers can return inconsistent responses
+// (the blocking CNAME may appear intermittently), this function
+// probes the server multiple times. If ANY probe detects blocking,
+// it returns immediately with Blocked=true. Only after all probes
+// return non-blocked does it report the domain as not blocked.
+//
+// Exponential backoff is applied only after query errors, not
+// between successful probes.
 func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSServer, qtype uint16) (Result, error) {
-	var lastErr error
+	var (
+		lastErr    error
+		bestResult Result
+		responded  bool
+	)
 
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
-		if attempt > 0 {
-			// Exponential backoff: 1s, 2s, 4s, ...
+		if attempt > 0 && lastErr != nil {
+			// Exponential backoff only after errors: 1s, 2s, 4s, ...
 			backoff := min(
 				// Cap backoff to prevent overflow or excessive waits.
 				time.Duration(1<<uint(attempt-1))*time.Second, 30*time.Second)
@@ -306,12 +319,29 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 			continue
 		}
 
-		blocked := containsKeyword(resp, srv.Keyword)
-		return Result{
-			Domain:  domain,
-			Blocked: blocked,
-			Server:  srv.Address,
-		}, nil
+		// If blocking detected on any probe, return immediately.
+		if containsKeyword(resp, srv.Keyword) {
+			return Result{
+				Domain:  domain,
+				Blocked: true,
+				Server:  srv.Address,
+			}, nil
+		}
+
+		// Track first successful non-blocked result.
+		if !responded {
+			bestResult = Result{
+				Domain:  domain,
+				Blocked: false,
+				Server:  srv.Address,
+			}
+			responded = true
+		}
+	}
+
+	// All probes succeeded without detecting blocking.
+	if responded {
+		return bestResult, nil
 	}
 
 	return Result{}, lastErr

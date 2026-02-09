@@ -141,13 +141,13 @@ func TestCheckOneWithCaching(t *testing.T) {
 	r1, err := c.CheckOne(ctx, "example.com")
 	require.NoError(t, err)
 	require.NoError(t, r1.Error)
-	assert.Equal(t, int32(1), queryCount.Load(), "expected 1 DNS query")
+	assert.Equal(t, int32(3), queryCount.Load(), "expected 3 DNS queries (multi-probe)")
 
 	// Second call — should hit cache, no new DNS query.
 	r2, err := c.CheckOne(ctx, "example.com")
 	require.NoError(t, err)
 	require.NoError(t, r2.Error)
-	assert.Equal(t, int32(1), queryCount.Load(), "expected 1 DNS query after cache hit")
+	assert.Equal(t, int32(3), queryCount.Load(), "expected no new DNS queries after cache hit")
 }
 
 func TestDNSStatusWithLocalServer(t *testing.T) {
@@ -241,7 +241,7 @@ func TestQueryWithRetriesSuccess(t *testing.T) {
 	result, err := c.queryWithRetries(ctx, "example.com", srv, dns.TypeA)
 	require.NoError(t, err)
 	assert.Equal(t, "example.com", result.Domain)
-	assert.Equal(t, int32(1), attempts.Load(), "expected 1 attempt (success on first try)")
+	assert.Equal(t, int32(3), attempts.Load(), "expected 3 attempts (probes all retries for consistency)")
 }
 
 func TestQueryWithRetriesRetry(t *testing.T) {
