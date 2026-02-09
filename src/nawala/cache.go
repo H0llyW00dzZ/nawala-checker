@@ -61,7 +61,10 @@ func (c *memoryCache) Get(key string) (Result, bool) {
 	if time.Now().After(entry.expiresAt) {
 		// Lazily remove expired entries.
 		c.mu.Lock()
-		delete(c.entries, key)
+		// Double-check locking: verify the entry hasn't changed while we defied the lock.
+		if currentEntry, exists := c.entries[key]; exists && currentEntry.expiresAt.Equal(entry.expiresAt) {
+			delete(c.entries, key)
+		}
 		c.mu.Unlock()
 		return Result{}, false
 	}

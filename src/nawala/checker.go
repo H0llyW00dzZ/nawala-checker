@@ -10,13 +10,16 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/miekg/dns"
 )
 
 // Default configuration values.
 const (
-	defaultTimeout  = 5 * time.Second
-	defaultRetries  = 2
-	defaultCacheTTL = 5 * time.Minute
+	defaultTimeout     = 5 * time.Second
+	defaultRetries     = 2
+	defaultCacheTTL    = 5 * time.Minute
+	defaultConcurrency = 100
 )
 
 // defaultServers are the pre-configured Nawala DNS servers
@@ -34,11 +37,13 @@ var defaultServers = []DNSServer{
 // Checker performs DNS-based domain blocking checks against
 // Nawala/Kominfo DNS servers.
 type Checker struct {
-	servers    []DNSServer
-	timeout    time.Duration
-	maxRetries int
-	cache      Cache
-	cacheTTL   time.Duration
+	servers     []DNSServer
+	timeout     time.Duration
+	maxRetries  int
+	concurrency int
+	cache       Cache
+	cacheTTL    time.Duration
+	dnsClient   *dns.Client
 }
 
 // New creates a new [Checker] with the default Nawala DNS server
@@ -54,10 +59,11 @@ type Checker struct {
 //	)
 func New(opts ...Option) *Checker {
 	c := &Checker{
-		servers:    make([]DNSServer, len(defaultServers)),
-		timeout:    defaultTimeout,
-		maxRetries: defaultRetries,
-		cacheTTL:   defaultCacheTTL,
+		servers:     make([]DNSServer, len(defaultServers)),
+		timeout:     defaultTimeout,
+		maxRetries:  defaultRetries,
+		concurrency: defaultConcurrency,
+		cacheTTL:    defaultCacheTTL,
 	}
 	copy(c.servers, defaultServers)
 
@@ -68,6 +74,12 @@ func New(opts ...Option) *Checker {
 	// Initialize cache if not set by option.
 	if c.cache == nil {
 		c.cache = newMemoryCache(c.cacheTTL)
+	}
+
+	// Initialize shared DNS client to reuse connections/resources.
+	c.dnsClient = &dns.Client{
+		Timeout: c.timeout,
+		Net:     "udp",
 	}
 
 	return c
@@ -89,10 +101,22 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 	results := make([]Result, len(domains))
 	var wg sync.WaitGroup
 
+	// Semaphore to limit concurrency.
+	// We use a buffered channel to limit the number
+	// of concurrent goroutines.
+	sem := make(chan struct{}, c.concurrency)
+
 	for i, domain := range domains {
 		wg.Add(1)
+
+		// Acquire semaphore before spawning goroutine to limit
+		// the number of active goroutines.
+		sem <- struct{}{}
+
 		go func(idx int, d string) {
 			defer wg.Done()
+			defer func() { <-sem }() // Release semaphore
+
 			results[idx] = c.checkSingle(ctx, d)
 		}(i, domain)
 	}
@@ -120,11 +144,22 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	statuses := make([]ServerStatus, len(c.servers))
 	var wg sync.WaitGroup
 
+	// Semaphore to limit concurrency.
+	// We use a buffered channel to limit the number
+	// of concurrent goroutines.
+	sem := make(chan struct{}, c.concurrency)
+
 	for i, srv := range c.servers {
 		wg.Add(1)
+
+		// Acquire semaphore before spawning goroutine.
+		sem <- struct{}{}
+
 		go func(idx int, server DNSServer) {
 			defer wg.Done()
-			statuses[idx] = checkDNSHealth(ctx, server.Address, c.timeout)
+			defer func() { <-sem }() // Release semaphore
+
+			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address)
 		}(i, srv)
 	}
 
@@ -199,7 +234,10 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
 		if attempt > 0 {
 			// Exponential backoff: 1s, 2s, 4s, ...
-			backoff := time.Duration(1<<uint(attempt-1)) * time.Second
+			backoff := min(
+				// Cap backoff to prevent overflow or excessive waits.
+				time.Duration(1<<uint(attempt-1))*time.Second, 30*time.Second)
+
 			select {
 			case <-ctx.Done():
 				return Result{}, ctx.Err()
@@ -207,7 +245,7 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 			}
 		}
 
-		resp, err := queryDNS(ctx, domain, srv.Address, qtype, c.timeout)
+		resp, err := queryDNS(ctx, c.dnsClient, domain, srv.Address, qtype)
 		if err != nil {
 			lastErr = err
 			continue

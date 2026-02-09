@@ -8,6 +8,8 @@ package nawala
 import (
 	"context"
 	"net"
+	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -174,7 +176,7 @@ func TestFailover(t *testing.T) {
 	c := New(
 		WithServers([]DNSServer{
 			{Address: "127.0.0.1:19998", Keyword: "internetpositif", QueryType: "A"}, // unreachable
-			{Address: goodAddr, Keyword: "internetpositif", QueryType: "A"},           // working
+			{Address: goodAddr, Keyword: "internetpositif", QueryType: "A"},          // working
 		}),
 		WithTimeout(500*time.Millisecond),
 		WithMaxRetries(0),
@@ -230,7 +232,7 @@ func TestQueryWithRetriesSuccess(t *testing.T) {
 	defer cleanup()
 
 	c := New(
-		WithTimeout(5 * time.Second),
+		WithTimeout(5*time.Second),
 		WithMaxRetries(2),
 	)
 
@@ -357,4 +359,97 @@ func TestDNSStatusNoServers(t *testing.T) {
 
 	_, err := c.DNSStatus(ctx)
 	assert.ErrorIs(t, err, ErrNoDNSServers)
+}
+
+func TestCheckConcurrencyLimit(t *testing.T) {
+	// This test verifies that we don't spawn a goroutine for every domain
+	// immediately, but strictly bound it by the semaphore size (100).
+
+	// Create a slow mock server to ensure goroutines stack up.
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		time.Sleep(100 * time.Millisecond) // Slow response
+		m := new(dns.Msg)
+		m.SetReply(r)
+		_ = w.WriteMsg(m)
+	})
+	addr, cleanup := startTestDNSServer(t, handler)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "test", QueryType: "A"},
+		}),
+		WithTimeout(1*time.Second),
+	)
+
+	ctx := context.Background()
+	count := 500 // Significantly more than semaphore size (100)
+	domains := make([]string, count)
+	for i := range domains {
+		domains[i] = "example.com"
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Measure baseline goroutines
+	startGoroutines := runtime.NumGoroutine()
+
+	go func() {
+		defer wg.Done()
+		_, _ = c.Check(ctx, domains...)
+	}()
+
+	// Give time for the loop to spin up
+	time.Sleep(100 * time.Millisecond)
+
+	currentGoroutines := runtime.NumGoroutine()
+	totalSpawned := currentGoroutines - startGoroutines
+
+	// With the fix:
+	// - 100 workers (max semaphore)
+	// - 100 internal DNS goroutines (hypothetically)
+	// - 1 Check goroutine
+	// Total ~201.
+	//
+	// Without the fix:
+	// - 500 workers
+	// - 100 internal DNS goroutines
+	// - 1 Check goroutine
+	// Total ~601.
+	//
+	// We set threshold to 400 to safely distinguish.
+	t.Logf("Goroutines: start=%d, current=%d, delta=%d", startGoroutines, currentGoroutines, totalSpawned)
+
+	if totalSpawned > 400 {
+		t.Errorf("Too many goroutines spawned! Expected around 200-250, got %d. This indicates unbounded concurrency spawning.", totalSpawned)
+	}
+
+	// Wait for cleanup
+	wg.Wait()
+}
+
+func TestWithConcurrency(t *testing.T) {
+	// Test default concurrency
+	c := New()
+	if c.concurrency != defaultConcurrency {
+		t.Errorf("expected default concurrency %d, got %d", defaultConcurrency, c.concurrency)
+	}
+
+	// Test custom concurrency
+	c = New(WithConcurrency(50))
+	if c.concurrency != 50 {
+		t.Errorf("expected concurrency 50, got %d", c.concurrency)
+	}
+
+	// Test invalid concurrency (should be ignored and remain default)
+	c = New(WithConcurrency(0))
+	if c.concurrency != defaultConcurrency {
+		t.Errorf("expected concurrency %d, got %d", defaultConcurrency, c.concurrency)
+	}
+
+	c = New(WithConcurrency(-1))
+	if c.concurrency != defaultConcurrency {
+		t.Errorf("expected concurrency %d, got %d", defaultConcurrency, c.concurrency)
+	}
 }

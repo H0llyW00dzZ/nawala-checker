@@ -66,3 +66,13 @@ func WithCacheTTL(d time.Duration) Option {
 		c.cacheTTL = d
 	}
 }
+
+// WithConcurrency sets the maximum number of concurrent DNS checks.
+// The default is 100.
+func WithConcurrency(n int) Option {
+	return func(c *Checker) {
+		if n > 0 {
+			c.concurrency = n
+		}
+	}
+}
