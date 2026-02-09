@@ -16,9 +16,10 @@ import (
 
 // Default configuration values.
 const (
-	defaultTimeout  = 5 * time.Second
-	defaultRetries  = 2
-	defaultCacheTTL = 5 * time.Minute
+	defaultTimeout     = 5 * time.Second
+	defaultRetries     = 2
+	defaultCacheTTL    = 5 * time.Minute
+	defaultConcurrency = 100
 )
 
 // defaultServers are the pre-configured Nawala DNS servers
@@ -36,12 +37,13 @@ var defaultServers = []DNSServer{
 // Checker performs DNS-based domain blocking checks against
 // Nawala/Kominfo DNS servers.
 type Checker struct {
-	servers    []DNSServer
-	timeout    time.Duration
-	maxRetries int
-	cache      Cache
-	cacheTTL   time.Duration
-	dnsClient  *dns.Client
+	servers     []DNSServer
+	timeout     time.Duration
+	maxRetries  int
+	concurrency int
+	cache       Cache
+	cacheTTL    time.Duration
+	dnsClient   *dns.Client
 }
 
 // New creates a new [Checker] with the default Nawala DNS server
@@ -57,10 +59,11 @@ type Checker struct {
 //	)
 func New(opts ...Option) *Checker {
 	c := &Checker{
-		servers:    make([]DNSServer, len(defaultServers)),
-		timeout:    defaultTimeout,
-		maxRetries: defaultRetries,
-		cacheTTL:   defaultCacheTTL,
+		servers:     make([]DNSServer, len(defaultServers)),
+		timeout:     defaultTimeout,
+		maxRetries:  defaultRetries,
+		concurrency: defaultConcurrency,
+		cacheTTL:    defaultCacheTTL,
 	}
 	copy(c.servers, defaultServers)
 
@@ -99,9 +102,9 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 	var wg sync.WaitGroup
 
 	// Semaphore to limit concurrency.
-	// We use a buffered channel of size 100 to limit the number
+	// We use a buffered channel to limit the number
 	// of concurrent goroutines.
-	sem := make(chan struct{}, 100)
+	sem := make(chan struct{}, c.concurrency)
 
 	for i, domain := range domains {
 		wg.Add(1)
@@ -142,9 +145,9 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	var wg sync.WaitGroup
 
 	// Semaphore to limit concurrency.
-	// We use a buffered channel of size 100 to limit the number
+	// We use a buffered channel to limit the number
 	// of concurrent goroutines.
-	sem := make(chan struct{}, 100)
+	sem := make(chan struct{}, c.concurrency)
 
 	for i, srv := range c.servers {
 		wg.Add(1)
