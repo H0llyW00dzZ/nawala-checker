@@ -1,5 +1,6 @@
 # Nawala Checker
 
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.25.6-blue?logo=go)](https://go.dev/dl/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/H0llyW00dzZ/nawala-checker.svg)](https://pkg.go.dev/github.com/H0llyW00dzZ/nawala-checker)
 [![Go Report Card](https://goreportcard.com/badge/github.com/H0llyW00dzZ/nawala-checker)](https://goreportcard.com/report/github.com/H0llyW00dzZ/nawala-checker)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
