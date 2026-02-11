@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm, macos-latest, windows-latest, windows-2022, windows-11-arm]
-        go-version: ['1.25.6', '1.25.7']
+        go-version: ['1.25.6', '1.25.7', '1.26.0']
     
     steps:
     - name: Checkout code
