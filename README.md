@@ -255,6 +255,10 @@ make test-cover
 make test-short
 ```
 
+## Roadmap
+
+- [ ] Upgrade `github.com/miekg/dns` to v2 or use a modern alternative for improved networking performance and features, due to its implementation in Go and its high effectiveness for networking.
+
 ## License
 
 [BSD 3-Clause License](LICENSE) — Copyright (c) 2026, H0llyW00dzZ
