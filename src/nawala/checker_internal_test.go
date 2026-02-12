@@ -617,3 +617,10 @@ func TestWithDNSClient(t *testing.T) {
 		assert.False(t, result.Blocked)
 	})
 }
+
+func TestWithNegativeMaxRetries(t *testing.T) {
+	c := New(WithMaxRetries(-5))
+
+	// Verify it exactly matches the default configuration
+	assert.Equal(t, defaultRetries, c.maxRetries, "maxRetries should default to defaultRetries when negative")
+}

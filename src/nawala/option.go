@@ -51,6 +51,9 @@ func WithTimeout(d time.Duration) Option {
 // The default is 2 retries (3 total attempts).
 func WithMaxRetries(n int) Option {
 	return func(c *Checker) {
+		if n < 0 {
+			n = defaultRetries // Use default on negative input
+		}
 		c.maxRetries = n
 	}
 }
