@@ -41,13 +41,13 @@ jobs:
 
     - name: Run tests with coverage (with race detector)
       if: matrix.os != 'windows-11-arm'
-      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./src/...
       shell: bash
       # continue-on-error: true
 
     - name: Run tests with coverage (without race detector)
       if: matrix.os == 'windows-11-arm'
-      run: go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+      run: go test -v -coverprofile=coverage.txt -covermode=atomic ./src/...
       shell: bash
       # continue-on-error: true
 
