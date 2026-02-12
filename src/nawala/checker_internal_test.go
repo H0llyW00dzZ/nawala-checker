@@ -617,4 +617,3 @@ func TestWithDNSClient(t *testing.T) {
 		assert.False(t, result.Blocked)
 	})
 }
-
