@@ -504,3 +504,117 @@ func TestCheckRaceCondition(t *testing.T) {
 
 	<-done
 }
+
+func TestWithDNSClient(t *testing.T) {
+	t.Run("custom client is used", func(t *testing.T) {
+		addr, cleanup := startNormalDNSServer(t)
+		defer cleanup()
+
+		customClient := &dns.Client{
+			Timeout: 10 * time.Second,
+			Net:     "udp",
+		}
+
+		c := New(
+			WithServers([]DNSServer{
+				{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+			}),
+			WithDNSClient(customClient),
+		)
+
+		// Verify the custom client is used (not the default).
+		if c.dnsClient != customClient {
+			t.Error("expected custom DNS client to be set")
+		}
+
+		// Verify it works end-to-end.
+		ctx := context.Background()
+		result, err := c.CheckOne(ctx, "example.com")
+		require.NoError(t, err)
+		assert.NoError(t, result.Error)
+		assert.False(t, result.Blocked)
+	})
+
+	t.Run("nil client is ignored", func(t *testing.T) {
+		c := New(
+			WithDNSClient(nil),
+		)
+
+		// Should fall back to default client.
+		if c.dnsClient == nil {
+			t.Error("expected default DNS client when nil is passed")
+		}
+		assert.Equal(t, "udp", c.dnsClient.Net, "expected default UDP transport")
+	})
+
+	t.Run("custom client overrides timeout", func(t *testing.T) {
+		customClient := &dns.Client{
+			Timeout: 42 * time.Second,
+			Net:     "udp",
+		}
+
+		c := New(
+			WithTimeout(1*time.Second), // This should be ignored for the client
+			WithDNSClient(customClient),
+		)
+
+		// The custom client's timeout should be preserved.
+		assert.Equal(t, 42*time.Second, c.dnsClient.Timeout)
+	})
+
+	t.Run("TCP transport works", func(t *testing.T) {
+		// Start a TCP DNS server.
+		handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+			m := new(dns.Msg)
+			m.SetReply(r)
+			m.Answer = append(m.Answer, &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   r.Question[0].Name,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    60,
+				},
+				A: net.ParseIP("1.2.3.4"),
+			})
+			_ = w.WriteMsg(m)
+		})
+
+		// Listen on TCP.
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		require.NoError(t, err)
+
+		server := &dns.Server{
+			Listener: listener,
+			Handler:  handler,
+		}
+
+		started := make(chan struct{})
+		go func() {
+			server.NotifyStartedFunc = func() { close(started) }
+			_ = server.ActivateAndServe()
+		}()
+		<-started
+		defer func() { _ = server.Shutdown() }()
+
+		tcpAddr := listener.Addr().String()
+
+		tcpClient := &dns.Client{
+			Timeout: 5 * time.Second,
+			Net:     "tcp",
+		}
+
+		c := New(
+			WithServers([]DNSServer{
+				{Address: tcpAddr, Keyword: "internetpositif", QueryType: "A"},
+			}),
+			WithDNSClient(tcpClient),
+		)
+
+		ctx := context.Background()
+		result, err := c.CheckOne(ctx, "example.com")
+		require.NoError(t, err)
+		assert.NoError(t, result.Error)
+		assert.False(t, result.Blocked)
+	})
+}
+

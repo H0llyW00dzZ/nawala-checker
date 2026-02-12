@@ -42,7 +42,9 @@ func IsValidDomain(domain string) bool {
 	return true
 }
 
-// isValidLabel checks if a standard label is valid according to RFC 1035.
+// isValidLabel checks if a standard label is valid according to [RFC 1035].
+//
+// [RFC 1035]: https://datatracker.ietf.org/doc/html/rfc1035
 func isValidLabel(label string) bool {
 	// Labels must be 1-63 characters (RFC 1035)
 	if len(label) == 0 || len(label) > 63 {

@@ -31,3 +31,5 @@ tmp/
 # Project build
 bin
 changelog.md
+coverage.txt
+coverage.out
