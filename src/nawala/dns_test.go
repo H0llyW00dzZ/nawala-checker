@@ -123,20 +123,26 @@ func startTestDNSServer(t *testing.T, handler dns.HandlerFunc) (string, func()) 
 		Handler:    handler,
 	}
 
-	started := make(chan struct{})
+	started := make(chan error, 1)
 	go func() {
-		server.NotifyStartedFunc = func() { close(started) }
+		server.NotifyStartedFunc = func() { started <- nil }
 		if err := server.ActivateAndServe(); err != nil {
-			// Server shutdown is expected after started.
+			// If the channel is not full, it means startup failed (NotifyStartedFunc didn't run).
+			// If full (or drained continuously), we try to send.
+			// Ideally, we only want to signal startup failure.
 			select {
-			case <-started:
+			case started <- err:
 			default:
+				// Startup already signaled (success) or channel full.
+				// Just log the error as it happened after start.
 				t.Logf("DNS server error: %v", err)
 			}
 		}
 	}()
 
-	<-started
+	if err := <-started; err != nil {
+		require.NoError(t, err, "failed to start server")
+	}
 	addr := pc.LocalAddr().String()
 
 	return addr, func() {
