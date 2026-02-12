@@ -76,10 +76,12 @@ func New(opts ...Option) *Checker {
 		c.cache = newMemoryCache(c.cacheTTL)
 	}
 
-	// Initialize shared DNS client to reuse connections/resources.
-	c.dnsClient = &dns.Client{
-		Timeout: c.timeout,
-		Net:     "udp",
+	// Initialize shared DNS client if not set by WithDNSClient option.
+	if c.dnsClient == nil {
+		c.dnsClient = &dns.Client{
+			Timeout: c.timeout,
+			Net:     "udp",
+		}
 	}
 
 	return c

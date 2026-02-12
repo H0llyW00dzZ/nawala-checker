@@ -5,7 +5,11 @@
 
 package nawala
 
-import "time"
+import (
+	"time"
+
+	"github.com/miekg/dns"
+)
 
 // Option is a functional option for configuring a [Checker].
 type Option func(*Checker)
@@ -34,6 +38,9 @@ func WithServers(servers []DNSServer) Option {
 
 // WithTimeout sets the timeout for each DNS query.
 // The default is 5 seconds.
+//
+// This option has no effect if a custom DNS client is set via [WithDNSClient],
+// as the custom client's own Timeout configuration takes precedence.
 func WithTimeout(d time.Duration) Option {
 	return func(c *Checker) {
 		c.timeout = d
@@ -73,6 +80,26 @@ func WithConcurrency(n int) Option {
 	return func(c *Checker) {
 		if n > 0 {
 			c.concurrency = n
+		}
+	}
+}
+
+// WithDNSClient sets a custom [dns.Client] for all DNS operations.
+// This allows full control over the transport configuration, including:
+//
+//   - TCP transport (Net: "tcp")
+//   - DNS-over-TLS (Net: "tcp-tls" with TLSConfig)
+//   - Custom Dialer for proxy or interface binding
+//   - SingleInflight for connection deduplication
+//
+// When set, the [WithTimeout] option will not affect DNS queries;
+// the client's own Timeout and TLSConfig will be used instead.
+//
+// Passing nil is a no-op and the default UDP client will be used.
+func WithDNSClient(client *dns.Client) Option {
+	return func(c *Checker) {
+		if client != nil {
+			c.dnsClient = client
 		}
 	}
 }
