@@ -12,6 +12,9 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 > [!IMPORTANT]
 > This SDK requires an **Indonesian network** to function correctly. Nawala DNS servers only return blocking responses when queried from within Indonesia. If running on cloud infrastructure (e.g., VPS), you must use a pure Indonesian VPS with no routing through networks outside Indonesia.
 
+> [!NOTE]
+> **This SDK is not deprecated or outdated.** Despite rumors that the original Nawala project may cease operations, this module remains a **general-purpose DNS checking toolkit** built from the ground up with customizable DNS server and client configurations. You can point it at any DNS server, define your own blocking keywords, and plug in custom `*dns.Client` instances (TCP, DNS-over-TLS, custom dialers, etc.). The default Nawala servers are simply pre-configured defaults; the SDK itself is fully independent and actively maintained.
+
 ## Features
 
 - **Concurrent domain checking** — check multiple domains in parallel with a single call
