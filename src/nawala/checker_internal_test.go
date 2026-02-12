@@ -7,6 +7,13 @@ package nawala
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
 	"net"
 	"runtime"
 	"sync"
@@ -623,4 +630,93 @@ func TestWithNegativeMaxRetries(t *testing.T) {
 
 	// Verify it exactly matches the default configuration
 	assert.Equal(t, defaultRetries, c.maxRetries, "maxRetries should default to defaultRetries when negative")
+}
+
+func TestDNSOverTLS(t *testing.T) {
+	// 1. Generate self-signed certificate for testing
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			Organization: []string{"Hello from Go (DNS over TLS RFC 7858)"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
+	require.NoError(t, err)
+
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	require.NoError(t, err)
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+
+	// 2. Start TLS Listener
+	listener, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig)
+	require.NoError(t, err)
+	defer listener.Close()
+
+	// 3. Start DNS Server
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Answer = append(m.Answer, &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   r.Question[0].Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    60,
+			},
+			A: net.ParseIP("1.2.3.4"),
+		})
+		_ = w.WriteMsg(m)
+	})
+
+	server := &dns.Server{
+		Listener: listener,
+		Handler:  handler,
+		Net:      "tcp-tls",
+	}
+
+	go func() {
+		_ = server.ActivateAndServe()
+	}()
+	// Allow brief time for server to start serving
+	time.Sleep(100 * time.Millisecond)
+
+	// 4. Configure Client with TLS
+	customClient := &dns.Client{
+		Net: "tcp-tls",
+		TLSConfig: &tls.Config{
+			InsecureSkipVerify: true, // Trust our self-signed cert
+		},
+		Timeout: 5 * time.Second,
+	}
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: listener.Addr().String(), Keyword: "internetpositif", QueryType: "A"}, // "internetpositif" is what we check for blocking usually, but here we just want to test connectivity
+		}),
+		WithDNSClient(customClient),
+	)
+
+	// 5. Verify Check
+	ctx := context.Background()
+	result, err := c.CheckOne(ctx, "example.com")
+	require.NoError(t, err)
+	assert.NoError(t, result.Error)
+	assert.False(t, result.Blocked)
+	assert.Equal(t, listener.Addr().String(), result.Server)
 }
