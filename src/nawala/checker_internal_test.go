@@ -617,6 +617,7 @@ func TestWithDNSClient(t *testing.T) {
 		assert.False(t, result.Blocked)
 	})
 }
+
 func TestWithNegativeMaxRetries(t *testing.T) {
 	c := New(WithMaxRetries(-5))
 
