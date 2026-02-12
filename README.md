@@ -96,6 +96,12 @@ c := nawala.New(
 
     // Limit concurrent checks to 50 goroutines.
     nawala.WithConcurrency(50),
+
+    // Use a custom DNS client (e.g., for TCP or DNS-over-TLS).
+    nawala.WithDNSClient(&dns.Client{
+        Timeout: 10 * time.Second,
+        Net:     "tcp-tls",
+    }),
 )
 ```
 
@@ -108,6 +114,7 @@ c := nawala.New(
 | `WithCacheTTL(d)` | `5m` | TTL for the built-in in-memory cache |
 | `WithCache(c)` | in-memory | Custom `Cache` implementation (pass `nil` to disable) |
 | `WithConcurrency(n)` | `100` | Max concurrent DNS checks (semaphore size) |
+| `WithDNSClient(c)` | UDP client | Custom `*dns.Client` for TCP, TLS, or custom dialer |
 | `WithServer(s)` | — | Add or replace a single DNS server |
 | `WithServers(s)` | Nawala defaults | Replace all DNS servers |
 
@@ -224,6 +231,7 @@ Nawala blocks domains by returning CNAME redirects to known block pages (`intern
 nawala-checker/
 ├── .github/            # CI workflows and Dependabot configuration
 ├── examples/           # Runnable usage examples (basic, custom, status)
+├── Makefile            # Build and test shortcuts
 └── src/
     └── nawala/          # Core SDK package (checker, cache, DNS, options, types)
 ```
@@ -231,20 +239,17 @@ nawala-checker/
 ## Testing
 
 ```bash
-# Run unit tests.
-go test ./src/nawala/...
+# Run tests with race detector.
+make test
 
-# Run all tests including live DNS checks.
-go test -v ./src/nawala/...
+# Run tests with verbose output.
+make test-verbose
 
-# Run with race detector.
-go test -race ./src/nawala/...
+# Run tests with coverage report.
+make test-cover
 
 # Skip live DNS tests.
-go test -short ./src/nawala/...
-
-# Run with coverage.
-go test -cover ./src/nawala/...
+make test-short
 ```
 
 ## License
