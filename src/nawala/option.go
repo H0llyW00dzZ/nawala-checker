@@ -95,6 +95,9 @@ func WithConcurrency(n int) Option {
 // When set, the [WithTimeout] option will not affect DNS queries;
 // the client's own Timeout and TLSConfig will be used instead.
 //
+// Note: This is mostly for advanced usage. If you know how to configure
+// a [dns.Client] perfectly, you possess a deep understanding of how the internet works.
+//
 // Passing nil is a no-op and the default UDP client will be used.
 func WithDNSClient(client *dns.Client) Option {
 	return func(c *Checker) {
