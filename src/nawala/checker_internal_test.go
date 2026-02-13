@@ -720,3 +720,95 @@ func TestDNSOverTLS(t *testing.T) {
 	assert.False(t, result.Blocked)
 	assert.Equal(t, listener.Addr().String(), result.Server)
 }
+
+// TestNawalaRPZStyleBlocking tests the checker with a simplified Nawala-style RPZ blacklist.
+func TestNawalaRPZStyleBlocking(t *testing.T) {
+	// Simplified Nawala-style RPZ blacklist.
+	// Blocked domains are redirected to internetpositif.id.
+	blacklist := map[string]bool{
+		"blocked0.test.": true,
+		"blocked1.test.": true,
+		"blocked2.test.": true,
+		"blocked3.test.": true,
+	}
+
+	// RPZ-style handler: blocked domains get a CNAME to internetpositif.id,
+	// non-blocked domains resolve normally.
+	rpzHandler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+
+		for _, q := range r.Question {
+			if blacklist[q.Name] {
+				// RPZ Action: redirect to internetpositif.id (Nawala landing page)
+				m.Answer = append(m.Answer, &dns.CNAME{
+					Hdr: dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypeCNAME,
+						Class:  dns.ClassINET,
+						Ttl:    3600,
+					},
+					Target: "internetpositif.id.",
+				})
+			} else {
+				// Not in blacklist — resolve normally.
+				m.Answer = append(m.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    60,
+					},
+					A: net.ParseIP("93.184.216.34"),
+				})
+			}
+		}
+		_ = w.WriteMsg(m)
+	})
+
+	addr, cleanup := startTestDNSServer(t, rpzHandler)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithTimeout(5*time.Second),
+	)
+
+	ctx := context.Background()
+
+	t.Run("blocked domains detected", func(t *testing.T) {
+		blockedDomains := []string{"blocked0.test", "blocked1.test", "blocked2.test", "blocked3.test"}
+
+		for _, domain := range blockedDomains {
+			result, err := c.CheckOne(ctx, domain)
+			require.NoError(t, err, "domain: %s", domain)
+			assert.NoError(t, result.Error, "domain: %s", domain)
+			assert.True(t, result.Blocked, "expected %s to be blocked by RPZ", domain)
+		}
+	})
+
+	t.Run("allowed domains pass through", func(t *testing.T) {
+		allowedDomains := []string{"google.com", "github.com", "example.com"}
+
+		for _, domain := range allowedDomains {
+			result, err := c.CheckOne(ctx, domain)
+			require.NoError(t, err, "domain: %s", domain)
+			assert.NoError(t, result.Error, "domain: %s", domain)
+			assert.False(t, result.Blocked, "expected %s to NOT be blocked", domain)
+		}
+	})
+
+	t.Run("batch check mixed domains", func(t *testing.T) {
+		domains := []string{"blocked0.test", "google.com", "blocked1.test", "github.com"}
+		results, err := c.Check(ctx, domains...)
+		require.NoError(t, err)
+		require.Len(t, results, 4)
+
+		assert.True(t, results[0].Blocked, "blocked0.test should be blocked")
+		assert.False(t, results[1].Blocked, "google.com should not be blocked")
+		assert.True(t, results[2].Blocked, "blocked1.test should be blocked")
+		assert.False(t, results[3].Blocked, "github.com should not be blocked")
+	})
+}
