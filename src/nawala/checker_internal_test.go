@@ -816,7 +816,7 @@ func TestNawalaRPZStyleBlocking(t *testing.T) {
 // TestNawalaRPZStyleBlockingDoT tests the checker with a simplified Nawala-style RPZ blacklist
 // over DNS-over-TLS (DoT) as specified in RFC 7858.
 //
-// DoT is preferred over DoH here, as using DoH (Overhead LoL + wastes bandwidth on useless HTTP headers.) for a checker would be unconventional.
+// DoT is preferred over DoH here, as using DoH (Overhead LoL + wastes bandwidth on useless HTTP headers) for a checker would be unconventional.
 func TestNawalaRPZStyleBlockingDoT(t *testing.T) {
 	// 1. Generate self-signed certificate for testing
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
