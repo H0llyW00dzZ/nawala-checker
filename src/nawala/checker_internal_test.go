@@ -812,3 +812,152 @@ func TestNawalaRPZStyleBlocking(t *testing.T) {
 		assert.False(t, results[3].Blocked, "github.com should not be blocked")
 	})
 }
+
+// TestNawalaRPZStyleBlockingDoT tests the checker with a simplified Nawala-style RPZ blacklist
+// over DNS-over-TLS (DoT) as specified in RFC 7858.
+//
+// DoT is preferred over DoH here, as using DoH (Overhead LoL + wastes bandwidth on useless HTTP headers) for a checker would be unconventional.
+func TestNawalaRPZStyleBlockingDoT(t *testing.T) {
+	// 1. Generate self-signed certificate for testing
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			Organization: []string{"Hello from Go (DNS over TLS RFC 7858)"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
+	require.NoError(t, err)
+
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	require.NoError(t, err)
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+
+	// 2. Start TLS Listener
+	listener, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig)
+	require.NoError(t, err)
+	defer listener.Close()
+
+	// 3. Simplified Nawala-style RPZ blacklist
+	blacklist := map[string]bool{
+		"blocked0.test.": true,
+		"blocked1.test.": true,
+		"blocked2.test.": true,
+		"blocked3.test.": true,
+	}
+
+	// RPZ-style handler: blocked domains get a CNAME to internetpositif.id,
+	// non-blocked domains resolve normally.
+	rpzHandler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+
+		for _, q := range r.Question {
+			if blacklist[q.Name] {
+				// RPZ Action: redirect to internetpositif.id (Nawala landing page)
+				m.Answer = append(m.Answer, &dns.CNAME{
+					Hdr: dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypeCNAME,
+						Class:  dns.ClassINET,
+						Ttl:    3600,
+					},
+					Target: "internetpositif.id.",
+				})
+			} else {
+				// Not in blacklist — resolve normally.
+				m.Answer = append(m.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+						Ttl:    60,
+					},
+					A: net.ParseIP("93.184.216.34"),
+				})
+			}
+		}
+		_ = w.WriteMsg(m)
+	})
+
+	// 4. Start DNS-over-TLS Server
+	server := &dns.Server{
+		Listener: listener,
+		Handler:  rpzHandler,
+		Net:      "tcp-tls",
+	}
+
+	go func() {
+		_ = server.ActivateAndServe()
+	}()
+	// Allow brief time for server to start serving
+	time.Sleep(100 * time.Millisecond)
+	defer func() { _ = server.Shutdown() }()
+
+	// 5. Configure Client with TLS (DoT)
+	customClient := &dns.Client{
+		Net: "tcp-tls",
+		TLSConfig: &tls.Config{
+			InsecureSkipVerify: true, // Trust our self-signed cert
+		},
+		Timeout: 5 * time.Second,
+	}
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: listener.Addr().String(), Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithDNSClient(customClient),
+	)
+
+	ctx := context.Background()
+
+	t.Run("blocked domains detected over DoT", func(t *testing.T) {
+		blockedDomains := []string{"blocked0.test", "blocked1.test", "blocked2.test", "blocked3.test"}
+
+		for _, domain := range blockedDomains {
+			result, err := c.CheckOne(ctx, domain)
+			require.NoError(t, err, "domain: %s", domain)
+			assert.NoError(t, result.Error, "domain: %s", domain)
+			assert.True(t, result.Blocked, "expected %s to be blocked by RPZ over DoT", domain)
+		}
+	})
+
+	t.Run("allowed domains pass through over DoT", func(t *testing.T) {
+		allowedDomains := []string{"google.com", "github.com", "example.com"}
+
+		for _, domain := range allowedDomains {
+			result, err := c.CheckOne(ctx, domain)
+			require.NoError(t, err, "domain: %s", domain)
+			assert.NoError(t, result.Error, "domain: %s", domain)
+			assert.False(t, result.Blocked, "expected %s to NOT be blocked over DoT", domain)
+		}
+	})
+
+	t.Run("batch check mixed domains over DoT", func(t *testing.T) {
+		domains := []string{"blocked0.test", "google.com", "blocked1.test", "github.com"}
+		results, err := c.Check(ctx, domains...)
+		require.NoError(t, err)
+		require.Len(t, results, 4)
+
+		assert.True(t, results[0].Blocked, "blocked0.test should be blocked over DoT")
+		assert.False(t, results[1].Blocked, "google.com should not be blocked over DoT")
+		assert.True(t, results[2].Blocked, "blocked1.test should be blocked over DoT")
+		assert.False(t, results[3].Blocked, "github.com should not be blocked over DoT")
+	})
+}
