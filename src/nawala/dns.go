@@ -49,11 +49,11 @@ func parseQueryType(qtype string) uint16 {
 //
 // [RFC 6891]: https://datatracker.ietf.org/doc/html/rfc6891
 // [RFC 8914]: https://datatracker.ietf.org/doc/html/rfc8914
-func queryDNS(ctx context.Context, client *dns.Client, domain, server string, qtype uint16) (*dns.Msg, error) {
+func queryDNS(ctx context.Context, client *dns.Client, domain, server string, qtype, edns0Size uint16) (*dns.Msg, error) {
 	msg := new(dns.Msg)
 	msg.SetQuestion(dns.Fqdn(domain), qtype)
 	msg.RecursionDesired = true
-	msg.SetEdns0(4096, false)
+	msg.SetEdns0(edns0Size, false)
 
 	// Ensure server has port.
 	if !strings.Contains(server, ":") {
@@ -102,10 +102,10 @@ func containsKeyword(msg *dns.Msg, keyword string) bool {
 
 // checkDNSHealth performs a health check on a single DNS server by
 // resolving "google.com" and measuring the latency.
-func checkDNSHealth(ctx context.Context, client *dns.Client, server string) ServerStatus {
+func checkDNSHealth(ctx context.Context, client *dns.Client, server string, edns0Size uint16) ServerStatus {
 	start := time.Now()
 
-	resp, err := queryDNS(ctx, client, "google.com", server, dns.TypeA)
+	resp, err := queryDNS(ctx, client, "google.com", server, dns.TypeA, edns0Size)
 	latency := time.Since(start).Milliseconds()
 
 	if err != nil {
