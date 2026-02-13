@@ -7,7 +7,7 @@
 [![codecov](https://codecov.io/gh/H0llyW00dzZ/nawala-checker/graph/badge.svg?token=3GU9QRYAUX)](https://codecov.io/gh/H0llyW00dzZ/nawala-checker)
 [![View on DeepWiki](https://img.shields.io/badge/View%20on-DeepWiki-blue)](https://deepwiki.com/H0llyW00dzZ/nawala-checker)
 
-A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters (Nawala/Kominfo). It works by querying configurable DNS servers and scanning the responses for blocking keywords such as `internetpositif.id` redirects.
+A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters (Nawala/Kominfo (now Komdigi)). It works by querying configurable DNS servers and scanning the responses for blocking keywords such as `internetpositif.id` redirects.
 
 > [!IMPORTANT]
 > This SDK requires an **Indonesian network** to function correctly. Nawala DNS servers only return blocking responses when queried from within Indonesia. If running on cloud infrastructure (e.g., VPS), you must use a pure Indonesian VPS with no routing through networks outside Indonesia.
