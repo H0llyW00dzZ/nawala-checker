@@ -35,7 +35,7 @@ var defaultServers = []DNSServer{
 }
 
 // Checker performs DNS-based domain blocking checks against
-// Nawala/Kominfo DNS servers.
+// Nawala/Kominfo (now Komdigi) DNS servers.
 type Checker struct {
 	servers     []DNSServer
 	timeout     time.Duration
@@ -286,7 +286,7 @@ func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
 
 // queryWithRetries sends a DNS query with retry logic.
 //
-// Because Nawala/Kominfo DNS servers can return inconsistent responses
+// Because Nawala/Kominfo (now Komdigi) DNS servers can return inconsistent responses
 // (the blocking CNAME may appear intermittently), this function
 // probes the server multiple times. If ANY probe detects blocking,
 // it returns immediately with Blocked=true. Only after all probes
