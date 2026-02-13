@@ -460,6 +460,26 @@ func TestWithConcurrency(t *testing.T) {
 	}
 }
 
+func TestWithEDNS0Size(t *testing.T) {
+	// Test default EDNS0 size
+	c := New()
+	if c.edns0Size != defaultEDNS0Size {
+		t.Errorf("expected default EDNS0 size %d, got %d", defaultEDNS0Size, c.edns0Size)
+	}
+
+	// Test custom EDNS0 size
+	c = New(WithEDNS0Size(4096))
+	if c.edns0Size != 4096 {
+		t.Errorf("expected EDNS0 size 4096, got %d", c.edns0Size)
+	}
+
+	// Test invalid EDNS0 size (should be ignored and remain default)
+	c = New(WithEDNS0Size(0))
+	if c.edns0Size != defaultEDNS0Size {
+		t.Errorf("expected EDNS0 size %d, got %d", defaultEDNS0Size, c.edns0Size)
+	}
+}
+
 func TestCheckRaceCondition(t *testing.T) {
 	// Start a slow DNS server to ensure goroutines are still running
 	// when we cancel the context.

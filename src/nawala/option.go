@@ -111,3 +111,16 @@ func WithDNSClient(client *dns.Client) Option {
 		}
 	}
 }
+
+// WithEDNS0Size sets the EDNS0 UDP buffer size.
+// The default is 1232 bytes, which is the recommended size to prevent
+// IP fragmentation over UDP.
+//
+// See: https://dnsflagday.net/2020/
+func WithEDNS0Size(size uint16) Option {
+	return func(c *Checker) {
+		if size > 0 {
+			c.edns0Size = size
+		}
+	}
+}

@@ -20,6 +20,7 @@ const (
 	defaultRetries     = 2
 	defaultCacheTTL    = 5 * time.Minute
 	defaultConcurrency = 100
+	defaultEDNS0Size   = 1232 // Recommended size to prevent IP fragmentation
 )
 
 // defaultServers are the pre-configured Nawala DNS servers
@@ -45,6 +46,7 @@ type Checker struct {
 	concurrency int
 	cache       Cache
 	cacheTTL    time.Duration
+	edns0Size   uint16
 	dnsClient   *dns.Client
 }
 
@@ -65,6 +67,7 @@ func New(opts ...Option) *Checker {
 		timeout:     defaultTimeout,
 		maxRetries:  defaultRetries,
 		concurrency: defaultConcurrency,
+		edns0Size:   defaultEDNS0Size,
 		cacheTTL:    defaultCacheTTL,
 	}
 	copy(c.servers, defaultServers)
@@ -215,7 +218,7 @@ Loop:
 				}
 			}()
 
-			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address)
+			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address, c.edns0Size)
 		}(i, srv)
 	}
 
@@ -317,7 +320,7 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 			}
 		}
 
-		resp, err := queryDNS(ctx, c.dnsClient, domain, srv.Address, qtype)
+		resp, err := queryDNS(ctx, c.dnsClient, domain, srv.Address, qtype, c.edns0Size)
 		if err != nil {
 			lastErr = err
 			continue

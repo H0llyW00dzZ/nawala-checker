@@ -105,6 +105,9 @@ c := nawala.New(
         Timeout: 10 * time.Second,
         Net:     "tcp-tls",
     }),
+
+    // Set custom EDNS0 size (default is 1232 to prevent fragmentation).
+    nawala.WithEDNS0Size(4096),
 )
 ```
 
@@ -117,6 +120,7 @@ c := nawala.New(
 | `WithCacheTTL(d)` | `5m` | TTL for the built-in in-memory cache |
 | `WithCache(c)` | in-memory | Custom `Cache` implementation (pass `nil` to disable) |
 | `WithConcurrency(n)` | `100` | Max concurrent DNS checks (semaphore size) |
+| `WithEDNS0Size(n)` | `1232` | EDNS0 UDP buffer size (prevents fragmentation) |
 | `WithDNSClient(c)` | UDP client | Custom `*dns.Client` for TCP, TLS, or custom dialer |
 | `WithServer(s)` | — | Add or replace a single DNS server |
 | `WithServers(s)` | Nawala defaults | Replace all DNS servers |
