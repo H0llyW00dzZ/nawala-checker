@@ -43,10 +43,17 @@ func parseQueryType(qtype string) uint16 {
 
 // queryDNS sends a DNS query for the given domain to the specified server.
 // It respects context cancellation and the configured timeout.
+//
+// EDNS0 is enabled by default ([RFC 6891]) to allow the server to return
+// Extended DNS Errors ([RFC 8914]), such as EDE 15 (Blocked) used by Komdigi.
+//
+// [RFC 6891]: https://datatracker.ietf.org/doc/html/rfc6891
+// [RFC 8914]: https://datatracker.ietf.org/doc/html/rfc8914
 func queryDNS(ctx context.Context, client *dns.Client, domain, server string, qtype uint16) (*dns.Msg, error) {
 	msg := new(dns.Msg)
 	msg.SetQuestion(dns.Fqdn(domain), qtype)
 	msg.RecursionDesired = true
+	msg.SetEdns0(4096, false)
 
 	// Ensure server has port.
 	if !strings.Contains(server, ":") {
