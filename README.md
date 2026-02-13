@@ -7,7 +7,7 @@
 [![codecov](https://codecov.io/gh/H0llyW00dzZ/nawala-checker/graph/badge.svg?token=3GU9QRYAUX)](https://codecov.io/gh/H0llyW00dzZ/nawala-checker)
 [![View on DeepWiki](https://img.shields.io/badge/View%20on-DeepWiki-blue)](https://deepwiki.com/H0llyW00dzZ/nawala-checker)
 
-A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters (Nawala/Kominfo (now Komdigi)). It works by querying configurable DNS servers and scanning the responses for blocking keywords such as `internetpositif.id` redirects.
+A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters (Nawala/Kominfo (now Komdigi)). It works by querying configurable DNS servers and scanning the responses for blocking keywords such as `internetpositif.id` redirects or `trustpositif.komdigi.go.id` EDE indicators.
 
 > [!IMPORTANT]
 > This SDK requires an **Indonesian network** to function correctly. Nawala DNS servers only return blocking responses when queried from within Indonesia. If running on cloud infrastructure (e.g., VPS), you must use a pure Indonesian VPS with no routing through networks outside Indonesia.
@@ -226,7 +226,46 @@ The checker comes pre-configured with known Nawala DNS servers:
 | `180.131.144.144` | `internetpositif` | `A` |
 | `180.131.145.145` | `internetpositif` | `A` |
 
-Nawala blocks domains by returning CNAME redirects to known block pages (`internetpositif.id` or `internetsehatku.com`). The keyword is matched against the full DNS record string for broad detection.
+Nawala blocks domains by returning CNAME redirects to known block pages (`internetpositif.id` or `internetsehatku.com`). Komdigi blocks domains by returning an A record with EDE 15 (Blocked) containing `trustpositif.komdigi.go.id`. The keyword is matched against the full DNS record string for broad detection.
+
+## How Blocking Works
+
+Indonesian ISP DNS filters use two distinct blocking mechanisms:
+
+### Nawala — CNAME Redirect
+
+Nawala intercepts DNS queries for blocked domains and returns a **CNAME redirect** to a landing page instead of the real IP address:
+
+```
+;; ANSWER SECTION:
+blocked.example.    3600    IN    CNAME    internetpositif.id.
+```
+
+The checker detects this by scanning all DNS record sections (Answer, Authority, Additional) for the keyword `internetpositif` in any record's string representation.
+
+### Komdigi — EDE 15 (Blocked)
+
+Komdigi uses the newer **Extended DNS Errors** mechanism ([RFC 8914](https://datatracker.ietf.org/doc/rfc8914/)). The response returns an A record pointing to a block page IP, along with an EDE option code 15 (Blocked) in the OPT pseudo-section:
+
+```
+;; OPT PSEUDOSECTION:
+; EDE: 15 (Blocked): (source=block-list-zone;
+;   blockListUrl=https://trustpositif.komdigi.go.id/assets/db/domains_isp;
+;   domain=reddit.com)
+
+;; ANSWER SECTION:
+reddit.com.    30    IN    A    103.155.26.29
+```
+
+The checker detects this by scanning the Extra section (which contains the OPT record) for the keyword `trustpositif` or `komdigi`. To use this detection, configure a server with the appropriate keyword:
+
+```go
+nawala.WithServer(nawala.DNSServer{
+    Address:   "103.155.26.28",
+    Keyword:   "trustpositif",
+    QueryType: "A",
+})
+```
 
 ## Project Structure
 
