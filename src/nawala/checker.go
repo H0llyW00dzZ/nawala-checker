@@ -27,6 +27,8 @@ const (
 //
 // Nawala blocks domains by returning CNAME redirects to known
 // block pages: "internetpositif.id" or "internetsehatku.com".
+// Komdigi blocks domains by returning an A record with
+// EDE 15 (Blocked) containing "trustpositif.komdigi.go.id".
 // The keyword is matched against the full DNS record string,
 // so these domain names are used as detection keywords.
 var defaultServers = []DNSServer{
