@@ -172,7 +172,13 @@ func TestQueryDNS(t *testing.T) {
 
 		ctx := context.Background()
 		client := &dns.Client{Timeout: 5 * time.Second, Net: "udp"}
-		msg, err := queryDNS(ctx, client, "example.com", addr, dns.TypeA, 1232)
+		msg, err := queryDNS(ctx, dnsQuery{
+			client:    client,
+			domain:    "example.com",
+			server:    addr,
+			qtype:     dns.TypeA,
+			edns0Size: 1232,
+		})
 		require.NoError(t, err)
 		assert.NotEmpty(t, msg.Answer, "expected answer records")
 	})
@@ -189,7 +195,13 @@ func TestQueryDNS(t *testing.T) {
 		cancel()
 
 		client := &dns.Client{Timeout: 5 * time.Second, Net: "udp"}
-		_, err := queryDNS(ctx, client, "example.com", addr, dns.TypeA, 1232)
+		_, err := queryDNS(ctx, dnsQuery{
+			client:    client,
+			domain:    "example.com",
+			server:    addr,
+			qtype:     dns.TypeA,
+			edns0Size: 1232,
+		})
 		assert.Error(t, err, "expected error for cancelled context")
 	})
 
@@ -205,7 +217,13 @@ func TestQueryDNS(t *testing.T) {
 
 		ctx := context.Background()
 		client := &dns.Client{Timeout: 5 * time.Second, Net: "udp"}
-		_, err := queryDNS(ctx, client, "example.com", addr, dns.TypeA, 1232)
+		_, err := queryDNS(ctx, dnsQuery{
+			client:    client,
+			domain:    "example.com",
+			server:    addr,
+			qtype:     dns.TypeA,
+			edns0Size: 1232,
+		})
 		assert.NoError(t, err)
 	})
 
@@ -226,7 +244,13 @@ func TestQueryDNS(t *testing.T) {
 
 		client := &dns.Client{Timeout: 500 * time.Millisecond, Net: "udp"}
 		// This will fail because it'll try port 53, but that covers the code path.
-		_, err := queryDNS(ctx, client, "example.com", host, dns.TypeA, 1232)
+		_, err := queryDNS(ctx, dnsQuery{
+			client:    client,
+			domain:    "example.com",
+			server:    host,
+			qtype:     dns.TypeA,
+			edns0Size: 1232,
+		})
 		if err == nil {
 			t.Log("query to port 53 unexpectedly succeeded (port 53 may be running)")
 		}
@@ -256,7 +280,11 @@ func TestCheckDNSHealth(t *testing.T) {
 
 		ctx := context.Background()
 		client := &dns.Client{Timeout: 5 * time.Second, Net: "udp"}
-		status := checkDNSHealth(ctx, client, addr, 1232)
+		status := checkDNSHealth(ctx, dnsQuery{
+			client:    client,
+			server:    addr,
+			edns0Size: 1232,
+		})
 		assert.True(t, status.Online, "expected Online=true")
 		assert.GreaterOrEqual(t, status.LatencyMs, int64(0))
 	})
@@ -266,7 +294,11 @@ func TestCheckDNSHealth(t *testing.T) {
 		defer cancel()
 
 		client := &dns.Client{Timeout: 500 * time.Millisecond, Net: "udp"}
-		status := checkDNSHealth(ctx, client, "127.0.0.1:19999", 1232)
+		status := checkDNSHealth(ctx, dnsQuery{
+			client:    client,
+			server:    "127.0.0.1:19999",
+			edns0Size: 1232,
+		})
 		assert.False(t, status.Online, "expected Online=false for unreachable server")
 		assert.Error(t, status.Error)
 	})
@@ -284,7 +316,11 @@ func TestCheckDNSHealth(t *testing.T) {
 
 		ctx := context.Background()
 		client := &dns.Client{Timeout: 5 * time.Second, Net: "udp"}
-		status := checkDNSHealth(ctx, client, addr, 1232)
+		status := checkDNSHealth(ctx, dnsQuery{
+			client:    client,
+			server:    addr,
+			edns0Size: 1232,
+		})
 		assert.False(t, status.Online, "expected Online=false for SERVFAIL")
 		assert.Error(t, status.Error)
 	})
