@@ -218,7 +218,11 @@ Loop:
 				}
 			}()
 
-			statuses[idx] = checkDNSHealth(ctx, c.dnsClient, server.Address, c.edns0Size)
+			statuses[idx] = checkDNSHealth(ctx, dnsQuery{
+				client:    c.dnsClient,
+				server:    server.Address,
+				edns0Size: c.edns0Size,
+			})
 		}(i, srv)
 	}
 
@@ -320,7 +324,13 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 			}
 		}
 
-		resp, err := queryDNS(ctx, c.dnsClient, domain, srv.Address, qtype, c.edns0Size)
+		resp, err := queryDNS(ctx, dnsQuery{
+			client:    c.dnsClient,
+			domain:    domain,
+			server:    srv.Address,
+			qtype:     qtype,
+			edns0Size: c.edns0Size,
+		})
 		if err != nil {
 			lastErr = err
 			continue

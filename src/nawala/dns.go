@@ -41,6 +41,15 @@ func parseQueryType(qtype string) uint16 {
 	}
 }
 
+// dnsQuery bundles the parameters for a single DNS query.
+type dnsQuery struct {
+	client    *dns.Client
+	domain    string
+	server    string
+	qtype     uint16
+	edns0Size uint16
+}
+
 // queryDNS sends a DNS query for the given domain to the specified server.
 // It respects context cancellation and the configured timeout.
 //
@@ -49,18 +58,19 @@ func parseQueryType(qtype string) uint16 {
 //
 // [RFC 6891]: https://datatracker.ietf.org/doc/html/rfc6891
 // [RFC 8914]: https://datatracker.ietf.org/doc/html/rfc8914
-func queryDNS(ctx context.Context, client *dns.Client, domain, server string, qtype, edns0Size uint16) (*dns.Msg, error) {
+func queryDNS(ctx context.Context, q dnsQuery) (*dns.Msg, error) {
 	msg := new(dns.Msg)
-	msg.SetQuestion(dns.Fqdn(domain), qtype)
+	msg.SetQuestion(dns.Fqdn(q.domain), q.qtype)
 	msg.RecursionDesired = true
-	msg.SetEdns0(edns0Size, false)
+	msg.SetEdns0(q.edns0Size, false)
 
 	// Ensure server has port.
+	server := q.server
 	if !strings.Contains(server, ":") {
 		server = server + ":53"
 	}
 
-	resp, _, err := client.ExchangeContext(ctx, msg, server)
+	resp, _, err := q.client.ExchangeContext(ctx, msg, server)
 	if err != nil {
 		// Wrap context errors if applicable
 		if ctx.Err() != nil {
@@ -102,15 +112,19 @@ func containsKeyword(msg *dns.Msg, keyword string) bool {
 
 // checkDNSHealth performs a health check on a single DNS server by
 // resolving "google.com" and measuring the latency.
-func checkDNSHealth(ctx context.Context, client *dns.Client, server string, edns0Size uint16) ServerStatus {
+func checkDNSHealth(ctx context.Context, q dnsQuery) ServerStatus {
+	// Override domain and qtype for the health check probe.
+	q.domain = "google.com"
+	q.qtype = dns.TypeA
+
 	start := time.Now()
 
-	resp, err := queryDNS(ctx, client, "google.com", server, dns.TypeA, edns0Size)
+	resp, err := queryDNS(ctx, q)
 	latency := time.Since(start).Milliseconds()
 
 	if err != nil {
 		return ServerStatus{
-			Server: server,
+			Server: q.server,
 			Online: false,
 			Error:  err,
 		}
@@ -118,14 +132,14 @@ func checkDNSHealth(ctx context.Context, client *dns.Client, server string, edns
 
 	if resp == nil || resp.Rcode != dns.RcodeSuccess {
 		return ServerStatus{
-			Server: server,
+			Server: q.server,
 			Online: false,
 			Error:  fmt.Errorf("unexpected response code: %d", resp.Rcode),
 		}
 	}
 
 	return ServerStatus{
-		Server:    server,
+		Server:    q.server,
 		Online:    true,
 		LatencyMs: latency,
 	}
