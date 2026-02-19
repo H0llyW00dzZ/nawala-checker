@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/H0llyW00dzZ/nawala-checker)](https://goreportcard.com/report/github.com/H0llyW00dzZ/nawala-checker)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
 [![codecov](https://codecov.io/gh/H0llyW00dzZ/nawala-checker/graph/badge.svg?token=3GU9QRYAUX)](https://codecov.io/gh/H0llyW00dzZ/nawala-checker)
-[![View on DeepWiki](https://img.shields.io/badge/View%20on-DeepWiki-blue)](https://deepwiki.com/H0llyW00dzZ/nawala-checker)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/H0llyW00dzZ/nawala-checker)
 
 SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Nawala/Kominfo (sekarang Komdigi)). SDK ini bekerja dengan menanyakan server DNS yang dapat dikonfigurasi dan memindai respons untuk kata kunci pemblokiran seperti pengalihan `internetpositif.id` atau indikator EDE `trustpositif.komdigi.go.id`.
 
