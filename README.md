@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/H0llyW00dzZ/nawala-checker)](https://goreportcard.com/report/github.com/H0llyW00dzZ/nawala-checker)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
 [![codecov](https://codecov.io/gh/H0llyW00dzZ/nawala-checker/graph/badge.svg?token=3GU9QRYAUX)](https://codecov.io/gh/H0llyW00dzZ/nawala-checker)
-[![View on DeepWiki](https://img.shields.io/badge/View%20on-DeepWiki-blue)](https://deepwiki.com/H0llyW00dzZ/nawala-checker)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/H0llyW00dzZ/nawala-checker)
 [![Baca dalam Bahasa Indonesia](https://img.shields.io/badge/🇮🇩-Baca%20dalam%20Bahasa%20Indonesia-red)](README.id.md)
 
 A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters (Nawala/Kominfo (now Komdigi)). It works by querying configurable DNS servers and scanning the responses for blocking keywords such as `internetpositif.id` redirects or `trustpositif.komdigi.go.id` EDE indicators.
