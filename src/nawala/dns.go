@@ -7,7 +7,9 @@ package nawala
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -72,10 +74,18 @@ func queryDNS(ctx context.Context, q dnsQuery) (*dns.Msg, error) {
 
 	resp, _, err := q.client.ExchangeContext(ctx, msg, server)
 	if err != nil {
-		// Wrap context errors if applicable
-		if ctx.Err() != nil {
+		// 1. Did the context specifically exceed its deadline (timeout)?
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return nil, fmt.Errorf("%w: %v", ErrDNSTimeout, ctx.Err())
 		}
+
+		// 2. Did the underlying dns.Client hit a network timeout?
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			return nil, fmt.Errorf("%w: %v", ErrDNSTimeout, err)
+		}
+
+		// 3. For everything else (including context.Canceled), return the raw error
 		return nil, err
 	}
 
