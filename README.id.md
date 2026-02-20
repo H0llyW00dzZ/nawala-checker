@@ -10,10 +10,13 @@
 SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Nawala/Kominfo (sekarang Komdigi)). SDK ini bekerja dengan menanyakan server DNS yang dapat dikonfigurasi dan memindai respons untuk kata kunci pemblokiran seperti pengalihan `internetpositif.id` atau indikator EDE `trustpositif.komdigi.go.id`.
 
 > [!IMPORTANT]
-> SDK ini membutuhkan **jaringan Indonesia** agar berfungsi dengan benar. Server DNS Nawala hanya mengembalikan respons pemblokiran saat ditanyai dari dalam Indonesia. Jika berjalan pada infrastruktur cloud (misalnya, VPS), Anda harus menggunakan VPS Indonesia murni tanpa perutean melalui jaringan di luar Indonesia.
+> SDK ini membutuhkan **jaringan Indonesia** agar berfungsi dengan benar. Server DNS Nawala hanya mengembalikan respons pemblokiran saat ditanyai dari dalam Indonesia. Pastikan koneksi Anda menggunakan IP Indonesia murni tanpa perutean melalui jaringan di luar Indonesia.
 
 > [!NOTE]
 > **SDK ini tidak usang atau ketinggalan zaman.** Meskipun ada rumor bahwa proyek Nawala yang asli mungkin berhenti beroperasi, modul ini tetap menjadi **perangkat pemeriksaan DNS tujuan umum** yang dibangun dari dasar dengan konfigurasi server dan klien DNS yang dapat disesuaikan. Anda dapat mengarahkannya ke server DNS mana pun, menentukan kata kunci pemblokiran Anda sendiri, dan memasang instance `*dns.Client` kustom (TCP, DNS-over-TLS, dialer kustom, dll.). Server Nawala default hanyalah default yang sudah dikonfigurasi sebelumnya; SDK itu sendiri sepenuhnya independen dan dipelihara secara aktif.
+
+> [!TIP]
+> Jika berjalan pada infrastruktur cloud (misalnya, VPS, microservice, k8s), lebih baik mengimplementasikan server DNS sendiri menggunakan jaringan Indonesia, kemudian dari infrastruktur cloud cukup memanggilnya.
 
 ## Fitur
 
