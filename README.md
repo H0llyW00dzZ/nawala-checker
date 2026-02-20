@@ -11,10 +11,13 @@
 A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters (Nawala/Kominfo (now Komdigi)). It works by querying configurable DNS servers and scanning the responses for blocking keywords such as `internetpositif.id` redirects or `trustpositif.komdigi.go.id` EDE indicators.
 
 > [!IMPORTANT]
-> This SDK requires an **Indonesian network** to function correctly. Nawala DNS servers only return blocking responses when queried from within Indonesia. If running on cloud infrastructure (e.g., VPS), you must use a pure Indonesian VPS with no routing through networks outside Indonesia.
+> This SDK requires an **Indonesian network** to function correctly. Nawala DNS servers only return blocking responses when queried from within Indonesia. Ensure your connection uses a pure Indonesian IP with no routing through networks outside Indonesia.
 
 > [!NOTE]
 > **This SDK is not deprecated or outdated.** Despite rumors that the original Nawala project may cease operations, this module remains a **general-purpose DNS checking toolkit** built from the ground up with customizable DNS server and client configurations. You can point it at any DNS server, define your own blocking keywords, and plug in custom `*dns.Client` instances (TCP, DNS-over-TLS, custom dialers, etc.). The default Nawala servers are simply pre-configured defaults; the SDK itself is fully independent and actively maintained.
+
+> [!TIP]
+> If running on cloud infrastructure (e.g., VPS, microservices, k8s), it's better to implement your own DNS server using an Indonesian network, then from the cloud infrastructure it just calls it.
 
 ## Features
 
