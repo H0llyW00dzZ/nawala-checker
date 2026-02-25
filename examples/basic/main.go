@@ -27,6 +27,7 @@ func main() {
 
 	// Check multiple domains concurrently.
 	domains := []string{
+		"exam_ple.com",
 		"google.com",
 		"reddit.com",
 		"github.com",

@@ -7,6 +7,7 @@ package nawala
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -100,6 +101,9 @@ func New(opts ...Option) *Checker {
 //
 // Invalid domains are returned with [ErrInvalidDomain] in the
 // Result's Error field.
+//
+// Domains that do not exist on the internet are returned with
+// [ErrNXDOMAIN] in the Result's Error field.
 func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error) {
 	if len(c.servers) == 0 {
 		return nil, ErrNoDNSServers
@@ -274,7 +278,16 @@ func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
 		// Attempt DNS query with retries.
 		result, err := c.queryWithRetries(ctx, domain, srv, qtype)
 		if err != nil {
-			// This server failed, try next.
+			// If the domain strictly does not exist (NXDOMAIN), return immediately.
+			// This is a definitive answer from the DNS server, so we shouldn't failover over it.
+			if errors.Is(err, ErrNXDOMAIN) {
+				return Result{
+					Domain: domain,
+					Server: srv.Address,
+					Error:  err,
+				}
+			}
+			// Other errors (timeouts, network issues), try next server.
 			continue
 		}
 
@@ -332,6 +345,11 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 			edns0Size: c.edns0Size,
 		})
 		if err != nil {
+			// If the domain strictly does not exist, do not retry.
+			if errors.Is(err, ErrNXDOMAIN) {
+				return Result{}, err
+			}
+			
 			lastErr = err
 			continue
 		}

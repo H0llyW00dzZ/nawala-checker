@@ -61,7 +61,7 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer cancel()
 
-    results, err := c.Check(ctx, "google.com", "reddit.com", "github.com")
+    results, err := c.Check(ctx, "google.com", "reddit.com", "github.com", "exam_ple.com")
     if err != nil {
         log.Fatal(err)
     }
@@ -199,6 +199,7 @@ var (
     ErrNoDNSServers  // No DNS servers configured
     ErrAllDNSFailed  // All DNS servers failed to respond
     ErrInvalidDomain // Domain name failed validation
+    ErrNXDOMAIN      // Domain does not exist (NXDOMAIN)
     ErrDNSTimeout    // DNS query exceeded the configured timeout
     ErrInternalPanic // An internal panic was recovered during execution
 )

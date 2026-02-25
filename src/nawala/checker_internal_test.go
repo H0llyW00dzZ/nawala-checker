@@ -113,6 +113,35 @@ func TestCheckBlocked(t *testing.T) {
 	assert.True(t, result.Blocked, "expected domain to be blocked")
 }
 
+func TestCheckNXDOMAIN(t *testing.T) {
+	// Start a local DNS server that responds with NXDOMAIN.
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Rcode = dns.RcodeNameError // NXDOMAIN
+		_ = w.WriteMsg(m)
+	})
+
+	addr, cleanup := startTestDNSServer(t, handler)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithTimeout(2*time.Second),
+		WithMaxRetries(0),
+	)
+
+	ctx := context.Background()
+	result, err := c.CheckOne(ctx, "exam_ple.com")
+	require.NoError(t, err)
+
+	// Since we expect the query error to be logged inside the Result object (for CheckOne logic) string matching
+	assert.ErrorIs(t, result.Error, ErrNXDOMAIN, "expected ErrNXDOMAIN in result Error field")
+	assert.False(t, result.Blocked, "NXDOMAIN should not be flagged as blocked")
+}
+
 func TestCheckOneWithCaching(t *testing.T) {
 	var queryCount atomic.Int32
 
