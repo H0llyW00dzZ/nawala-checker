@@ -1039,7 +1039,7 @@ func TestDNSQueryPortLogic(t *testing.T) {
 		{
 			name:       "Hostname with port",
 			serverAddr: "localhost:" + port,
-			wantAddr:   "localhost:" + port,
+			wantAddr:   ":" + port, // localhost resolves to 127.0.0.1 or [::1] depending on OS
 		},
 	}
 
