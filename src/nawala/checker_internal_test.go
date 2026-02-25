@@ -13,7 +13,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"errors"
 	"math/big"
 	"net"
 	"runtime"
@@ -1073,48 +1072,31 @@ func TestDNSQueryPortLogic(t *testing.T) {
 }
 
 // TestDNSStatusContextCancellation verifies that DNSStatus correctly fills
-// remaining statuses with the context error when the context is cancelled
-// mid-loop, exercising the Loop: + ctx.Done() branch.
+// remaining statuses with the context error when the context is cancelled,
+// exercising the Loop: + ctx.Done() branch.
 func TestDNSStatusContextCancellation(t *testing.T) {
-	// Start a slow server to ensure goroutines are still running when we cancel.
-	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
-		time.Sleep(5 * time.Second) // Slow response
-		m := new(dns.Msg)
-		m.SetReply(r)
-		_ = w.WriteMsg(m)
-	})
-	addr, cleanup := startTestDNSServer(t, handler)
-	defer cleanup()
-
-	// Configure with many servers so the loop has remaining items to fill.
-	servers := make([]DNSServer, 10)
-	for i := range servers {
-		servers[i] = DNSServer{Address: addr, Keyword: "test", QueryType: "A"}
-	}
-
+	// Use the same pattern as TestCheckContextCancellationEarly:
+	// pre-cancel the context so the loop hits ctx.Done() immediately
+	// for all servers, without needing slow handlers.
 	c := New(
-		WithServers(servers),
-		WithTimeout(10*time.Second),
-		WithConcurrency(2), // Low concurrency so the loop blocks on semaphore
+		WithServers([]DNSServer{
+			{Address: "127.0.0.1:19998", Keyword: "test", QueryType: "A"},
+			{Address: "127.0.0.1:19999", Keyword: "test", QueryType: "A"},
+			{Address: "127.0.0.1:19997", Keyword: "test", QueryType: "A"},
+		}),
 	)
 
-	// Cancel very quickly so the loop hits ctx.Done() for remaining servers.
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
 
 	statuses, err := c.DNSStatus(ctx)
-	assert.Error(t, err, "expected context error")
-	require.Len(t, statuses, 10)
+	assert.ErrorIs(t, err, context.Canceled)
+	require.Len(t, statuses, 3)
 
-	// At least the later statuses should carry the context error.
-	hasContextErr := false
-	for _, s := range statuses {
-		if s.Error != nil && (errors.Is(s.Error, context.DeadlineExceeded) || errors.Is(s.Error, context.Canceled)) {
-			hasContextErr = true
-			break
-		}
+	for i, s := range statuses {
+		assert.ErrorIs(t, s.Error, context.Canceled, "status[%d]", i)
+		assert.False(t, s.Online, "status[%d] expected offline", i)
 	}
-	assert.True(t, hasContextErr, "expected at least one status with context error")
 }
 
 // TestCheckOneAAAA verifies end-to-end AAAA (IPv6) query flow through CheckOne,
