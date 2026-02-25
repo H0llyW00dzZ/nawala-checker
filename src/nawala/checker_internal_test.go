@@ -981,3 +981,92 @@ func TestNawalaRPZStyleBlockingDoT(t *testing.T) {
 		assert.False(t, results[3].Blocked, "github.com should not be blocked over DoT")
 	})
 }
+
+// TestDNSQueryPortLogic verifies that queryDNS correctly normalizes server
+// addresses for IPv4, IPv6, and hostname inputs.
+func TestDNSQueryPortLogic(t *testing.T) {
+	// Start a dummy DNS server just to bind a local port.
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		_ = w.WriteMsg(m)
+	})
+	addr, cleanup := startTestDNSServer(t, handler)
+	defer cleanup()
+
+	customClient := &dns.Client{Timeout: 1 * time.Second}
+	ctx := context.Background()
+
+	// Extract port from the dummy server
+	_, port, err := net.SplitHostPort(addr)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name       string
+		serverAddr string
+		wantAddr   string
+	}{
+		{
+			name:       "IPv4 without port",
+			serverAddr: "127.0.0.1",
+			wantAddr:   "127.0.0.1:53",
+		},
+		{
+			name:       "IPv4 with port",
+			serverAddr: "127.0.0.1:" + port,
+			wantAddr:   "127.0.0.1:" + port,
+		},
+		{
+			name:       "IPv6 without brackets and port",
+			serverAddr: "::1",
+			wantAddr:   "[::1]:53",
+		},
+		{
+			name:       "IPv6 with brackets but no port",
+			serverAddr: "[::1]",
+			wantAddr:   "[::1]:53",
+		},
+		{
+			name:       "IPv6 with brackets and port",
+			serverAddr: "[::1]:" + port,
+			wantAddr:   "[::1]:" + port,
+		},
+		{
+			name:       "Hostname without port",
+			serverAddr: "localhost",
+			wantAddr:   ":53", // localhost resolves to 127.0.0.1 or [::1] depending on OS
+		},
+		{
+			name:       "Hostname with port",
+			serverAddr: "localhost:" + port,
+			wantAddr:   ":" + port, // localhost resolves to 127.0.0.1 or [::1] depending on OS
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := dnsQuery{
+				client:    customClient,
+				domain:    "example.com",
+				server:    tt.serverAddr,
+				qtype:     dns.TypeA,
+				edns0Size: 1232,
+			}
+
+			// We just want to check if the exchange targets the correct address.
+			// Since most test addresses (like 127.0.0.1:53 or [::1]:53) won't have a DNS server
+			// running in this test environment, we expect a network error containing the target address.
+			_, err := queryDNS(ctx, q)
+
+			// If it succeeds (e.g. hits our dummy server via localhost:<port>), that's fine too.
+			if err != nil {
+				// The error message should contain the correctly formatted address we tried to dial.
+				// For hostname inputs, the DNS library resolves the hostname before dialing,
+				// so we check that the expected port suffix is present rather than the exact
+				// resolved address (which varies by OS: 127.0.0.1 vs [::1]).
+				assert.Contains(t, err.Error(), tt.wantAddr,
+					"expected error to reference target address %q", tt.wantAddr)
+			}
+		})
+	}
+}
