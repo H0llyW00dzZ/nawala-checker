@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,35 +56,29 @@ func TestCheckPanicRecovery(t *testing.T) {
 }
 
 func TestDNSStatusPanicRecovery(t *testing.T) {
-	// Start a DNS server whose handler panics, triggering the recover()
-	// block in DNSStatus goroutines (checker.go lines 212-219).
-	//
-	// Note: The dns library itself recovers panics in handlers and closes
-	// the connection, which surfaces as a network error rather than an
-	// unrecovered panic reaching our defer. So to truly exercise
-	// our recover() path, we use invalid server address that will trigger
-	// the health check to go through, and rely on the fact that the
-	// checkDNSHealth function itself doesn't panic. For a true panic
-	// recovery test, we would need to mock at a lower level.
-	//
-	// Instead, we verify the DNSStatus method itself doesn't panic with
-	// a variety of edge-case inputs, which is the production-relevant
-	// safety net.
+	// To exercise the recover() block in DNSStatus goroutines (checker.go
+	// lines 212-219), we nil out the DNS client after construction.
+	// This causes a nil pointer dereference panic inside checkDNSHealth →
+	// queryDNS → q.client.ExchangeContext(), which the deferred recover()
+	// must catch and wrap as ErrInternalPanic.
 	c := New(
 		WithServers([]DNSServer{
 			{Address: "127.0.0.1:19998", Keyword: "test", QueryType: "A"},
 			{Address: "127.0.0.1:19999", Keyword: "test", QueryType: "A"},
 		}),
-		WithTimeout(200*time.Millisecond),
 	)
+	// Sabotage the client to force a nil pointer panic inside the goroutine.
+	c.dnsClient = nil
 
 	ctx := context.Background()
 	assert.NotPanics(t, func() {
 		statuses, _ := c.DNSStatus(ctx)
 		require.Len(t, statuses, 2)
-		for _, s := range statuses {
-			assert.False(t, s.Online, "expected offline for unreachable server")
-			assert.Error(t, s.Error)
+		for i, s := range statuses {
+			t.Logf("status[%d] server=%s error=%v", i, s.Server, s.Error)
+			assert.False(t, s.Online, "status[%d] expected offline", i)
+			assert.Error(t, s.Error, "status[%d] expected error", i)
+			assert.ErrorIs(t, s.Error, ErrInternalPanic, "status[%d] expected ErrInternalPanic", i)
 		}
 	})
 }
