@@ -35,12 +35,12 @@ func TestIsValidDomain(t *testing.T) {
 		{"consecutive dots", "example..com", false},
 		{"start with dot", ".example.com", false},
 		{"spaces", "example .com", false},
-		{"invalid char", "exa_mple.com", false}, // underscores not allowed in hostnames usually, though technically valid in DNS, we stick to hostname rules here as per original intent
+		{"invalid char", "exa!mple.com", false}, // special chars like ! are not allowed
 		{"too long label", "thislabeliswaytoolongandshoulddefinitelyfailbecausethelimitissixtythreecharacters.com", false},
 		{"TLD numeric", "example.123", false},
 		{"mixed case punycode TLD", "example.Xn--P1ai", true},
-		{"unicode characters", "example.рф", false}, // we only support ASCII/Punycode
-		{"underscore in label", "exa_mple.com", false},
+		{"unicode characters", "example.рф", false},   // we only support ASCII/Punycode
+		{"underscore in label", "exa_mple.com", true}, // underscores allowed for real-world domains (e.g. Google AMP cache)
 		{"underscore in TLD", "example.c_m", false},
 		{"punycode prefix only", "example.xn--", false},
 		{"punycode prefix only case insensitive", "example.XN--", false},
@@ -71,5 +71,57 @@ func TestNormalizeDomain(t *testing.T) {
 		if got := normalizeDomain(tt.input); got != tt.want {
 			t.Errorf("normalizeDomain(%q) = %q, want %q", tt.input, got, tt.want)
 		}
+	}
+}
+
+func TestIsValidTLD(t *testing.T) {
+	tests := []struct {
+		name  string
+		label string
+		want  bool
+	}{
+		// Too short
+		{"empty", "", false},
+		{"single char", "c", false},
+
+		// Punycode TLDs (xn-- prefix, length > 4)
+		{"punycode TLD xn--p1ai", "xn--p1ai", true},
+		{"punycode TLD xn--80akhbyknj4f", "xn--80akhbyknj4f", true},
+		{"punycode mixed case XN--", "XN--p1ai", true}, // EqualFold match
+
+		// Punycode prefix only (xn-- exactly, length == 4) — not a valid punycode TLD
+		{"punycode prefix only xn--", "xn--", false}, // len == 4, falls through to letter check → fails on '-'
+
+		// Standard letters-only TLDs
+		{"com", "com", true},
+		{"io", "io", true},
+		{"org", "org", true},
+		{"id", "id", true},
+		{"top", "top", true},
+		{"museum", "museum", true},
+		{"COM uppercase", "COM", true},
+		{"Co mixed case", "Co", true},
+
+		// Invalid: digits in TLD
+		{"digit in TLD", "c0m", false},
+		{"all digits", "123", false},
+
+		// Invalid: underscore in TLD
+		{"underscore in TLD", "c_m", false},
+
+		// Invalid: hyphen in TLD
+		{"hyphen in TLD", "co-m", false},
+		{"starts with hyphen", "-om", false},
+
+		// Invalid: space
+		{"space in TLD", "co m", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isValidTLD(tt.label); got != tt.want {
+				t.Errorf("isValidTLD(%q) = %v, want %v", tt.label, got, tt.want)
+			}
+		})
 	}
 }

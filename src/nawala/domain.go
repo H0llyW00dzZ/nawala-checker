@@ -11,11 +11,18 @@ import "strings"
 //
 // A valid domain must have at least two labels separated by dots,
 // each label must be 1-63 characters long, contain only ASCII
-// letters, digits, or hyphens, and must not start or end with a hyphen.
+// letters, digits, hyphens, or underscores, and must not start or
+// end with a hyphen.
+//
+// Underscores are technically non-standard per [RFC 1035] for hostname
+// labels but are accepted here to accommodate real-world DNS names such
+// as Google AMP cache domains and cloud-provider service records.
 //
 // The TLD (last label) must be at least 2 characters. Standard TLDs must
 // contain only letters, while Punycode TLDs (starting with "xn--") allow
 // digits and hyphens (conforming to standard hostname rules).
+//
+// [RFC 1035]: https://datatracker.ietf.org/doc/html/rfc1035
 func IsValidDomain(domain string) bool {
 	// Remove optional trailing dot for FQDN validation
 	domain = strings.TrimSuffix(domain, ".")
@@ -42,7 +49,11 @@ func IsValidDomain(domain string) bool {
 	return true
 }
 
-// isValidLabel checks if a standard label is valid according to [RFC 1035].
+// isValidLabel checks if a label is valid.
+//
+// Labels follow [RFC 1035] hostname rules with the addition of underscores,
+// which are technically non-standard but widely used in practice
+// (e.g., Google AMP cache domains, cloud-provider service endpoints).
 //
 // [RFC 1035]: https://datatracker.ietf.org/doc/html/rfc1035
 func isValidLabel(label string) bool {
@@ -62,6 +73,7 @@ func isValidLabel(label string) bool {
 		case c >= 'A' && c <= 'Z':
 		case c >= '0' && c <= '9':
 		case c == '-':
+		case c == '_':
 		default:
 			return false // Invalid character
 		}
