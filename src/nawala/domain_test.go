@@ -46,6 +46,7 @@ func TestIsValidDomain(t *testing.T) {
 		{"punycode prefix only case insensitive", "example.XN--", false},
 		{"trailing dot with space", "example.com. ", false},
 		{"double trailing dot", "example.com..", false},
+		{"punycode TLD with underscore", "example.xn--p1ai_", false},
 	}
 
 	for _, tt := range tests {
@@ -108,6 +109,7 @@ func TestIsValidTLD(t *testing.T) {
 
 		// Invalid: underscore in TLD
 		{"underscore in TLD", "c_m", false},
+		{"punycode TLD with underscore", "xn--p1ai_", false},
 
 		// Invalid: hyphen in TLD
 		{"hyphen in TLD", "co-m", false},

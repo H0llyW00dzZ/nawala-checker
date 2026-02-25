@@ -1231,6 +1231,9 @@ func TestCheckUnderscoreDomains(t *testing.T) {
 		{"underscore with digits", "app_v2_staging.cloud.example.io"},
 		// Mixed hyphens and underscores
 		{"hyphens and underscores", "my-app_v2.test-env_01.example.com"},
+		// Consecutive underscores
+		{"consecutive underscores", "__dmarc.example.com"},
+		{"trailing underscore in label", "test_.example.com"},
 	}
 
 	for _, tt := range tests {
