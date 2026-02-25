@@ -1070,3 +1070,129 @@ func TestDNSQueryPortLogic(t *testing.T) {
 		})
 	}
 }
+
+// TestDNSStatusContextCancellation verifies that DNSStatus correctly fills
+// remaining statuses with the context error when the context is cancelled,
+// exercising the Loop: + ctx.Done() branch.
+func TestDNSStatusContextCancellation(t *testing.T) {
+	// Use the same pattern as TestCheckContextCancellationEarly:
+	// pre-cancel the context so the loop hits ctx.Done() immediately
+	// for all servers, without needing slow handlers.
+	c := New(
+		WithServers([]DNSServer{
+			{Address: "127.0.0.1:19998", Keyword: "test", QueryType: "A"},
+			{Address: "127.0.0.1:19999", Keyword: "test", QueryType: "A"},
+			{Address: "127.0.0.1:19997", Keyword: "test", QueryType: "A"},
+		}),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	statuses, err := c.DNSStatus(ctx)
+	t.Logf("DNSStatus error: %v", err)
+	assert.ErrorIs(t, err, context.Canceled)
+	require.Len(t, statuses, 3)
+
+	for i, s := range statuses {
+		t.Logf("status[%d] server=%s error=%v", i, s.Server, s.Error)
+		assert.ErrorIs(t, s.Error, context.Canceled, "status[%d]", i)
+		assert.False(t, s.Online, "status[%d] expected offline", i)
+	}
+}
+
+// TestCheckOneAAAA verifies end-to-end AAAA (IPv6) query flow through CheckOne,
+// exercising the parseQueryType("AAAA") → queryWithRetries → queryDNS path.
+func TestCheckOneAAAA(t *testing.T) {
+	// Start a DNS server that responds to AAAA queries with an IPv6 address.
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		for _, q := range r.Question {
+			if q.Qtype == dns.TypeAAAA {
+				m.Answer = append(m.Answer, &dns.AAAA{
+					Hdr: dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypeAAAA,
+						Class:  dns.ClassINET,
+						Ttl:    60,
+					},
+					AAAA: net.ParseIP("2001:db8::1"),
+				})
+			}
+		}
+		_ = w.WriteMsg(m)
+	})
+
+	addr, cleanup := startTestDNSServer(t, handler)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "AAAA"},
+		}),
+		WithTimeout(5*time.Second),
+	)
+
+	ctx := context.Background()
+	result, err := c.CheckOne(ctx, "example.com")
+	t.Logf("CheckOne error=%v result.Error=%v blocked=%v server=%s", err, result.Error, result.Blocked, result.Server)
+	require.NoError(t, err)
+	assert.NoError(t, result.Error)
+	assert.False(t, result.Blocked, "expected not blocked for normal AAAA response")
+	assert.Equal(t, "example.com", result.Domain)
+	assert.Equal(t, addr, result.Server)
+}
+
+// TestQueryDNSTimeout verifies that queryDNS wraps timeout errors with
+// ErrDNSTimeout, covering both the context.DeadlineExceeded path and
+// the net.Error timeout path in dns.go.
+func TestQueryDNSTimeout(t *testing.T) {
+	t.Run("context deadline exceeded", func(t *testing.T) {
+		// Server that never responds.
+		handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+			time.Sleep(2 * time.Second)
+		})
+		addr, cleanup := startTestDNSServer(t, handler)
+		defer cleanup()
+
+		// Create a context with a very short deadline.
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+
+		client := &dns.Client{Timeout: 10 * time.Second, Net: "udp"}
+		_, err := queryDNS(ctx, dnsQuery{
+			client:    client,
+			domain:    "example.com",
+			server:    addr,
+			qtype:     dns.TypeA,
+			edns0Size: 1232,
+		})
+		require.Error(t, err)
+		t.Logf("got error: %v", err)
+		assert.ErrorIs(t, err, ErrDNSTimeout, "expected ErrDNSTimeout for deadline exceeded")
+	})
+
+	t.Run("client timeout", func(t *testing.T) {
+		// Server that never responds.
+		handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+			time.Sleep(2 * time.Second)
+		})
+		addr, cleanup := startTestDNSServer(t, handler)
+		defer cleanup()
+
+		// Use a very short client timeout so the dns.Client times out first.
+		ctx := context.Background()
+		client := &dns.Client{Timeout: 50 * time.Millisecond, Net: "udp"}
+		_, err := queryDNS(ctx, dnsQuery{
+			client:    client,
+			domain:    "example.com",
+			server:    addr,
+			qtype:     dns.TypeA,
+			edns0Size: 1232,
+		})
+		require.Error(t, err)
+		t.Logf("got error: %v", err)
+		assert.ErrorIs(t, err, ErrDNSTimeout, "expected ErrDNSTimeout for client timeout")
+	})
+}
