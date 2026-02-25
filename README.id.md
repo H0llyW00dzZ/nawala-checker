@@ -93,12 +93,12 @@ c := nawala.New(
     // Cache hasil selama 10 menit.
     nawala.WithCacheTTL(10 * time.Minute),
 
-    // Tambahkan server DNS kustom bersama default.
-    nawala.WithServer(nawala.DNSServer{
+    // Ganti semua server DNS dengan server kustom.
+    nawala.WithServers([]nawala.DNSServer{{
         Address:   "8.8.8.8",
         Keyword:   "blocked",
         QueryType: "A",
-    }),
+    }}),
 
     // Batasi pemeriksaan serentak hingga 50 goroutine.
     nawala.WithConcurrency(50),
@@ -267,11 +267,11 @@ reddit.com.    30    IN    A    103.155.26.29
 Pemeriksa mendeteksi ini dengan memindai bagian Extra (yang berisi record OPT) untuk kata kunci `trustpositif` atau `komdigi`. Untuk menggunakan deteksi ini, konfigurasikan server dengan kata kunci yang sesuai:
 
 ```go
-nawala.WithServer(nawala.DNSServer{
+nawala.WithServers([]nawala.DNSServer{{
     Address:   "103.155.26.28",
     Keyword:   "trustpositif",
     QueryType: "A",
-})
+}})
 ```
 
 ## Struktur Proyek
