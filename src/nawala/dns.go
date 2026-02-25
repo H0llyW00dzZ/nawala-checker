@@ -68,8 +68,12 @@ func queryDNS(ctx context.Context, q dnsQuery) (*dns.Msg, error) {
 
 	// Ensure server has port.
 	server := q.server
-	if !strings.Contains(server, ":") {
-		server = server + ":53"
+	if _, _, err := net.SplitHostPort(server); err != nil {
+		// If it's an IPv6 address already enclosed in brackets but without a port, strip brackets first
+		// so JoinHostPort can correctly re-add them along with the port.
+		server = strings.TrimPrefix(server, "[")
+		server = strings.TrimSuffix(server, "]")
+		server = net.JoinHostPort(server, "53")
 	}
 
 	resp, _, err := q.client.ExchangeContext(ctx, msg, server)
