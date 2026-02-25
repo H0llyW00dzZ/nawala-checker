@@ -189,6 +189,8 @@ for _, s := range statuses {
   per server
 - `ServerStatus.Online` is `true` when the server responds to a health
   probe within the configured timeout
-- `ServerStatus.LatencyMs` is the round-trip time in milliseconds
+- `ServerStatus.LatencyMs` is an `int64` of **whole milliseconds** (e.g., `12`
+  meaning 12 ms); it is only populated when `Online` is `true` — offline
+  servers leave it as `0`
 - `ServerStatus.Error` is non-nil when the health probe itself failed
 - Useful for monitoring or pre-flight checks before running bulk domain checks

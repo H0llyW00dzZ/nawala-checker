@@ -191,7 +191,9 @@ for _, s := range statuses {
   `ServerStatus` per server
 - `ServerStatus.Online` bernilai `true` saat server merespons probe kesehatan
   dalam timeout yang dikonfigurasi
-- `ServerStatus.LatencyMs` adalah waktu pulang-pergi dalam milidetik
+- `ServerStatus.LatencyMs` adalah `int64` dari **milidetik bulat** (misalnya `12`
+  berarti 12 ms); hanya diisi saat `Online` bernilai `true` — server yang
+  offline meninggalkannya sebagai `0`
 - `ServerStatus.Error` bernilai non-nil saat probe kesehatan itu sendiri gagal
 - Berguna untuk pemantauan atau pemeriksaan awal sebelum menjalankan
   pemeriksaan domain secara massal
