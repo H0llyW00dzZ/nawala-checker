@@ -47,7 +47,7 @@
 //     of DNS servers
 //   - Panic recovery — goroutines are protected from panics with
 //     automatic recovery and typed errors
-//   - Functional options — clean, idiomatic Go configuration pattern
+//   - Functional options — clean, [idiomatic Go] configuration pattern
 //   - Context-aware — full support for timeouts and cancellation via
 //     [context.Context]
 //   - Domain validation — automatic normalization and validation of
@@ -244,4 +244,5 @@
 // [examples/status]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/status/main.go
 // [examples/]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples
 // [k8s]: https://kubernetes.io
+// [idiomatic Go]: https://go.dev/doc/effective_go
 package nawala

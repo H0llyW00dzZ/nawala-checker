@@ -28,7 +28,7 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 - **Custom cache backends** — plug in Redis, memcached, or any backend via the `Cache` interface
 - **Server health checks** — monitor online/offline status and latency of DNS servers
 - **Panic recovery** — goroutines are protected from panics with automatic recovery and typed errors
-- **Functional options** — clean, idiomatic Go configuration pattern
+- **Functional options** — clean, [idiomatic Go](https://go.dev/doc/effective_go) configuration pattern
 - **Context-aware** — full support for timeouts and cancellation via `context.Context`
 - **Domain validation** — automatic normalization and validation of domain names
 - **Typed errors** — sentinel errors for `errors.Is` matching (`ErrNoDNSServers`, `ErrAllDNSFailed`, `ErrInvalidDomain`, `ErrDNSTimeout`, `ErrInternalPanic`)

@@ -28,7 +28,7 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 - **Backend cache kustom** — pasang Redis, memcached, atau backend apa pun melalui antarmuka `Cache`
 - **Pemeriksaan kesehatan server** — pantau status online/offline dan latensi server DNS
 - **Pemulihan panic** — goroutine dilindungi dari panic dengan pemulihan otomatis dan error yang diketik
-- **Opsi fungsional** — pola konfigurasi Go yang bersih dan idiomatis
+- **Opsi fungsional** — pola konfigurasi Go yang bersih dan [idiomatis](https://go.dev/doc/effective_go)
 - **Sadar konteks** — dukungan penuh untuk timeout dan pembatalan melalui `context.Context`
 - **Validasi domain** — normalisasi dan validasi nama domain otomatis
 - **Error yang diketik** — error sentinel untuk pencocokan `errors.Is` (`ErrNoDNSServers`, `ErrAllDNSFailed`, `ErrInvalidDomain`, `ErrDNSTimeout`, `ErrInternalPanic`)
