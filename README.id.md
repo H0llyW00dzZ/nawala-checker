@@ -199,9 +199,9 @@ var (
     ErrNoDNSServers  // Tidak ada server DNS yang dikonfigurasi
     ErrAllDNSFailed  // Semua server DNS gagal merespons
     ErrInvalidDomain // Nama domain gagal validasi
-    ErrNXDOMAIN      // Domain tidak ada (NXDOMAIN)
     ErrDNSTimeout    // Kueri DNS melebihi timeout yang dikonfigurasi
     ErrInternalPanic // Panic internal dipulihkan selama eksekusi
+    ErrNXDOMAIN      // Domain tidak ada (NXDOMAIN)
 )
 ```
 
