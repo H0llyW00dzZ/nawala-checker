@@ -280,7 +280,7 @@ func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
 		if err != nil {
 			// If the domain strictly does not exist (NXDOMAIN), return immediately.
 			// This is a definitive answer from the DNS server, so we shouldn't failover over it.
-			if errors.Is(err, ErrNXDOMAIN) {
+			if errors.Is(err, ErrNXDOMAIN) || errors.Is(err, ErrQueryRejected) {
 				return Result{
 					Domain: domain,
 					Server: srv.Address,
@@ -345,11 +345,11 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 			edns0Size: c.edns0Size,
 		})
 		if err != nil {
-			// If the domain strictly does not exist, do not retry.
-			if errors.Is(err, ErrNXDOMAIN) {
+			// If the domain strictly does not exist, or the server explicitly rejected the query, do not retry.
+			if errors.Is(err, ErrNXDOMAIN) || errors.Is(err, ErrQueryRejected) {
 				return Result{}, err
 			}
-			
+
 			lastErr = err
 			continue
 		}

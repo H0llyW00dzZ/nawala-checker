@@ -202,6 +202,7 @@ var (
     ErrDNSTimeout    // DNS query exceeded the configured timeout
     ErrInternalPanic // An internal panic was recovered during execution
     ErrNXDOMAIN      // Domain does not exist (NXDOMAIN)
+    ErrQueryRejected // Query explicitly rejected by server (Format Error, Refused, Not Implemented)
 )
 ```
 

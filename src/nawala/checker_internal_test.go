@@ -142,6 +142,60 @@ func TestCheckNXDOMAIN(t *testing.T) {
 	assert.False(t, result.Blocked, "NXDOMAIN should not be flagged as blocked")
 }
 
+func TestCheckQueryRejected_NoFailover(t *testing.T) {
+	var attemptsServer1 atomic.Int32
+	var attemptsServer2 atomic.Int32
+
+	handler1 := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		attemptsServer1.Add(1)
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Rcode = dns.RcodeRefused
+		_ = w.WriteMsg(m)
+		t.Logf("Server 1 explicitly rejecting query with RcodeRefused (will trigger ErrQueryRejected)")
+	})
+
+	addr1, cleanup1 := startTestDNSServer(t, handler1)
+	defer cleanup1()
+
+	// Server 2 responds successfully.
+	handler2 := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		attemptsServer2.Add(1)
+		m := new(dns.Msg)
+		m.SetReply(r)
+		_ = w.WriteMsg(m)
+	})
+
+	addr2, cleanup2 := startTestDNSServer(t, handler2)
+	defer cleanup2()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr1, Keyword: "internetpositif", QueryType: "A"},
+			{Address: addr2, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithTimeout(2*time.Second),
+		WithMaxRetries(3), // Should be completely ignored due to fast-fail.
+	)
+
+	ctx := context.Background()
+	start := time.Now()
+	result, err := c.CheckOne(ctx, "example.com")
+	require.NoError(t, err)
+
+	elapsed := time.Since(start)
+
+	t.Logf("Fast-fail took %v, attempts on Refused server: %d, Result: %+v", elapsed, attemptsServer1.Load(), result)
+
+	// Server 1 should only be hit exactly once due to fast-fail.
+	assert.Equal(t, int32(1), attemptsServer1.Load(), "server 1 should not be retried on Refused")
+	// Server 2 should NEVER be hit because ErrQueryRejected stops failover.
+	assert.Equal(t, int32(0), attemptsServer2.Load(), "server 2 should never be hit")
+	// Result should contain ErrQueryRejected and the address of Server 1.
+	assert.ErrorIs(t, result.Error, ErrQueryRejected, "expected ErrQueryRejected in result")
+	assert.Equal(t, addr1, result.Server, "expected result to be from the first server that rejected")
+}
+
 func TestCheckOneWithCaching(t *testing.T) {
 	var queryCount atomic.Int32
 

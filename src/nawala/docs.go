@@ -54,7 +54,7 @@
 //     domain names
 //   - Typed errors — sentinel errors for [errors.Is] matching
 //     ([ErrNoDNSServers], [ErrAllDNSFailed], [ErrInvalidDomain],
-//     [ErrDNSTimeout], [ErrInternalPanic], [ErrNXDOMAIN])
+//     [ErrDNSTimeout], [ErrInternalPanic], [ErrNXDOMAIN], [ErrQueryRejected])
 //
 // # Quick Start
 //
@@ -159,6 +159,7 @@
 //	    ErrDNSTimeout    // DNS query exceeded the configured timeout
 //	    ErrInternalPanic // An internal panic was recovered during execution
 //	    ErrNXDOMAIN      // Domain does not exist (NXDOMAIN)
+//	    ErrQueryRejected // Query explicitly rejected by server (Format Error, Refused, Not Implemented)
 //	)
 //
 // # Custom Cache
