@@ -24,4 +24,7 @@ var (
 
 	// ErrInternalPanic is returned when an internal panic is recovered during execution.
 	ErrInternalPanic = errors.New("nawala: internal panic recovered")
+
+	// ErrNXDOMAIN is returned when the DNS server responds with NXDOMAIN (domain does not exist).
+	ErrNXDOMAIN = errors.New("nawala: nxdomain")
 )

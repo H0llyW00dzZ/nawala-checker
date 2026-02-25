@@ -61,7 +61,7 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer cancel()
 
-    results, err := c.Check(ctx, "google.com", "reddit.com", "github.com")
+    results, err := c.Check(ctx, "google.com", "reddit.com", "github.com", "exam_ple.com")
     if err != nil {
         log.Fatal(err)
     }
@@ -199,6 +199,7 @@ var (
     ErrNoDNSServers  // Tidak ada server DNS yang dikonfigurasi
     ErrAllDNSFailed  // Semua server DNS gagal merespons
     ErrInvalidDomain // Nama domain gagal validasi
+    ErrNXDOMAIN      // Domain tidak ada (NXDOMAIN)
     ErrDNSTimeout    // Kueri DNS melebihi timeout yang dikonfigurasi
     ErrInternalPanic // Panic internal dipulihkan selama eksekusi
 )

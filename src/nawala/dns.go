@@ -93,6 +93,10 @@ func queryDNS(ctx context.Context, q dnsQuery) (*dns.Msg, error) {
 		return nil, err
 	}
 
+	if resp != nil && resp.Rcode == dns.RcodeNameError {
+		return nil, fmt.Errorf("%w: domain does not exist (NXDOMAIN)", ErrNXDOMAIN)
+	}
+
 	return resp, nil
 }
 

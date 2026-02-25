@@ -55,7 +55,7 @@ c := nawala.New()
 ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 defer cancel()
 
-results, err := c.Check(ctx, "google.com", "reddit.com", "github.com")
+results, err := c.Check(ctx, "google.com", "reddit.com", "github.com", "exam_ple.com")
 if err != nil {
     log.Fatalf("check failed: %v", err)
 }
@@ -77,6 +77,7 @@ for _, r := range results {
 ```
 === Nawala DNS Blocker Check ===
 
+  exam_ple.com         error: nawala: nxdomain: domain does not exist (NXDOMAIN) (server: 180.131.144.144)
   google.com           not blocked (server: 180.131.144.144)
   reddit.com           BLOCKED (server: 180.131.144.144)
   github.com           not blocked (server: 180.131.144.144)

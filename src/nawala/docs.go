@@ -156,6 +156,7 @@
 //	    ErrNoDNSServers  // No DNS servers configured
 //	    ErrAllDNSFailed  // All DNS servers failed to respond
 //	    ErrInvalidDomain // Domain name failed validation
+//	    ErrNXDOMAIN      // Domain does not exist (NXDOMAIN)
 //	    ErrDNSTimeout    // DNS query exceeded the configured timeout
 //	    ErrInternalPanic // An internal panic was recovered during execution
 //	)
