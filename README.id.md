@@ -202,6 +202,7 @@ var (
     ErrDNSTimeout    // Kueri DNS melebihi timeout yang dikonfigurasi
     ErrInternalPanic // Panic internal dipulihkan selama eksekusi
     ErrNXDOMAIN      // Domain tidak ada (NXDOMAIN)
+    ErrQueryRejected // Kueri secara eksplisit ditolak oleh server (Format Error, Refused, Not Implemented)
 )
 ```
 

@@ -27,4 +27,8 @@ var (
 
 	// ErrNXDOMAIN is returned when the DNS server responds with NXDOMAIN (domain does not exist).
 	ErrNXDOMAIN = errors.New("nawala: nxdomain")
+
+	// ErrQueryRejected is returned when a DNS server explicitly rejects a query
+	// (e.g., Format Error, Refused, Not Implemented).
+	ErrQueryRejected = errors.New("nawala: query rejected by server")
 )
