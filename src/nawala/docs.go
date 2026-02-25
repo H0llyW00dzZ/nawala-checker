@@ -150,7 +150,7 @@
 //
 // # Errors
 //
-// Sentinel errors for use with errors.Is:
+// Sentinel errors for use with [errors.Is]:
 //
 //	var (
 //	    ErrNoDNSServers  // No DNS servers configured
