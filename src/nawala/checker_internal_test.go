@@ -1196,3 +1196,81 @@ func TestQueryDNSTimeout(t *testing.T) {
 		assert.ErrorIs(t, err, ErrDNSTimeout, "expected ErrDNSTimeout for client timeout")
 	})
 }
+
+// TestCheckUnderscoreDomains verifies that domains containing underscores
+// in labels (e.g., Google AMP cache subdomains, cloud-provider service
+// endpoints) pass validation and are checked correctly end-to-end.
+func TestCheckUnderscoreDomains(t *testing.T) {
+	addr, cleanup := startNormalDNSServer(t)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithTimeout(5*time.Second),
+	)
+
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		domain string
+	}{
+		// Google AMP cache style subdomain with underscores
+		{"AMP cache subdomain", "https-reliable-amp_pages_dev.proxy.bugsmash.io"},
+		// Simple underscore in subdomain
+		{"underscore subdomain", "my_app.example.com"},
+		// Multiple underscore labels
+		{"multiple underscore labels", "sub_domain.my_service.example.com"},
+		// Leading underscore (common in SRV/DKIM records)
+		{"leading underscore", "_dmarc.example.com"},
+		// SRV-style record
+		{"SRV style", "_sip._tcp.example.com"},
+		// Underscore with digits
+		{"underscore with digits", "app_v2_staging.cloud.example.io"},
+		// Mixed hyphens and underscores
+		{"hyphens and underscores", "my-app_v2.test-env_01.example.com"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// 1. Domain must pass validation.
+			assert.True(t, IsValidDomain(tt.domain),
+				"IsValidDomain(%q) should return true", tt.domain)
+
+			// 2. Domain must normalize correctly.
+			normalized := normalizeDomain(tt.domain)
+			assert.Equal(t, normalized, tt.domain,
+				"domain should already be lowercase")
+
+			// 3. Full check must succeed through the checker pipeline.
+			result, err := c.CheckOne(ctx, tt.domain)
+			require.NoError(t, err, "CheckOne(%q) returned error", tt.domain)
+			assert.NoError(t, result.Error,
+				"CheckOne(%q) result.Error should be nil", tt.domain)
+			assert.False(t, result.Blocked,
+				"CheckOne(%q) should not be blocked by normal server", tt.domain)
+			assert.Equal(t, addr, result.Server,
+				"CheckOne(%q) should use the configured server", tt.domain)
+		})
+	}
+
+	// Batch check — all underscore domains at once.
+	t.Run("batch check", func(t *testing.T) {
+		domains := make([]string, len(tests))
+		for i, tt := range tests {
+			domains[i] = tt.domain
+		}
+
+		results, err := c.Check(ctx, domains...)
+		require.NoError(t, err)
+		require.Len(t, results, len(tests))
+
+		for i, r := range results {
+			assert.Equal(t, tests[i].domain, r.Domain, "result[%d].Domain", i)
+			assert.NoError(t, r.Error, "result[%d] unexpected error", i)
+			assert.False(t, r.Blocked, "result[%d] unexpectedly blocked", i)
+		}
+	})
+}
