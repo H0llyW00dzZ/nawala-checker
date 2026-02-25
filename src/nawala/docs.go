@@ -54,7 +54,7 @@
 //     domain names
 //   - Typed errors — sentinel errors for [errors.Is] matching
 //     ([ErrNoDNSServers], [ErrAllDNSFailed], [ErrInvalidDomain],
-//     [ErrDNSTimeout], [ErrInternalPanic])
+//     [ErrDNSTimeout], [ErrInternalPanic], [ErrNXDOMAIN])
 //
 // # Quick Start
 //
