@@ -95,11 +95,18 @@ c := nawala.New(
     nawala.WithCacheTTL(10 * time.Minute),
 
     // Replace all DNS servers with custom ones.
-    nawala.WithServers([]nawala.DNSServer{{
-        Address:   "8.8.8.8",
-        Keyword:   "blocked",
-        QueryType: "A",
-    }}),
+    nawala.WithServers([]nawala.DNSServer{
+        {
+            Address:   "8.8.8.8",
+            Keyword:   "blocked",
+            QueryType: "A",
+        },
+        {
+            Address:   "8.8.4.4",
+            Keyword:   "blocked",
+            QueryType: "A",
+        },
+    }),
 
     // Limit concurrent checks to 50 goroutines.
     nawala.WithConcurrency(50),
@@ -268,11 +275,18 @@ reddit.com.    30    IN    A    103.155.26.29
 The checker detects this by scanning the Extra section (which contains the OPT record) for the keyword `trustpositif` or `komdigi`. To use this detection, configure a server with the appropriate keyword:
 
 ```go
-nawala.WithServers([]nawala.DNSServer{{
-    Address:   "103.155.26.28",
-    Keyword:   "trustpositif",
-    QueryType: "A",
-}})
+nawala.WithServers([]nawala.DNSServer{
+    {
+        Address:   "103.155.26.28",
+        Keyword:   "trustpositif",
+        QueryType: "A",
+    },
+    {
+        Address:   "103.155.26.29",
+        Keyword:   "komdigi",
+        QueryType: "A",
+    },
+})
 ```
 
 ## Project Structure
