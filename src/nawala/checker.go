@@ -278,7 +278,7 @@ func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
 		// Attempt DNS query with retries.
 		result, err := c.queryWithRetries(ctx, domain, srv, qtype)
 		if err != nil {
-			// If the domain strictly does not exist (NXDOMAIN), return immediately.
+			// If the domain strictly does not exist (NXDOMAIN) or query rejected by server (QueryRejected), return immediately.
 			// This is a definitive answer from the DNS server, so we shouldn't failover over it.
 			if errors.Is(err, ErrNXDOMAIN) || errors.Is(err, ErrQueryRejected) {
 				return Result{
