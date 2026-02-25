@@ -1090,10 +1090,12 @@ func TestDNSStatusContextCancellation(t *testing.T) {
 	cancel() // Cancel immediately
 
 	statuses, err := c.DNSStatus(ctx)
+	t.Logf("DNSStatus error: %v", err)
 	assert.ErrorIs(t, err, context.Canceled)
 	require.Len(t, statuses, 3)
 
 	for i, s := range statuses {
+		t.Logf("status[%d] server=%s error=%v", i, s.Server, s.Error)
 		assert.ErrorIs(t, s.Error, context.Canceled, "status[%d]", i)
 		assert.False(t, s.Online, "status[%d] expected offline", i)
 	}
@@ -1134,6 +1136,7 @@ func TestCheckOneAAAA(t *testing.T) {
 
 	ctx := context.Background()
 	result, err := c.CheckOne(ctx, "example.com")
+	t.Logf("CheckOne error=%v result.Error=%v blocked=%v server=%s", err, result.Error, result.Blocked, result.Server)
 	require.NoError(t, err)
 	assert.NoError(t, result.Error)
 	assert.False(t, result.Blocked, "expected not blocked for normal AAAA response")
@@ -1166,6 +1169,7 @@ func TestQueryDNSTimeout(t *testing.T) {
 			edns0Size: 1232,
 		})
 		require.Error(t, err)
+		t.Logf("got error: %v", err)
 		assert.ErrorIs(t, err, ErrDNSTimeout, "expected ErrDNSTimeout for deadline exceeded")
 	})
 
@@ -1188,6 +1192,7 @@ func TestQueryDNSTimeout(t *testing.T) {
 			edns0Size: 1232,
 		})
 		require.Error(t, err)
+		t.Logf("got error: %v", err)
 		assert.ErrorIs(t, err, ErrDNSTimeout, "expected ErrDNSTimeout for client timeout")
 	})
 }
