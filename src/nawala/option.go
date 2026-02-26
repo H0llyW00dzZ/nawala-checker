@@ -61,6 +61,22 @@ func (c *Checker) SetServers(servers ...DNSServer) {
 	}
 }
 
+// HasServer returns true if a DNS server with the given address is
+// currently configured. It is safe to call concurrently with other
+// runtime configuration methods.
+//
+// The address should match exactly the address provided in [DNSServer.Address].
+func (c *Checker) HasServer(address string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	for _, s := range c.servers {
+		if s.Address == address {
+			return true
+		}
+	}
+	return false
+}
+
 // WithTimeout sets the timeout for each DNS query.
 // The default is 5 seconds.
 //

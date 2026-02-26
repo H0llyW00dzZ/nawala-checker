@@ -63,6 +63,31 @@ func main() {
 	}
 	fmt.Printf("  %s: %s (server: %s)\n", result.Domain, status, result.Server)
 
+	// Demonstrate runtime configuration
+	fmt.Println("\n=== Runtime Reconfiguration ===")
+
+	newIP := "203.0.113.1"
+	fmt.Printf("\nAdding new server %s at runtime...\n", newIP)
+
+	// Add server safely at runtime
+	c.SetServers(nawala.DNSServer{
+		Address:   newIP,
+		Keyword:   "blocked",
+		QueryType: "A",
+	})
+
+	// Verify it was added
+	if c.HasServer(newIP) {
+		fmt.Printf("Successfully verified %s is active!\n", newIP)
+	}
+
+	// Hot-reload: remove it
+	fmt.Printf("Removing server %s...\n", newIP)
+	c.DeleteServers(newIP)
+	if !c.HasServer(newIP) {
+		fmt.Printf("Successfully verified %s was removed!\n", newIP)
+	}
+
 	// Demonstrate cache — second check is instant.
 	fmt.Println()
 	fmt.Println("Second check (cached):")

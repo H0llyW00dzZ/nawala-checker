@@ -136,6 +136,7 @@ c := nawala.New(
 | `WithServer(s)` | — | **Usang (Deprecated):** gunakan `Checker.SetServers`. Tambahkan atau ganti server tunggal |
 | `WithServers(s)` | Default Nawala | Ganti semua server DNS |
 | `Checker.SetServers(s)` | — | Hot-reload: Tambahkan atau ganti server saat runtime (aman untuk konkurensi) |
+| `Checker.HasServer(s)` | — | Hot-reload: Periksa apakah server dikonfigurasi saat runtime (aman untuk konkurensi) |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Hapus server saat runtime (aman untuk konkurensi) |
 
 ## API
@@ -164,6 +165,11 @@ c.SetServers(nawala.DNSServer{
     Keyword:   "blocked",
     QueryType: "A",
 })
+
+// Hot-reload: Periksa apakah server saat ini dikonfigurasi.
+if c.HasServer("203.0.113.1") {
+    fmt.Println("Server is active")
+}
 
 // Hot-reload: Hapus server melalui alamat IP saat runtime (aman untuk konkurensi).
 c.DeleteServers("203.0.113.1")
