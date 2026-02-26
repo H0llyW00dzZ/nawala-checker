@@ -31,7 +31,7 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 - **Opsi fungsional** — pola konfigurasi Go yang bersih dan [idiomatis](https://go.dev/doc/effective_go)
 - **Sadar konteks** — dukungan penuh untuk timeout dan pembatalan melalui `context.Context`
 - **Validasi domain** — normalisasi dan validasi nama domain otomatis
-- **Error yang diketik** — error sentinel untuk pencocokan `errors.Is` (`ErrNoDNSServers`, `ErrAllDNSFailed`, `ErrInvalidDomain`, `ErrDNSTimeout`, `ErrInternalPanic`)
+- **Error yang diketik** — error sentinel untuk pencocokan `errors.Is` (lihat [Error](#error))
 
 ## Instalasi
 
@@ -228,9 +228,11 @@ Contoh yang dapat dijalankan tersedia di direktori [`examples/`](examples/):
 | [`custom`](examples/custom) | Konfigurasi lanjutan dengan server kustom, timeout, percobaan ulang, dan caching |
 | [`status`](examples/status) | Pantau kesehatan dan latensi server DNS |
 
-Jalankan contoh:
+Jalankan contoh (membutuhkan kloning repositori):
 
 ```bash
+git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+cd nawala-checker
 go run ./examples/basic
 ```
 
@@ -303,6 +305,15 @@ nawala-checker/
 ```
 
 ## Pengujian
+
+Pengujian harus dijalankan dari repositori yang telah dikloning:
+
+```bash
+git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+cd nawala-checker
+```
+
+Kemudian jalankan target yang diinginkan:
 
 ```bash
 # Jalankan tes dengan detektor race.
