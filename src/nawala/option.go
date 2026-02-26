@@ -14,23 +14,6 @@ import (
 // Option is a functional option for configuring a [Checker].
 type Option func(*Checker)
 
-// WithServer adds or replaces a DNS server in the checker's configuration.
-// If a server with the same address already exists, it will be replaced.
-//
-// Deprecated: Use [Checker.SetServers] instead. SetServers provides the
-// same add-or-replace behaviour and is safe to call after construction.
-func WithServer(server DNSServer) Option {
-	return func(c *Checker) {
-		for i, s := range c.servers {
-			if s.Address == server.Address {
-				c.servers[i] = server
-				return
-			}
-		}
-		c.servers = append(c.servers, server)
-	}
-}
-
 // WithServers replaces all configured DNS servers.
 // This overrides the default Nawala DNS servers.
 func WithServers(servers []DNSServer) Option {
