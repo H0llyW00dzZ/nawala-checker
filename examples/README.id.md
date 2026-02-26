@@ -142,8 +142,15 @@ Configured DNS servers:
 
   google.com: tidak diblokir (server: 180.131.144.144)
 
+=== Runtime Reconfiguration ===
+
+Adding new server 203.0.113.1 at runtime...
+Successfully verified 203.0.113.1 is active!
+Removing server 203.0.113.1...
+Successfully verified 203.0.113.1 was removed!
+
 Second check (cached):
-  google.com: blocked=false (took 4.2µs)
+  google.com: blocked=false (took 2.6µs)
 ```
 
 **Yang ditunjukkan contoh ini:**
@@ -151,6 +158,8 @@ Second check (cached):
 - `WithServer` **menambahkan** satu server ke daftar yang ada (Usang: gunakan
   `c.SetServers()` untuk **mengganti** atau menambah server saat runtime
   dengan aman secara konkurensi)
+- `c.SetServers()` dan `c.DeleteServers()` memungkinkan *hot-reload* dinamis dari server DNS.
+- `c.HasServer()` memverifikasi apakah IP server DNS tertentu saat ini dikonfigurasi.
 - `WithTimeout` dan `WithMaxRetries` mengontrol ketahanan per kueri
 - `WithCacheTTL` mengaktifkan cache TTL dalam memori — panggilan `CheckOne`
   kedua selesai dalam milidetik karena hasilnya disajikan dari cache
