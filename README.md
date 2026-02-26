@@ -135,6 +135,7 @@ c := nawala.New(
 | `WithDNSClient(c)` | UDP client | Custom `*dns.Client` for TCP, TLS, or custom dialer |
 | `WithServer(s)` | — | **Deprecated:** use `Checker.SetServers`. Add or replace a single server |
 | `WithServers(s)` | Nawala defaults | Replace all DNS servers |
+| `Checker.SetServers(s)` | — | Hot-reload: Add or replace servers at runtime safely |
 
 ## API
 

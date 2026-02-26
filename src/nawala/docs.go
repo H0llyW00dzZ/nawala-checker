@@ -115,15 +115,15 @@
 //
 // Available options:
 //
-//   - [WithTimeout]     — Timeout per DNS query (default: 5s)
-//   - [WithMaxRetries]  — Max retry attempts per query, total = n+1 (default: 2)
-//   - [WithCacheTTL]    — TTL for the built-in in-memory cache (default: 5m)
-//   - [WithCache]       — Custom Cache implementation; pass nil to disable
-//   - [WithConcurrency] — Max concurrent DNS checks, semaphore size (default: 100)
-//   - [WithEDNS0Size]   — EDNS0 UDP buffer size, prevents fragmentation (default: 1232)
-//   - [WithDNSClient]   — Custom client for TCP, TLS, or custom dialer
-//   - [WithServer]      — (Deprecated: use [Checker.SetServers] for hot-reloading) Add or replace a single DNS server
-//   - [WithServers]     — Replace all DNS servers (default: Nawala servers)
+//   - [WithTimeout]        — Timeout per DNS query (default: 5s)
+//   - [WithMaxRetries]     — Max retry attempts per query, total = n+1 (default: 2)
+//   - [WithCacheTTL]       — TTL for the built-in in-memory cache (default: 5m)
+//   - [WithCache]          — Custom Cache implementation; pass nil to disable
+//   - [WithConcurrency]    — Max concurrent DNS checks, semaphore size (default: 100)
+//   - [WithEDNS0Size]      — EDNS0 UDP buffer size, prevents fragmentation (default: 1232)
+//   - [WithDNSClient]      — Custom client for TCP, TLS, or custom dialer
+//   - [WithServer]         — (Deprecated: use [Checker.SetServers] for hot-reloading) Add or replace a single DNS server
+//   - [WithServers]        — Replace all DNS servers (default: Nawala servers)
 //   - [Checker.SetServers] — Hot-reload: Add or replace servers at runtime safely
 //
 // # API
