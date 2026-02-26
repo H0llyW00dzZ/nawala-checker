@@ -228,9 +228,11 @@ Contoh yang dapat dijalankan tersedia di direktori [`examples/`](examples/):
 | [`custom`](examples/custom) | Konfigurasi lanjutan dengan server kustom, timeout, percobaan ulang, dan caching |
 | [`status`](examples/status) | Pantau kesehatan dan latensi server DNS |
 
-Jalankan contoh:
+Jalankan contoh (membutuhkan kloning repositori):
 
 ```bash
+git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+cd nawala-checker
 go run ./examples/basic
 ```
 
@@ -303,6 +305,15 @@ nawala-checker/
 ```
 
 ## Pengujian
+
+Pengujian harus dijalankan dari repositori yang telah dikloning:
+
+```bash
+git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+cd nawala-checker
+```
+
+Kemudian jalankan target yang diinginkan:
 
 ```bash
 # Jalankan tes dengan detektor race.

@@ -235,8 +235,10 @@
 //     timeouts, retries, and caching
 //   - [examples/status] — Monitor DNS server health and latency
 //
-// Run an example:
+// Run an example (requires cloning the repository first):
 //
+//	git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+//	cd nawala-checker
 //	go run ./examples/basic
 //
 // [examples/basic]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/basic/main.go

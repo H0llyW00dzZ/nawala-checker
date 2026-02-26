@@ -228,9 +228,11 @@ Runnable examples are available in the [`examples/`](examples/) directory:
 | [`custom`](examples/custom) | Advanced configuration with custom servers, timeouts, retries, and caching |
 | [`status`](examples/status) | Monitor DNS server health and latency |
 
-Run an example:
+Run an example (requires cloning the repository):
 
 ```bash
+git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+cd nawala-checker
 go run ./examples/basic
 ```
 
@@ -303,6 +305,15 @@ nawala-checker/
 ```
 
 ## Testing
+
+Tests must be run from a cloned repository:
+
+```bash
+git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+cd nawala-checker
+```
+
+Then run the desired target:
 
 ```bash
 # Run tests with race detector.
