@@ -160,6 +160,22 @@ func TestSetServersConcurrency(t *testing.T) {
 		<-done
 	}
 	// Just assert we have at least the 2 defaults; exact count varies by race.
+	assert.GreaterOrEqual(t, len(c.Servers()), 2)
+}
+
+func TestHasServerRuntime(t *testing.T) {
+	c := nawala.New()
+
+	// Defaults should be found.
+	assert.True(t, c.HasServer("180.131.144.144"))
+	assert.True(t, c.HasServer("180.131.145.145"))
+
+	// Non-existent server should not be found.
+	assert.False(t, c.HasServer("8.8.8.8"))
+
+	// Add a new server and check again.
+	c.SetServers(nawala.DNSServer{Address: "8.8.8.8", Keyword: "custom", QueryType: "A"})
+	assert.True(t, c.HasServer("8.8.8.8"))
 }
 
 func TestDeleteServersRuntime(t *testing.T) {

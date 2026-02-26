@@ -140,8 +140,15 @@ Configured DNS servers:
 
   google.com: not blocked (server: 180.131.144.144)
 
+=== Runtime Reconfiguration ===
+
+Adding new server 203.0.113.1 at runtime...
+Successfully verified 203.0.113.1 is active!
+Removing server 203.0.113.1...
+Successfully verified 203.0.113.1 was removed!
+
 Second check (cached):
-  google.com: blocked=false (took 4.2µs)
+  google.com: blocked=false (took 2.6µs)
 ```
 
 **What this demonstrates:**
@@ -149,6 +156,8 @@ Second check (cached):
 - `WithServer` **appends** a single server to the existing list (Deprecated: use
   `c.SetServers()` to **replace** or append servers at runtime with
   concurrency safety)
+- `c.SetServers()` and `c.DeleteServers()` allow dynamic hot-reloading of DNS servers.
+- `c.HasServer()` verifies if a given DNS server IP is currently configured.
 - `WithTimeout` and `WithMaxRetries` control per-query resilience
 - `WithCacheTTL` enables the in-memory TTL cache — the second `CheckOne`
   call returns in microseconds because the result is served from cache

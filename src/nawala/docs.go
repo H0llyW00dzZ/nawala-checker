@@ -125,6 +125,7 @@
 //   - [WithServer]            — (Deprecated: use [Checker.SetServers] for hot-reloading) Add or replace a single DNS server
 //   - [WithServers]           — Replace all DNS servers (default: Nawala servers)
 //   - [Checker.SetServers]    — Hot-reload: Add or replace servers at runtime safely
+//   - [Checker.HasServer]     — Hot-reload: Check if a server is configured at runtime safely
 //   - [Checker.DeleteServers] — Hot-reload: Remove servers at runtime safely
 //
 // # API
@@ -152,6 +153,11 @@
 //	    Keyword:   "blocked",
 //	    QueryType: "A",
 //	})
+//
+//	// Check if a server is currently configured.
+//	if c.HasServer("203.0.113.1") {
+//	    fmt.Println("Server is active")
+//	}
 //
 //	// Hot-reload: Remove servers at runtime by IP address (concurrency-safe).
 //	c.DeleteServers("203.0.113.1")
