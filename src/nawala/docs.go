@@ -115,15 +115,16 @@
 //
 // Available options:
 //
-//   - [WithTimeout]     — Timeout per DNS query (default: 5s)
-//   - [WithMaxRetries]  — Max retry attempts per query, total = n+1 (default: 2)
-//   - [WithCacheTTL]    — TTL for the built-in in-memory cache (default: 5m)
-//   - [WithCache]       — Custom Cache implementation; pass nil to disable
-//   - [WithConcurrency] — Max concurrent DNS checks, semaphore size (default: 100)
-//   - [WithEDNS0Size]   — EDNS0 UDP buffer size, prevents fragmentation (default: 1232)
-//   - [WithDNSClient]   — Custom client for TCP, TLS, or custom dialer
-//   - [WithServer]      — Add or replace a single DNS server
-//   - [WithServers]     — Replace all DNS servers (default: Nawala servers)
+//   - [WithTimeout]        — Timeout per DNS query (default: 5s)
+//   - [WithMaxRetries]     — Max retry attempts per query, total = n+1 (default: 2)
+//   - [WithCacheTTL]       — TTL for the built-in in-memory cache (default: 5m)
+//   - [WithCache]          — Custom Cache implementation; pass nil to disable
+//   - [WithConcurrency]    — Max concurrent DNS checks, semaphore size (default: 100)
+//   - [WithEDNS0Size]      — EDNS0 UDP buffer size, prevents fragmentation (default: 1232)
+//   - [WithDNSClient]      — Custom client for TCP, TLS, or custom dialer
+//   - [WithServer]         — (Deprecated: use [Checker.SetServers] for hot-reloading) Add or replace a single DNS server
+//   - [WithServers]        — Replace all DNS servers (default: Nawala servers)
+//   - [Checker.SetServers] — Hot-reload: Add or replace servers at runtime safely
 //
 // # API
 //
@@ -143,6 +144,13 @@
 //
 //	// Get configured servers.
 //	servers := c.Servers()
+//
+//	// Hot-reload: Add or replace servers at runtime (concurrency-safe).
+//	c.SetServers(nawala.DNSServer{
+//	    Address:   "203.0.113.1",
+//	    Keyword:   "blocked",
+//	    QueryType: "A",
+//	})
 //
 // Domain validation:
 //
@@ -237,6 +245,8 @@
 //   - [examples/custom] — Advanced configuration with custom servers,
 //     timeouts, retries, and caching
 //   - [examples/status] — Monitor DNS server health and latency
+//   - [examples/hotreload] — Safely update DNS servers while concurrent
+//     checks are running
 //
 // Run an example (requires cloning the repository first):
 //
@@ -247,6 +257,7 @@
 // [examples/basic]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/basic/main.go
 // [examples/custom]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/custom/main.go
 // [examples/status]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/status/main.go
+// [examples/hotreload]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/hotreload/main.go
 // [examples/]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples
 // [k8s]: https://kubernetes.io
 // [idiomatic Go]: https://go.dev/doc/effective_go

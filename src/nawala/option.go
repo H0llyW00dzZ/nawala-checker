@@ -14,25 +14,50 @@ import (
 // Option is a functional option for configuring a [Checker].
 type Option func(*Checker)
 
-// WithServer adds or replaces a DNS server in the checker's configuration.
-// If a server with the same address already exists, it will be replaced.
-func WithServer(server DNSServer) Option {
-	return func(c *Checker) {
-		for i, s := range c.servers {
-			if s.Address == server.Address {
-				c.servers[i] = server
-				return
-			}
-		}
-		c.servers = append(c.servers, server)
-	}
-}
-
 // WithServers replaces all configured DNS servers.
 // This overrides the default Nawala DNS servers.
 func WithServers(servers []DNSServer) Option {
 	return func(c *Checker) {
 		c.servers = servers
+	}
+}
+
+// SetServers adds or replaces DNS servers on a running [Checker].
+// It is safe to call concurrently with [Checker.Check], [Checker.CheckOne],
+// and [Checker.DNSStatus].
+//
+// For each server provided, if a server with the same address is already
+// configured it is replaced in-place; otherwise it is appended.
+// The change takes effect for all DNS queries that start after this call
+// returns — in-flight queries use their own snapshot of the server list.
+//
+// Passing zero servers is a no-op.
+//
+// Example — hot-reload a single server at runtime:
+//
+//	c.SetServers(nawala.DNSServer{
+//	    Address:   "203.0.113.1",
+//	    Keyword:   "blocked",
+//	    QueryType: "A",
+//	})
+func (c *Checker) SetServers(servers ...DNSServer) {
+	if len(servers) == 0 {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, server := range servers {
+		updated := false
+		for i, s := range c.servers {
+			if s.Address == server.Address {
+				c.servers[i] = server
+				updated = true
+				break
+			}
+		}
+		if !updated {
+			c.servers = append(c.servers, server)
+		}
 	}
 }
 

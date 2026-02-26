@@ -41,6 +41,7 @@ var defaultServers = []DNSServer{
 // Checker performs DNS-based domain blocking checks against
 // Nawala/Kominfo (now Komdigi) DNS servers.
 type Checker struct {
+	mu          sync.RWMutex
 	servers     []DNSServer
 	timeout     time.Duration
 	maxRetries  int
@@ -105,7 +106,11 @@ func New(opts ...Option) *Checker {
 // Domains that do not exist on the internet are returned with
 // [ErrNXDOMAIN] in the Result's Error field.
 func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error) {
-	if len(c.servers) == 0 {
+	c.mu.RLock()
+	n := len(c.servers)
+	c.mu.RUnlock()
+
+	if n == 0 {
 		return nil, ErrNoDNSServers
 	}
 
@@ -168,7 +173,11 @@ Loop:
 // CheckOne checks a single domain against the configured Nawala DNS servers.
 // This is a convenience wrapper around [Checker.Check].
 func (c *Checker) CheckOne(ctx context.Context, domain string) (Result, error) {
-	if len(c.servers) == 0 {
+	c.mu.RLock()
+	n := len(c.servers)
+	c.mu.RUnlock()
+
+	if n == 0 {
 		return Result{}, ErrNoDNSServers
 	}
 	return c.checkSingle(ctx, domain), nil
@@ -177,11 +186,16 @@ func (c *Checker) CheckOne(ctx context.Context, domain string) (Result, error) {
 // DNSStatus checks the health of all configured DNS servers.
 // It returns the online/offline status and latency for each server.
 func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
-	if len(c.servers) == 0 {
+	c.mu.RLock()
+	servers := make([]DNSServer, len(c.servers))
+	copy(servers, c.servers)
+	c.mu.RUnlock()
+
+	if len(servers) == 0 {
 		return nil, ErrNoDNSServers
 	}
 
-	statuses := make([]ServerStatus, len(c.servers))
+	statuses := make([]ServerStatus, len(servers))
 	var wg sync.WaitGroup
 
 	// Semaphore to limit concurrency.
@@ -190,14 +204,14 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	sem := make(chan struct{}, c.concurrency)
 
 Loop:
-	for i, srv := range c.servers {
+	for i, srv := range servers {
 		// Check context before starting new work
 		select {
 		case <-ctx.Done():
 			// Fill remaining results with context error
-			for j := i; j < len(c.servers); j++ {
+			for j := i; j < len(servers); j++ {
 				statuses[j] = ServerStatus{
-					Server: c.servers[j].Address,
+					Server: servers[j].Address,
 					Error:  ctx.Err(),
 				}
 			}
@@ -246,6 +260,8 @@ func (c *Checker) FlushCache() {
 
 // Servers returns a copy of the currently configured DNS servers.
 func (c *Checker) Servers() []DNSServer {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	servers := make([]DNSServer, len(c.servers))
 	copy(servers, c.servers)
 	return servers
@@ -263,8 +279,15 @@ func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
 		}
 	}
 
+	// Snapshot the server list under a read lock so that a concurrent
+	// SetServers call cannot modify the slice mid-iteration.
+	c.mu.RLock()
+	servers := make([]DNSServer, len(c.servers))
+	copy(servers, c.servers)
+	c.mu.RUnlock()
+
 	// Try each server in order (primary with failover).
-	for _, srv := range c.servers {
+	for _, srv := range servers {
 		qtype := parseQueryType(srv.QueryType)
 		cacheKey := fmt.Sprintf("%s:%s:%s:%d", domain, srv.Address, srv.Keyword, qtype)
 

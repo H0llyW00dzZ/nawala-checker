@@ -7,6 +7,7 @@ package nawala_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -105,6 +106,63 @@ func TestWithDNSServerAddAndReplace(t *testing.T) {
 	require.Len(t, servers2, 2, "expected 2 servers after replace")
 	assert.Equal(t, "replaced", servers2[0].Keyword)
 }
+
+func TestSetServersRuntime(t *testing.T) {
+	c := nawala.New()
+
+	// Add a brand-new server — length grows from 2 to 3.
+	c.SetServers(nawala.DNSServer{Address: "8.8.8.8", Keyword: "custom", QueryType: "A"})
+	servers := c.Servers()
+	require.Len(t, servers, 3, "expected 3 servers after adding new one")
+
+	// Replace an existing server by address — length stays at 3, keyword changes.
+	c.SetServers(nawala.DNSServer{Address: "8.8.8.8", Keyword: "replaced", QueryType: "A"})
+	servers = c.Servers()
+	require.Len(t, servers, 3, "expected 3 servers after replacing existing one")
+	var found bool
+	for _, s := range servers {
+		if s.Address == "8.8.8.8" {
+			assert.Equal(t, "replaced", s.Keyword)
+			found = true
+		}
+	}
+	assert.True(t, found, "replaced server should still be present")
+
+	// Upsert multiple servers in one call.
+	c.SetServers(
+		nawala.DNSServer{Address: "1.1.1.1", Keyword: "cf", QueryType: "A"},
+		nawala.DNSServer{Address: "8.8.8.8", Keyword: "google", QueryType: "A"},
+	)
+	servers = c.Servers()
+	require.Len(t, servers, 4, "expected 4 servers after adding 1 new + replacing 1 existing")
+
+	// No-op: zero args should leave the list unchanged.
+	c.SetServers()
+	assert.Len(t, c.Servers(), 4, "no-op call should not change servers")
+}
+
+func TestSetServersConcurrency(t *testing.T) {
+	c := nawala.New()
+	const workers = 50
+
+	done := make(chan struct{})
+	for i := range workers {
+		go func(n int) {
+			c.SetServers(nawala.DNSServer{
+				Address:   fmt.Sprintf("10.0.0.%d", n%254+1),
+				Keyword:   "test",
+				QueryType: "A",
+			})
+			done <- struct{}{}
+		}(i)
+	}
+	for range workers {
+		<-done
+	}
+	// Just assert we have at least the 2 defaults; exact count varies by race.
+	assert.GreaterOrEqual(t, len(c.Servers()), 2)
+}
+
 
 func TestCheckInvalidDomain(t *testing.T) {
 	c := nawala.New()

@@ -20,6 +20,7 @@ DNS-based domain blocking checker for Indonesian ISP DNS filters
 | [`basic/`](basic/main.go) | Check multiple domains with default configuration |
 | [`custom/`](custom/main.go) | Advanced configuration: custom servers, timeouts, retries, caching |
 | [`status/`](status/main.go) | Monitor DNS server health and latency |
+| [`hotreload/`](hotreload/main.go) | Safely update DNS servers while concurrent checks are running |
 
 ## Prerequisites
 
@@ -46,6 +47,7 @@ DNS-based domain blocking checker for Indonesian ISP DNS filters
 go run ./examples/basic
 go run ./examples/custom
 go run ./examples/status
+go run ./examples/hotreload
 ```
 
 ---
@@ -144,8 +146,9 @@ Second check (cached):
 
 **What this demonstrates:**
 
-- `WithServer` **appends** a single server to the existing list; use
-  `WithServers` to **replace** all servers
+- `WithServer` **appends** a single server to the existing list (Deprecated: use
+  `c.SetServers()` to **replace** or append servers at runtime with
+  concurrency safety)
 - `WithTimeout` and `WithMaxRetries` control per-query resilience
 - `WithCacheTTL` enables the in-memory TTL cache — the second `CheckOne`
   call returns in microseconds because the result is served from cache
@@ -201,3 +204,35 @@ for _, s := range statuses {
   servers leave it as `0`
 - `ServerStatus.Error` is non-nil when the health probe itself failed
 - Useful for monitoring or pre-flight checks before running bulk domain checks
+
+---
+
+## `hotreload` — Concurrency-Safe Configuration Updates
+
+[`hotreload/main.go`](hotreload/main.go) runs a continuous loop checking DNS while
+simultaneously using `SetServers` to change the underlying DNS servers and
+their keywords.
+
+**Expected output** (timing may vary):
+
+```
+=== Nawala DNS Hot-Reload Example ===
+[15:04:05.105] reddit.com      -> not blocked  (Server: 8.8.8.8, Keyword: this-will-never-match)
+[15:04:05.619] reddit.com      -> not blocked  (Server: 8.8.8.8, Keyword: this-will-never-match)
+
+>>> TRIGGERING HOT-RELOAD: Adding Nawala Block Server...
+[15:04:07.135] reddit.com      -> BLOCKED      (Server: 180.131.144.144, Keyword: internetpositif)
+[15:04:07.651] reddit.com      -> BLOCKED      (Server: 180.131.144.144, Keyword: internetpositif)
+
+>>> TRIGGERING HOT-RELOAD: Changing Keyword...
+[15:04:10.165] reddit.com      -> not blocked  (Server: 180.131.144.144, Keyword: changed-keyword)
+```
+
+**What this demonstrates:**
+
+- `c.SetServers(...)` acquires an exclusive lock internally to replace the
+  server slices.
+- `c.CheckOne()` acquires a fast read lock to copy down the current configuration,
+  ensuring it never panics on race conditions.
+- You can completely overwrite an existing server's properties (like `Keyword`
+  or `QueryType`) if you pass a server config with an identical `Address`.
