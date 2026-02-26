@@ -245,7 +245,7 @@ Runnable examples are available in the [`examples/`](examples/) directory:
 | [`basic`](examples/basic) | Check multiple domains with default configuration |
 | [`custom`](examples/custom) | Advanced configuration with custom servers, timeouts, retries, and caching |
 | [`status`](examples/status) | Monitor DNS server health and latency |
-| [`hot-reload`](examples/hot-reload) | Hot-reload DNS servers at runtime |
+| [`hot-reload`](examples/hotreload) | Hot-reload DNS servers at runtime |
 
 Run an example (requires cloning the repository):
 
