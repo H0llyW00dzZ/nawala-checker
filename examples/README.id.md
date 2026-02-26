@@ -146,8 +146,9 @@ Second check (cached):
 
 **Yang ditunjukkan contoh ini:**
 
-- `WithServer` **menambahkan** satu server ke daftar yang ada; gunakan
-  `WithServers` untuk **mengganti** semua server
+- `WithServer` **menambahkan** satu server ke daftar yang ada (Usang: gunakan
+  `c.SetServers()` untuk **mengganti** atau menambah server saat runtime
+  dengan aman secara konkurensi)
 - `WithTimeout` dan `WithMaxRetries` mengontrol ketahanan per kueri
 - `WithCacheTTL` mengaktifkan cache TTL dalam memori — panggilan `CheckOne`
   kedua selesai dalam milidetik karena hasilnya disajikan dari cache

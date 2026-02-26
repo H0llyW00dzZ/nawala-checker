@@ -122,8 +122,9 @@
 //   - [WithConcurrency] — Max concurrent DNS checks, semaphore size (default: 100)
 //   - [WithEDNS0Size]   — EDNS0 UDP buffer size, prevents fragmentation (default: 1232)
 //   - [WithDNSClient]   — Custom client for TCP, TLS, or custom dialer
-//   - [WithServer]      — (Deprecated: use [Checker.SetServers]) Add or replace a single DNS server
+//   - [WithServer]      — (Deprecated: use [Checker.SetServers] for hot-reloading) Add or replace a single DNS server
 //   - [WithServers]     — Replace all DNS servers (default: Nawala servers)
+//   - [Checker.SetServers] — Hot-reload: Add or replace servers at runtime safely
 //
 // # API
 //
@@ -144,7 +145,7 @@
 //	// Get configured servers.
 //	servers := c.Servers()
 //
-//	// Add or replace servers at runtime (thread-safe).
+//	// Hot-reload: Add or replace servers at runtime (concurrency-safe).
 //	c.SetServers(nawala.DNSServer{
 //	    Address:   "203.0.113.1",
 //	    Keyword:   "blocked",

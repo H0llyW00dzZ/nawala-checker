@@ -133,7 +133,7 @@ c := nawala.New(
 | `WithConcurrency(n)` | `100` | Max concurrent DNS checks (semaphore size) |
 | `WithEDNS0Size(n)` | `1232` | EDNS0 UDP buffer size (prevents fragmentation) |
 | `WithDNSClient(c)` | UDP client | Custom `*dns.Client` for TCP, TLS, or custom dialer |
-| `WithServer(s)` | — | Add or replace a single DNS server |
+| `WithServer(s)` | — | **Deprecated:** use `Checker.SetServers`. Add or replace a single server |
 | `WithServers(s)` | Nawala defaults | Replace all DNS servers |
 
 ## API
@@ -155,6 +155,13 @@ c.FlushCache()
 
 // Get configured servers.
 servers := c.Servers()
+
+// Hot-reload: Add or replace servers at runtime (concurrency-safe).
+c.SetServers(nawala.DNSServer{
+    Address:   "203.0.113.1",
+    Keyword:   "blocked",
+    QueryType: "A",
+})
 ```
 
 ### Validation

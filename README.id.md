@@ -133,7 +133,7 @@ c := nawala.New(
 | `WithConcurrency(n)` | `100` | Maksimum pemeriksaan DNS serentak (ukuran semaphore) |
 | `WithEDNS0Size(n)` | `1232` | Ukuran buffer UDP EDNS0 (mencegah fragmentasi) |
 | `WithDNSClient(c)` | klien UDP | `*dns.Client` kustom untuk TCP, TLS, atau dialer kustom |
-| `WithServer(s)` | — | Tambahkan atau ganti satu server DNS |
+| `WithServer(s)` | — | **Usang (Deprecated):** gunakan `Checker.SetServers`. Tambahkan atau ganti server tunggal |
 | `WithServers(s)` | Default Nawala | Ganti semua server DNS |
 
 ## API
@@ -155,6 +155,13 @@ c.FlushCache()
 
 // Dapatkan server yang dikonfigurasi.
 servers := c.Servers()
+
+// Hot-reload: Tambahkan atau ganti server saat runtime (aman untuk konkurensi).
+c.SetServers(nawala.DNSServer{
+    Address:   "203.0.113.1",
+    Keyword:   "blocked",
+    QueryType: "A",
+})
 ```
 
 ### Validasi

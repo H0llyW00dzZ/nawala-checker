@@ -144,8 +144,9 @@ Second check (cached):
 
 **What this demonstrates:**
 
-- `WithServer` **appends** a single server to the existing list; use
-  `WithServers` to **replace** all servers
+- `WithServer` **appends** a single server to the existing list (Deprecated: use
+  `c.SetServers()` to **replace** or append servers at runtime with
+  concurrency safety)
 - `WithTimeout` and `WithMaxRetries` control per-query resilience
 - `WithCacheTTL` enables the in-memory TTL cache — the second `CheckOne`
   call returns in microseconds because the result is served from cache
