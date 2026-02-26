@@ -24,6 +24,11 @@ DNS-based domain blocking checker for Indonesian ISP DNS filters
 ## Prerequisites
 
 - **Go 1.25.6** or later
+- A **cloned repository** — examples are not distributed via `go get`:
+  ```bash
+  git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+  cd nawala-checker
+  ```
 - An **Indonesian network connection** (or a custom DNS relay on an
   Indonesian network — see the tip below)
 

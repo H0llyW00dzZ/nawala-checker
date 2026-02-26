@@ -24,6 +24,11 @@ pemeriksa pemblokiran domain berbasis DNS untuk filter DNS ISP Indonesia
 ## Prasyarat
 
 - **Go 1.25.6** atau lebih baru
+- **Repositori yang telah dikloning** — contoh tidak didistribusikan melalui `go get`:
+  ```bash
+  git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+  cd nawala-checker
+  ```
 - Koneksi **jaringan Indonesia** (atau relay DNS kustom di jaringan Indonesia —
   lihat tips di bawah)
 
