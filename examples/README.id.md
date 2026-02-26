@@ -20,6 +20,7 @@ pemeriksa pemblokiran domain berbasis DNS untuk filter DNS ISP Indonesia
 | [`basic/`](basic/main.go) | Periksa beberapa domain dengan konfigurasi default |
 | [`custom/`](custom/main.go) | Konfigurasi lanjutan: server kustom, timeout, percobaan ulang, caching |
 | [`status/`](status/main.go) | Pantau kesehatan dan latensi server DNS |
+| [`hotreload/`](hotreload/main.go) | Perbarui server DNS dengan aman secara konkurensi saat pemeriksaan berjalan |
 
 ## Prasyarat
 
@@ -46,6 +47,7 @@ pemeriksa pemblokiran domain berbasis DNS untuk filter DNS ISP Indonesia
 go run ./examples/basic
 go run ./examples/custom
 go run ./examples/status
+go run ./examples/hotreload
 ```
 
 ---
@@ -206,3 +208,35 @@ for _, s := range statuses {
 - `ServerStatus.Error` bernilai non-nil saat probe kesehatan itu sendiri gagal
 - Berguna untuk pemantauan atau pemeriksaan awal sebelum menjalankan
   pemeriksaan domain secara massal
+
+---
+
+## `hotreload` — Pembaruan Konfigurasi Aman Konkurensi
+
+[`hotreload/main.go`](hotreload/main.go) menjalankan pemeriksaan DNS terus-menerus
+dalam loop sambil secara bersamaan menggunakan `SetServers` untuk mengubah 
+server DNS dan kata kuncinya di latar belakang.
+
+**Keluaran yang diharapkan** (waktu bervariasi):
+
+```
+=== Nawala DNS Hot-Reload Example ===
+[15:04:05.105] reddit.com      -> tidak diblokir (Server: 8.8.8.8, Keyword: this-will-never-match)
+[15:04:05.619] reddit.com      -> tidak diblokir (Server: 8.8.8.8, Keyword: this-will-never-match)
+
+>>> TRIGGERING HOT-RELOAD: Adding Nawala Block Server...
+[15:04:07.135] reddit.com      -> DIBLOKIR     (Server: 180.131.144.144, Keyword: internetpositif)
+[15:04:07.651] reddit.com      -> DIBLOKIR     (Server: 180.131.144.144, Keyword: internetpositif)
+
+>>> TRIGGERING HOT-RELOAD: Changing Keyword...
+[15:04:10.165] reddit.com      -> tidak diblokir (Server: 180.131.144.144, Keyword: changed-keyword)
+```
+
+**Yang ditunjukkan contoh ini:**
+
+- `c.SetServers(...)` memperoleh kunci eksklusif secara internal untuk mengganti
+  semen server.
+- `c.CheckOne()` memperoleh kunci baca cepat untuk menyalin konfigurasi saat ini,
+  memastikan kode tidak pernah panic pada *race condition*.
+- Anda dapat sepenuhnya menimpa properti server yang ada (seperti `Keyword`
+  atau `QueryType`) jika meneruskan konfigurasi server dengan `Address` yang identik.

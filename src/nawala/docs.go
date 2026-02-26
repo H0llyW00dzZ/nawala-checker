@@ -245,6 +245,8 @@
 //   - [examples/custom] — Advanced configuration with custom servers,
 //     timeouts, retries, and caching
 //   - [examples/status] — Monitor DNS server health and latency
+//   - [examples/hotreload] — Safely update DNS servers while concurrent
+//     checks are running
 //
 // Run an example (requires cloning the repository first):
 //
@@ -255,6 +257,7 @@
 // [examples/basic]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/basic/main.go
 // [examples/custom]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/custom/main.go
 // [examples/status]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/status/main.go
+// [examples/hotreload]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/hotreload/main.go
 // [examples/]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples
 // [k8s]: https://kubernetes.io
 // [idiomatic Go]: https://go.dev/doc/effective_go
