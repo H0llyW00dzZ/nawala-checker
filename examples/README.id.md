@@ -33,10 +33,12 @@ pemeriksa pemblokiran domain berbasis DNS untuk filter DNS ISP Indonesia
   lihat tips di bawah)
 
 > [!TIP]
-> Saat berjalan pada infrastruktur cloud (misalnya VPS, microservice, k8s),
-> deploy server DNS di dalam cluster Anda pada node jaringan Indonesia, lalu
-> arahkan checker ke sana menggunakan `WithServers`. Server Nawala/Komdigi
-> hanya akan merespons dengan indikator blokir saat melihat IP sumber Indonesia.
+> Saat berjalan pada infrastruktur cloud (misalnya, VPS, microservice, [k8s](https://kubernetes.io)) yang
+> tidak berada pada jaringan Indonesia (misalnya, server Singapura atau AS),
+> implementasikan server DNS Anda sendiri di jaringan Indonesia, kemudian arahkan
+> SDK ini ke sana menggunakan `WithServers`. Perilaku indikator pemblokiran bergantung
+> pada server DNS yang digunakan; server Nawala/Komdigi default hanya akan
+> mengembalikan indikator pemblokiran saat diquery dari IP sumber Indonesia.
 
 ## Menjalankan Contoh
 

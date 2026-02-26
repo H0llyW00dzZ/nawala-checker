@@ -33,11 +33,12 @@ DNS-based domain blocking checker for Indonesian ISP DNS filters
   Indonesian network — see the tip below)
 
 > [!TIP]
-> When running on cloud infrastructure (e.g., VPS, microservices, k8s),
-> deploy a DNS server inside your cluster on an Indonesian network node,
-> then point the checker at it using `WithServers`. The Nawala/Komdigi
-> servers will only respond with block indicators when they see an
-> Indonesian source IP.
+> When running on cloud infrastructure (e.g., VPS, microservices, [k8s](https://kubernetes.io)) that
+> is not on an Indonesian network (e.g., a Singapore or US server), implement
+> your own DNS server on an Indonesian network, then point this SDK at it
+> using `WithServers`. Block indicator behavior depends on the DNS server in
+> use; the default Nawala/Komdigi servers only return block indicators when
+> queried from an Indonesian source IP.
 
 ## Running an Example
 

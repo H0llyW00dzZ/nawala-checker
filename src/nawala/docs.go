@@ -17,9 +17,12 @@
 // within Indonesia. Ensure your connection uses a pure Indonesian IP
 // with no routing through networks outside Indonesia.
 //
-// If running on cloud infrastructure (e.g., VPS, microservices, [k8s]),
-// it is better to implement your own DNS server using an Indonesian
-// network, then from the cloud infrastructure simply call it.
+// When running on cloud infrastructure (e.g., VPS, microservices, [k8s])
+// that is not on an Indonesian network (e.g., a Singapore or US server),
+// implement your own DNS server on an Indonesian network, then point this
+// SDK at it using [WithServers]. Block indicator behavior depends on the
+// DNS server in use; the default Nawala/Komdigi servers only return block
+// indicators when queried from an Indonesian source IP.
 //
 // # General-Purpose Design
 //
