@@ -245,6 +245,7 @@ Contoh yang dapat dijalankan tersedia di direktori [`examples/`](examples/):
 | [`basic`](examples/basic) | Periksa beberapa domain dengan konfigurasi default |
 | [`custom`](examples/custom) | Konfigurasi lanjutan dengan server kustom, timeout, percobaan ulang, dan caching |
 | [`status`](examples/status) | Pantau kesehatan dan latensi server DNS |
+| [`hot-reload`](examples/hot-reload) | Hot-reload DNS servers at runtime |
 
 Jalankan contoh (membutuhkan kloning repositori):
 
