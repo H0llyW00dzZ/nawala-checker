@@ -17,7 +17,7 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 > **SDK ini tidak usang atau ketinggalan zaman.** Meskipun ada rumor bahwa proyek Nawala yang asli mungkin berhenti beroperasi, modul ini tetap menjadi **perangkat pemeriksaan DNS tujuan umum** yang dibangun dari dasar dengan konfigurasi server dan klien DNS yang dapat disesuaikan. Anda dapat mengarahkannya ke server DNS mana pun, menentukan kata kunci pemblokiran Anda sendiri, dan memasang instance `*dns.Client` kustom (TCP, DNS-over-TLS, dialer kustom, dll.). Server Nawala default hanyalah default yang sudah dikonfigurasi sebelumnya; SDK itu sendiri sepenuhnya independen dan dipelihara secara aktif.
 
 > [!TIP]
-> Jika berjalan pada infrastruktur cloud (misalnya, VPS, microservice, k8s), lebih baik mengimplementasikan server DNS sendiri menggunakan jaringan Indonesia, kemudian dari infrastruktur cloud cukup memanggilnya.
+> Saat berjalan pada infrastruktur cloud (misalnya, VPS, microservice, [k8s](https://kubernetes.io)) yang tidak berada pada jaringan Indonesia (misalnya, server Singapura atau AS), implementasikan server DNS Anda sendiri di jaringan Indonesia, kemudian arahkan SDK ini ke sana menggunakan `WithServers`. Perilaku indikator pemblokiran bergantung pada server DNS yang digunakan; server Nawala/Komdigi default hanya mengembalikan indikator pemblokiran saat diquery dari IP sumber Indonesia.
 
 ## Fitur
 
