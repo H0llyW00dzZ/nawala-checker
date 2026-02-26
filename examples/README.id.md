@@ -230,12 +230,18 @@ server DNS dan kata kuncinya di latar belakang.
 
 >>> TRIGGERING HOT-RELOAD: Changing Keyword...
 [15:04:10.165] reddit.com      -> tidak diblokir (Server: 180.131.144.144, Keyword: changed-keyword)
+
+>>> TRIGGERING HOT-RELOAD: Deleting Server...
+[15:04:12.670] reddit.com      -> Error: nawala: no DNS servers configured
 ```
 
 **Yang ditunjukkan contoh ini:**
 
 - `c.SetServers(...)` memperoleh kunci eksklusif secara internal untuk mengganti
   semen server.
+- `c.DeleteServers(...)` memperoleh kunci eksklusif secara internal untuk menghapus 
+  server melalui alamat IP mereka. Jika semua server dihapus, pemeriksaan bersamaan
+  dengan aman melakukan short-circuit dan mengembalikan `ErrNoDNSServers`.
 - `c.CheckOne()` memperoleh kunci baca cepat untuk menyalin konfigurasi saat ini,
   memastikan kode tidak pernah panic pada *race condition*.
 - Anda dapat sepenuhnya menimpa properti server yang ada (seperti `Keyword`

@@ -149,3 +149,30 @@ func WithEDNS0Size(size uint16) Option {
 		}
 	}
 }
+
+// DeleteServers removes one or more servers from the checker's active
+// configuration at runtime. It is concurrency-safe and will safely remove
+// servers identified by their Address field.
+//
+// Passing zero servers or non-existent addresses is a no-op.
+func (c *Checker) DeleteServers(addresses ...string) {
+	if len(addresses) == 0 {
+		return
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	toDelete := make(map[string]struct{}, len(addresses))
+	for _, addr := range addresses {
+		toDelete[addr] = struct{}{}
+	}
+
+	var newServers []DNSServer
+	for _, s := range c.servers {
+		if _, deleteMe := toDelete[s.Address]; !deleteMe {
+			newServers = append(newServers, s)
+		}
+	}
+	c.servers = newServers
+}
