@@ -197,7 +197,7 @@ func TestDeleteServersRuntime(t *testing.T) {
 
 func TestDeleteServersConcurrency(t *testing.T) {
 	c := nawala.New()
-	
+
 	// Add 100 servers so we have something to delete.
 	var servers []nawala.DNSServer
 	for i := 1; i <= 100; i++ {
@@ -220,7 +220,7 @@ func TestDeleteServersConcurrency(t *testing.T) {
 			done <- struct{}{}
 		}(i)
 	}
-	
+
 	for range workers {
 		<-done
 	}
@@ -228,7 +228,6 @@ func TestDeleteServersConcurrency(t *testing.T) {
 	// 100 original + 2 defaults - 50 deleted = 52.
 	assert.GreaterOrEqual(t, len(c.Servers()), 52)
 }
-
 
 func TestCheckInvalidDomain(t *testing.T) {
 	c := nawala.New()
