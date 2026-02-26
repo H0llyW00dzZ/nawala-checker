@@ -305,6 +305,14 @@ nawala.WithServers([]nawala.DNSServer{
 })
 ```
 
+## 📜 Legenda Nawala
+
+Bagi banyak pengguna internet jadul (generasi anak warnet), **DNS Nawala** adalah nama yang sangat legendaris. Mengambil nama dari bahasa Jawa Kuno yang berarti "surat" atau "pesan", Proyek Nawala bermula sebagai inisiatif para aktivis internet sekitar tahun 2007-2009. Layanan DNS gratis ini dirancang untuk menapis konten negatif (pornografi, perjudian, dan *malware*) demi menciptakan internet yang sehat dan aman di Indonesia. Jauh sebelum istilah *Internet Positif* menjadi populer, jika Anda tidak dapat mengakses sebuah situs, kemungkinan besar Anda sedang diblokir oleh Nawala.
+
+Sistem ini dulunya sangat umum ditemukan di warung internet (*warnet*) dan ISP awal, sehingga mencari cara untuk menembus Nawala melalui server DNS kustom (seperti `8.8.8.8` milik Google) terasa seperti sebuah ritual inisiasi bagi netizen Indonesia. Seiring berjalannya waktu, Nawala telah bertransformasi dari berfokus pada keamanan internet, ke pengembangan aplikasi, hingga kini berfokus pada pelatihan dan pendidikan teknologi untuk memberikan kontribusi sosial (dikenal sebagai Nawala Education).
+
+Hari ini, meskipun layanan DNS filtering Nawala yang asli mungkin sudah menjadi sejarah, warisannya tetap hidup. Pemerintah Indonesia (Kominfo, sekarang Komdigi) mengadopsi dan memperluas konsep-konsep tersebut, berkembang dari pengalihan CNAME awal (`internetpositif.id`) ke model *Extended DNS Errors* modern yang sesuai standar (`trustpositif.komdigi.go.id`). SDK ini menghormati sejarah tersebut sekaligus menyediakan alat yang kuat untuk menavigasi lanskap penyaringan internet Indonesia era modern.
+
 ## Struktur Proyek
 
 ```

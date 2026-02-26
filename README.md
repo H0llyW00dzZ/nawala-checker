@@ -305,6 +305,14 @@ nawala.WithServers([]nawala.DNSServer{
 })
 ```
 
+## 📜 The Legend of Nawala
+
+For many "old-school" Indonesian internet users (the *warnet* generation), **DNS Nawala** is a legendary name. Taking its name from an Old Javanese word meaning "letter" or "message", the Nawala Project began around 2007-2009 as an initiative by Indonesian internet activists. It was an independent, free DNS filtering service originally designed to filter negative content (pornography, gambling, and malware) to create a safe and healthy internet environment. Before the term *Internet Positif* became mainstream, if you couldn't access a site, chances are you were blocked by Nawala. 
+
+It became so ubiquitous in internet cafes (*warnet*) and early ISPs that circumventing Nawala via custom DNS servers (like Google's `8.8.8.8`) became a rite of passage for Indonesian netizens. The project itself has since transformed, evolving from internet security into application development, and eventually focusing on social contribution through technology training and education (now known as Nawala Education).
+
+Today, while the original Nawala DNS filtering might be historical, its legacy lives on. The Indonesian government (Kominfo, now Komdigi) adopted and expanded upon these concepts, evolving from the early CNAME redirects (`internetpositif.id`) to modern, standards-compliant Extended DNS Errors (`trustpositif.komdigi.go.id`). This SDK honors that history while providing a robust tool to navigate the modern Indonesian internet filtering landscape.
+
 ## Project Structure
 
 ```
