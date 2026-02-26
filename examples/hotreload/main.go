@@ -42,9 +42,7 @@ func main() {
 
 	// 2. Start a continuous checking loop in the background.
 	// This simulates live traffic flowing through the checker continuously.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			select {
 			case <-exampleCtx.Done():
@@ -71,12 +69,18 @@ func main() {
 					// We fetch the current keyword just for display purposes
 					getCurrentKeywordFor(c, result.Server),
 				)
+			} else {
+				fmt.Printf("[%s] %-15s -> Error: %v\n",
+					time.Now().Format("15:04:05.000"),
+					"reddit.com",
+					err,
+				)
 			}
 
 			// Wait a bit before the next check to avoid spamming output too fast.
 			time.Sleep(500 * time.Millisecond)
 		}
-	}()
+	})
 
 	// 3. Main thread: Wait 2 seconds, then HOT-RELOAD the configuration.
 	time.Sleep(2 * time.Second)
@@ -100,6 +104,13 @@ func main() {
 		Keyword:   "changed-keyword",
 		QueryType: "A",
 	})
+
+	time.Sleep(3 * time.Second)
+	fmt.Println("\n>>> TRIGGERING HOT-RELOAD: Deleting Server...")
+
+	// Demonstrating that deleting the servers will fallback to ErrNoDNSServers
+	// since we disabled the cache and we'll have zero servers left.
+	c.DeleteServers("180.131.144.144", "8.8.8.8")
 
 	time.Sleep(3 * time.Second)
 	fmt.Println("\n>>> Example complete.")

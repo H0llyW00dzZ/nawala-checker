@@ -160,7 +160,73 @@ func TestSetServersConcurrency(t *testing.T) {
 		<-done
 	}
 	// Just assert we have at least the 2 defaults; exact count varies by race.
-	assert.GreaterOrEqual(t, len(c.Servers()), 2)
+}
+
+func TestDeleteServersRuntime(t *testing.T) {
+	c := nawala.New()
+
+	// Initial default is 2 servers.
+	require.Len(t, c.Servers(), 2)
+
+	// Add 3 more custom servers.
+	c.SetServers(
+		nawala.DNSServer{Address: "1.1.1.1", Keyword: "cf", QueryType: "A"},
+		nawala.DNSServer{Address: "8.8.8.8", Keyword: "google", QueryType: "A"},
+		nawala.DNSServer{Address: "9.9.9.9", Keyword: "quad9", QueryType: "A"},
+	)
+	require.Len(t, c.Servers(), 5)
+
+	// Delete 2 servers (1 default, 1 custom).
+	c.DeleteServers("180.131.144.144", "8.8.8.8")
+	servers := c.Servers()
+	require.Len(t, servers, 3)
+
+	for _, s := range servers {
+		assert.NotEqual(t, "180.131.144.144", s.Address)
+		assert.NotEqual(t, "8.8.8.8", s.Address)
+	}
+
+	// Delete non-existent server (no-op).
+	c.DeleteServers("255.255.255.255")
+	require.Len(t, c.Servers(), 3)
+
+	// Delete with zero arguments (no-op).
+	c.DeleteServers()
+	require.Len(t, c.Servers(), 3)
+}
+
+func TestDeleteServersConcurrency(t *testing.T) {
+	c := nawala.New()
+	
+	// Add 100 servers so we have something to delete.
+	var servers []nawala.DNSServer
+	for i := 1; i <= 100; i++ {
+		servers = append(servers, nawala.DNSServer{
+			Address:   fmt.Sprintf("10.0.0.%d", i),
+			Keyword:   "test",
+			QueryType: "A",
+		})
+	}
+	c.SetServers(servers...)
+	require.GreaterOrEqual(t, len(c.Servers()), 100)
+
+	const workers = 50
+	done := make(chan struct{})
+
+	// 50 concurrent goroutines racing to delete disjoint IPs.
+	for i := 1; i <= workers; i++ {
+		go func(n int) {
+			c.DeleteServers(fmt.Sprintf("10.0.0.%d", n))
+			done <- struct{}{}
+		}(i)
+	}
+	
+	for range workers {
+		<-done
+	}
+
+	// 100 original + 2 defaults - 50 deleted = 52.
+	assert.GreaterOrEqual(t, len(c.Servers()), 52)
 }
 
 

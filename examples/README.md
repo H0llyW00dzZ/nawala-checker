@@ -226,12 +226,18 @@ their keywords.
 
 >>> TRIGGERING HOT-RELOAD: Changing Keyword...
 [15:04:10.165] reddit.com      -> not blocked  (Server: 180.131.144.144, Keyword: changed-keyword)
+
+>>> TRIGGERING HOT-RELOAD: Deleting Server...
+[15:04:12.670] reddit.com      -> Error: nawala: no DNS servers configured
 ```
 
 **What this demonstrates:**
 
 - `c.SetServers(...)` acquires an exclusive lock internally to replace the
   server slices.
+- `c.DeleteServers(...)` acquires an exclusive lock internally to remove servers
+  by their IP addresses. If all servers are deleted, concurrent checks safely
+  short-circuit and return `ErrNoDNSServers`.
 - `c.CheckOne()` acquires a fast read lock to copy down the current configuration,
   ensuring it never panics on race conditions.
 - You can completely overwrite an existing server's properties (like `Keyword`

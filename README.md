@@ -136,6 +136,7 @@ c := nawala.New(
 | `WithServer(s)` | — | **Deprecated:** use `Checker.SetServers`. Add or replace a single server |
 | `WithServers(s)` | Nawala defaults | Replace all DNS servers |
 | `Checker.SetServers(s)` | — | Hot-reload: Add or replace servers at runtime safely |
+| `Checker.DeleteServers(s)` | — | Hot-reload: Remove servers at runtime safely |
 
 ## API
 
@@ -163,6 +164,9 @@ c.SetServers(nawala.DNSServer{
     Keyword:   "blocked",
     QueryType: "A",
 })
+
+// Hot-reload: Remove servers at runtime by IP address (concurrency-safe).
+c.DeleteServers("203.0.113.1")
 ```
 
 ### Validation
