@@ -31,7 +31,7 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 - **Opsi fungsional** — pola konfigurasi Go yang bersih dan [idiomatis](https://go.dev/doc/effective_go)
 - **Sadar konteks** — dukungan penuh untuk timeout dan pembatalan melalui `context.Context`
 - **Validasi domain** — normalisasi dan validasi nama domain otomatis
-- **Error yang diketik** — error sentinel untuk pencocokan `errors.Is` (`ErrNoDNSServers`, `ErrAllDNSFailed`, `ErrInvalidDomain`, `ErrDNSTimeout`, `ErrInternalPanic`)
+- **Error yang diketik** — error sentinel untuk pencocokan `errors.Is` (lihat [Error](#error))
 
 ## Instalasi
 

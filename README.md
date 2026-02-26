@@ -31,7 +31,7 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 - **Functional options** — clean, [idiomatic Go](https://go.dev/doc/effective_go) configuration pattern
 - **Context-aware** — full support for timeouts and cancellation via `context.Context`
 - **Domain validation** — automatic normalization and validation of domain names
-- **Typed errors** — sentinel errors for `errors.Is` matching (`ErrNoDNSServers`, `ErrAllDNSFailed`, `ErrInvalidDomain`, `ErrDNSTimeout`, `ErrInternalPanic`)
+- **Typed errors** — sentinel errors for `errors.Is` matching (see [Errors](#errors))
 
 ## Installation
 

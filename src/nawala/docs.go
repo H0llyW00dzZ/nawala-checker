@@ -53,8 +53,6 @@
 //   - Domain validation — automatic normalization and validation of
 //     domain names
 //   - Typed errors — sentinel errors for [errors.Is] matching
-//     ([ErrNoDNSServers], [ErrAllDNSFailed], [ErrInvalidDomain],
-//     [ErrDNSTimeout], [ErrInternalPanic], [ErrNXDOMAIN], [ErrQueryRejected])
 //
 // # Quick Start
 //
