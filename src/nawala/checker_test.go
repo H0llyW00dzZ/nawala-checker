@@ -88,8 +88,8 @@ func TestWithOptions(t *testing.T) {
 func TestWithServersDeduplication(t *testing.T) {
 	customServers := []nawala.DNSServer{
 		{Address: "1.1.1.1", Keyword: "test", QueryType: "A"},
-		{Address: "1.1.1.1", Keyword: "test", QueryType: "A"}, // Exact duplicate - should be removed
-		{Address: "1.1.1.1", Keyword: "test2", QueryType: "A"}, // Different keyword - should be kept
+		{Address: "1.1.1.1", Keyword: "test", QueryType: "A"},   // Exact duplicate - should be removed
+		{Address: "1.1.1.1", Keyword: "test2", QueryType: "A"},  // Different keyword - should be kept
 		{Address: "1.1.1.1", Keyword: "test", QueryType: "TXT"}, // Different query type - should be kept
 		{Address: "8.8.8.8", Keyword: "google", QueryType: "A"},
 	}
@@ -100,7 +100,7 @@ func TestWithServersDeduplication(t *testing.T) {
 
 	servers := c.Servers()
 	require.Len(t, servers, 4, "expected 4 servers due to exact-match deduplication")
-	
+
 	assert.Equal(t, "1.1.1.1", servers[0].Address)
 	assert.Equal(t, "test", servers[0].Keyword)
 	assert.Equal(t, "A", servers[0].QueryType)
