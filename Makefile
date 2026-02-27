@@ -25,8 +25,9 @@ test-short:
 	go test -race -short ./src/...
 
 # Build all packages.
-build:
-	go build ./src/...
+# this disabled for now, because its a library
+# build:
+# 	go build ./src/...
 
 # Remove generated files.
 clean:
