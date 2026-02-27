@@ -16,9 +16,34 @@ type Option func(*Checker)
 
 // WithServers replaces all configured DNS servers.
 // This overrides the default Nawala DNS servers.
+// If multiple servers with identical configurations (Address, Keyword, and QueryType) are provided, only the first occurrence is kept.
 func WithServers(servers []DNSServer) Option {
 	return func(c *Checker) {
-		c.servers = servers
+		if len(servers) == 0 {
+			c.servers = servers
+			return
+		}
+
+		type serverKey struct {
+			Address   string
+			Keyword   string
+			QueryType string
+		}
+		seen := make(map[serverKey]struct{}, len(servers))
+		deduped := make([]DNSServer, 0, len(servers))
+
+		for _, s := range servers {
+			key := serverKey{
+				Address:   s.Address,
+				Keyword:   s.Keyword,
+				QueryType: s.QueryType,
+			}
+			if _, ok := seen[key]; !ok {
+				seen[key] = struct{}{}
+				deduped = append(deduped, s)
+			}
+		}
+		c.servers = deduped
 	}
 }
 

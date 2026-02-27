@@ -85,6 +85,37 @@ func TestWithOptions(t *testing.T) {
 	assert.Equal(t, "1.1.1.1", servers[0].Address)
 }
 
+func TestWithServersDeduplication(t *testing.T) {
+	customServers := []nawala.DNSServer{
+		{Address: "1.1.1.1", Keyword: "test", QueryType: "A"},
+		{Address: "1.1.1.1", Keyword: "test", QueryType: "A"}, // Exact duplicate - should be removed
+		{Address: "1.1.1.1", Keyword: "test2", QueryType: "A"}, // Different keyword - should be kept
+		{Address: "1.1.1.1", Keyword: "test", QueryType: "TXT"}, // Different query type - should be kept
+		{Address: "8.8.8.8", Keyword: "google", QueryType: "A"},
+	}
+
+	c := nawala.New(
+		nawala.WithServers(customServers),
+	)
+
+	servers := c.Servers()
+	require.Len(t, servers, 4, "expected 4 servers due to exact-match deduplication")
+	
+	assert.Equal(t, "1.1.1.1", servers[0].Address)
+	assert.Equal(t, "test", servers[0].Keyword)
+	assert.Equal(t, "A", servers[0].QueryType)
+
+	assert.Equal(t, "1.1.1.1", servers[1].Address)
+	assert.Equal(t, "test2", servers[1].Keyword)
+	assert.Equal(t, "A", servers[1].QueryType)
+
+	assert.Equal(t, "1.1.1.1", servers[2].Address)
+	assert.Equal(t, "test", servers[2].Keyword)
+	assert.Equal(t, "TXT", servers[2].QueryType)
+
+	assert.Equal(t, "8.8.8.8", servers[3].Address)
+}
+
 func TestWithDNSServerAddAndReplace(t *testing.T) {
 	c := nawala.New(
 		nawala.WithServer(nawala.DNSServer{
