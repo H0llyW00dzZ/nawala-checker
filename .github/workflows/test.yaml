@@ -14,6 +14,7 @@ on:
       - 'LICENSE'
       - '.gitignore'
       - '.ignore'
+      - '**/Makefile'
   pull_request:
     branches: [ master ]
     paths-ignore:
@@ -22,6 +23,7 @@ on:
       - 'LICENSE'
       - '.gitignore'
       - '.ignore'
+      - '**/Makefile'
 
 jobs:
   coverage:
