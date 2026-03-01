@@ -3,7 +3,7 @@
 # By accessing or using this software, you agree to be bound by the terms
 # of the License Agreement, which you can find at LICENSE files.
 
-name: 🧪 Test Coverage
+name: 🧪 Vet & Test Coverage
 
 on:
   push:
@@ -36,7 +36,7 @@ on:
       - 'examples/*'
 jobs:
   coverage:
-    name: 🔢 Test Coverage on ${{ matrix.os }} (Go ${{ matrix.go-version }})
+    name: 🔢 Vet & Test Coverage on ${{ matrix.os }} (Go ${{ matrix.go-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -62,6 +62,10 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go-version }}
+
+    - name: Run go vet
+      run: go vet ./src/...
+      shell: bash
 
     - name: Run tests with coverage (with race detector)
       if: matrix.os != 'windows-11-arm'
