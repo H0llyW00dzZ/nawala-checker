@@ -64,9 +64,9 @@ git checkout -b feature/nama-fitur-anda
     make test-cover
     ```
 
-**Dokumentasi (Sinkronisasi Multibahasa)**:
-*   `nawala-checker` mengelola dokumentasi dalam bahasa Inggris (`README.md`) dan bahasa Indonesia (`README.id.md`).
-*   Jika Pull Request Anda menambahkan fitur baru, mengubah API publik, atau memodifikasi perilaku yang ada, Anda **wajib memperbarui `README.md` dan `README.id.md` secara bersamaan**.
+**Dokumentasi (Sinkronisasi Multibahasa & Kode)**:
+*   `nawala-checker` mengelola dokumentasi dalam bahasa Inggris (`README.md`) dan bahasa Indonesia (`README.id.md`), serta dokumentasi level-paket (GoDoc) di `src/nawala/docs.go`.
+*   Jika Pull Request Anda menambahkan fitur baru, mengubah API publik, atau memodifikasi perilaku yang ada, Anda **wajib memperbarui `README.md`, `README.id.md`, `src/nawala/docs.go`, serta kode terkait di direktori `examples/`** untuk memastikan keakuratan teknis dan konsistensi di seluruh sumber dokumentasi.
 
 ### 3. Melakukan Commit dan Pemformatan
 Sebelum melakukan komit, pastikan kode Anda diformat dengan benar:
