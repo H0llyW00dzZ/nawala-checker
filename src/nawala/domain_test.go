@@ -106,11 +106,11 @@ func TestNormalizeDomain(t *testing.T) {
 		// IDN / Punycode normalization — uppercase Punycode labels are lowercased.
 		// normalizeDomain does NOT convert Unicode → Punycode; callers must
 		// supply already-encoded Punycode labels.
-		{"XN--12C1FE0BR.XN--O3CW4H", "xn--12c1fe0br.xn--o3cw4h"},        // Thai: ทดสอบ.ไทย
-		{"  xn--wgbl6a.xn--p1ai  ", "xn--wgbl6a.xn--p1ai"},              // Arabic SLD + Cyrillic TLD
-		{"XN--MGBH0FB.XN--WGBH1C", "xn--mgbh0fb.xn--wgbh1c"},           // Arabic: مثال.مصر
-		{"XN--4GBRIM.XN--MGBAAM7A8H", "xn--4gbrim.xn--mgbaam7a8h"},     // Arabic: موقع.امارات
-		{"  XN--MLH5BM9HRA.ID  ", "xn--mlh5bm9hra.id"},                  // Indonesian Punycode SLD
+		{"XN--12C1FE0BR.XN--O3CW4H", "xn--12c1fe0br.xn--o3cw4h"},   // Thai: ทดสอบ.ไทย
+		{"  xn--wgbl6a.xn--p1ai  ", "xn--wgbl6a.xn--p1ai"},         // Arabic SLD + Cyrillic TLD
+		{"XN--MGBH0FB.XN--WGBH1C", "xn--mgbh0fb.xn--wgbh1c"},       // Arabic: مثال.مصر
+		{"XN--4GBRIM.XN--MGBAAM7A8H", "xn--4gbrim.xn--mgbaam7a8h"}, // Arabic: موقع.امارات
+		{"  XN--MLH5BM9HRA.ID  ", "xn--mlh5bm9hra.id"},             // Indonesian Punycode SLD
 	}
 
 	for _, tt := range tests {
