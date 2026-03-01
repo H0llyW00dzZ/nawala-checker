@@ -19,6 +19,7 @@ on:
       - 'CODE_OF_CONDUCT.id.md'
       - 'CONTRIBUTING.md'
       - 'CONTRIBUTING.id.md'
+      - 'examples/*'
   pull_request:
     branches: [ master ]
     paths-ignore:
@@ -32,7 +33,7 @@ on:
       - 'CODE_OF_CONDUCT.id.md'
       - 'CONTRIBUTING.md'
       - 'CONTRIBUTING.id.md'
-
+      - 'examples/*'
 jobs:
   coverage:
     name: 🔢 Test Coverage on ${{ matrix.os }} (Go ${{ matrix.go-version }})
