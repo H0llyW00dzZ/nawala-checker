@@ -359,6 +359,7 @@ make test-short
 ## Peta Jalan
 
 - [ ] Tingkatkan `github.com/miekg/dns` ke v2 atau gunakan alternatif modern untuk meningkatkan kinerja dan fitur jaringan, karena implementasinya di Go dan efektivitasnya yang tinggi untuk jaringan.
+- [ ] Implementasikan versi CLI (dibundel dalam repositori ini) untuk memeriksa domain langsung dari terminal tanpa perlu menulis kode Go.
 
 ## Lisensi
 

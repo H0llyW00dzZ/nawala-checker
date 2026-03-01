@@ -359,6 +359,7 @@ make test-short
 ## Roadmap
 
 - [ ] Upgrade `github.com/miekg/dns` to v2 or use a modern alternative for improved networking performance and features, due to its implementation in Go and its high effectiveness for networking.
+- [ ] Implement a CLI version (bundled in this repository) for checking domains directly from the terminal without writing Go code.
 
 ## License
 
