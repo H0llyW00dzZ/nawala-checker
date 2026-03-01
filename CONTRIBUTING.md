@@ -53,7 +53,7 @@ git checkout -b feature/your-feature-name
 ### 2. Making Changes
 
 **Code Standards**:
-*   Ensure all new configuration options use the **Functional Options** pattern in `src/nawala/option.go`.
+*   Ensure all new configuration options use the **Functional Options** pattern in [`src/nawala/option.go`](src/nawala/option.go).
 *   All methods performing I/O must accept `context.Context` as the first argument.
 *   Avoid adding third-party dependencies unless absolutely necessary.
 
@@ -65,8 +65,8 @@ git checkout -b feature/your-feature-name
     ```
 
 **Documentation (Multilingual & Code Sync)**:
-*   The `nawala-checker` maintains both English (`README.md`) and Indonesian (`README.id.md`) documentation, as well as package-level GoDoc in `src/nawala/docs.go`.
-*   If your pull request adds a new feature, changes the public API, or modifies existing behavior, you **must update `README.md`, `README.id.md`, `src/nawala/docs.go`, and relevant code in the `examples/` directory** to ensure technical accuracy and consistency across all documentation sources.
+*   The `nawala-checker` maintains both English ([`README.md`](README.md)) and Indonesian ([`README.id.md`](README.id.md)) documentation, as well as package-level GoDoc in [`src/nawala/docs.go`](src/nawala/docs.go).
+*   If your pull request adds a new feature, changes the public API, or modifies existing behavior, you **must update [`README.md`](README.md), [`README.id.md`](README.id.md), [`src/nawala/docs.go`](src/nawala/docs.go), and relevant code in the [`examples/`](examples/) directory** to ensure technical accuracy and consistency across all documentation sources.
 
 ### 3. Committing and Formatting
 Before committing, ensure your code is properly formatted:

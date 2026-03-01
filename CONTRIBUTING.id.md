@@ -53,7 +53,7 @@ git checkout -b feature/nama-fitur-anda
 ### 2. Melakukan Perubahan
 
 **Standar Kode**:
-*   Pastikan semua opsi konfigurasi baru menggunakan pola **Functional Options** di `src/nawala/option.go`.
+*   Pastikan semua opsi konfigurasi baru menggunakan pola **Functional Options** di [`src/nawala/option.go`](src/nawala/option.go).
 *   Semua metode yang melakukan I/O (Input/Output) harus menerima `context.Context` sebagai argumen pertama.
 *   Hindari menambahkan dependensi pihak ketiga kecuali benar-benar diperlukan.
 
@@ -65,8 +65,8 @@ git checkout -b feature/nama-fitur-anda
     ```
 
 **Dokumentasi (Sinkronisasi Multibahasa & Kode)**:
-*   `nawala-checker` mengelola dokumentasi dalam bahasa Inggris (`README.md`) dan bahasa Indonesia (`README.id.md`), serta dokumentasi level-paket (GoDoc) di `src/nawala/docs.go`.
-*   Jika Pull Request Anda menambahkan fitur baru, mengubah API publik, atau memodifikasi perilaku yang ada, Anda **wajib memperbarui `README.md`, `README.id.md`, `src/nawala/docs.go`, serta kode terkait di direktori `examples/`** untuk memastikan keakuratan teknis dan konsistensi di seluruh sumber dokumentasi.
+*   `nawala-checker` mengelola dokumentasi dalam bahasa Inggris ([`README.md`](README.md)) dan bahasa Indonesia ([`README.id.md`](README.id.md)), serta dokumentasi level-paket (GoDoc) di [`src/nawala/docs.go`](src/nawala/docs.go).
+*   Jika Pull Request Anda menambahkan fitur baru, mengubah API publik, atau memodifikasi perilaku yang ada, Anda **wajib memperbarui [`README.md`](README.md), [`README.id.md`](README.id.md), [`src/nawala/docs.go`](src/nawala/docs.go), serta kode terkait di direktori [`examples/`](examples/)** untuk memastikan keakuratan teknis dan konsistensi di seluruh sumber dokumentasi.
 
 ### 3. Melakukan Commit dan Pemformatan
 Sebelum melakukan komit, pastikan kode Anda diformat dengan benar:
