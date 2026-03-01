@@ -64,9 +64,9 @@ git checkout -b feature/your-feature-name
     make test-cover
     ```
 
-**Documentation (Multilingual Sync)**:
-*   The `nawala-checker` maintains both English (`README.md`) and Indonesian (`README.id.md`) documentation.
-*   If your pull request adds a new feature, changes the public API, or modifies existing behavior, you **must update both `README.md` and `README.id.md`**.
+**Documentation (Multilingual & Code Sync)**:
+*   The `nawala-checker` maintains both English (`README.md`) and Indonesian (`README.id.md`) documentation, as well as package-level GoDoc in `src/nawala/docs.go`.
+*   If your pull request adds a new feature, changes the public API, or modifies existing behavior, you **must update `README.md`, `README.id.md`, `src/nawala/docs.go`, and relevant code in the `examples/` directory** to ensure technical accuracy and consistency across all documentation sources.
 
 ### 3. Committing and Formatting
 Before committing, ensure your code is properly formatted:
