@@ -47,6 +47,42 @@ func TestIsValidDomain(t *testing.T) {
 		{"trailing dot with space", "example.com. ", false},
 		{"double trailing dot", "example.com..", false},
 		{"punycode TLD with underscore", "example.xn--p1ai_", false},
+
+		// IDN / Punycode — Indonesian script
+		// contoh.id is plain ASCII — .id is the Indonesian ccTLD
+		{"IDN: plain ASCII with .id ccTLD", "contoh.id", true},
+		// Indonesian Bahasa labels are encoded as Punycode before use.
+		// xn--mlh5bm9hra.id represents a hypothetical Punycode-encoded Indonesian SLD
+		// under the Indonesian ccTLD (.id).
+		{"IDN: punycode SLD with .id ccTLD", "xn--mlh5bm9hra.id", true},
+		// xn--contoh-p18d.id — a Punycode SLD containing hyphens and alphanumerics
+		{"IDN: punycode SLD hyphenated with .id ccTLD", "xn--contoh-p18d.id", true},
+		// Raw Unicode Indonesian/Malay — must be rejected (not Punycode)
+		{"IDN: raw Unicode Indonesian (non-ASCII)", "contoh.id\xc2\xa0", false}, // NBSP — non-ASCII
+
+		// IDN / Punycode — Thai script (xn--o3cw4h = ไทย)
+		// ทดสอบ.ไทย encodes to xn--12c1fe0br.xn--o3cw4h
+		{"IDN: Thai punycode SLD + Thai ccTLD", "xn--12c1fe0br.xn--o3cw4h", true},
+		// Thai SLD under a standard ASCII TLD
+		{"IDN: Thai punycode SLD + .th TLD", "xn--12c1fe0br.th", true},
+		// Mixed-case Punycode — must lower-normalize correctly
+		{"IDN: Thai punycode uppercase mixed case", "XN--12C1FE0BR.XN--O3CW4H", true},
+		// Raw Thai Unicode — must be rejected
+		{"IDN: raw Thai Unicode (non-ASCII)", "ทดสอบ.ไทย", false},
+
+		// IDN / Punycode — Arabic script
+		// مثال.مصر encodes to xn--mgbh0fb.xn--wgbh1c (example.egypt)
+		{"IDN: Arabic punycode SLD + Egyptian ccTLD", "xn--mgbh0fb.xn--wgbh1c", true},
+		// موقع.امارات encodes to xn--4gbrim.xn--mgbaam7a8h (site.uae)
+		{"IDN: Arabic punycode SLD + UAE ccTLD", "xn--4gbrim.xn--mgbaam7a8h", true},
+		// Arabic SLD under a standard ASCII TLD (.com)
+		{"IDN: Arabic punycode SLD + .com TLD", "xn--mgbh0fb.com", true},
+		// Subdomain + Arabic SLD + Arabic TLD (3 labels)
+		{"IDN: subdomain + Arabic punycode domain", "www.xn--mgbh0fb.xn--wgbh1c", true},
+		// Raw Arabic Unicode — must be rejected
+		{"IDN: raw Arabic Unicode (non-ASCII)", "مثال.مصر", false},
+		// Raw Arabic with Arabic TLD — both non-ASCII, must be rejected
+		{"IDN: raw Arabic SLD and TLD (non-ASCII)", "كوم.مثال", false},
 	}
 
 	for _, tt := range tests {
@@ -66,6 +102,15 @@ func TestNormalizeDomain(t *testing.T) {
 		{"Example.Com", "example.com"},
 		{"  example.com  ", "example.com"},
 		{"EXAMPLE.COM", "example.com"},
+
+		// IDN / Punycode normalization — uppercase Punycode labels are lowercased.
+		// normalizeDomain does NOT convert Unicode → Punycode; callers must
+		// supply already-encoded Punycode labels.
+		{"XN--12C1FE0BR.XN--O3CW4H", "xn--12c1fe0br.xn--o3cw4h"},   // Thai: ทดสอบ.ไทย
+		{"  xn--wgbl6a.xn--p1ai  ", "xn--wgbl6a.xn--p1ai"},         // Arabic SLD + Cyrillic TLD
+		{"XN--MGBH0FB.XN--WGBH1C", "xn--mgbh0fb.xn--wgbh1c"},       // Arabic: مثال.مصر
+		{"XN--4GBRIM.XN--MGBAAM7A8H", "xn--4gbrim.xn--mgbaam7a8h"}, // Arabic: موقع.امارات
+		{"  XN--MLH5BM9HRA.ID  ", "xn--mlh5bm9hra.id"},             // Indonesian Punycode SLD
 	}
 
 	for _, tt := range tests {
@@ -117,6 +162,24 @@ func TestIsValidTLD(t *testing.T) {
 
 		// Invalid: space
 		{"space in TLD", "co m", false},
+
+		// IDN / Punycode ccTLDs — Thai
+		// xn--o3cw4h = ไทย (Thailand)
+		{"IDN: Thai ccTLD xn--o3cw4h", "xn--o3cw4h", true},
+		// Mixed-case Thai ccTLD
+		{"IDN: Thai ccTLD uppercase XN--O3CW4H", "XN--O3CW4H", true},
+
+		// IDN / Punycode ccTLDs — Arabic
+		// xn--wgbh1c = مصر (Egypt)
+		{"IDN: Egyptian ccTLD xn--wgbh1c", "xn--wgbh1c", true},
+		// xn--mgbaam7a8h = امارات (UAE)
+		{"IDN: UAE ccTLD xn--mgbaam7a8h", "xn--mgbaam7a8h", true},
+		// xn--mgberp4a5d4ar = السعودية (Saudi Arabia)
+		{"IDN: Saudi ccTLD xn--mgberp4a5d4ar", "xn--mgberp4a5d4ar", true},
+		// xn--p1acf = рус (Russian generic)
+		{"IDN: Russian generic IDN TLD xn--p1acf", "xn--p1acf", true},
+		// Mixed-case Arabic ccTLD
+		{"IDN: Egyptian ccTLD uppercase XN--WGBH1C", "XN--WGBH1C", true},
 	}
 
 	for _, tt := range tests {

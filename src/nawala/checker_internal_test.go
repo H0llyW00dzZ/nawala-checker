@@ -1360,3 +1360,179 @@ func TestCheckUnderscoreDomains(t *testing.T) {
 		}
 	})
 }
+
+// TestCheckIDNDomains verifies the end-to-end pipeline for Internationalized
+// Domain Names (IDN) encoded as Punycode (ASCII-Compatible Encoding, ACE).
+//
+// The checker operates exclusively on ASCII wire-format labels. Consumers are
+// responsible for converting Unicode domain names to Punycode (e.g., via
+// golang.org/x/net/idna) before calling Check or CheckOne.
+//
+// This test covers three scripts with real-world ccTLD assignments:
+//
+//   - Indonesian  (.id — ASCII TLD; SLDs with Bahasa script use Punycode)
+//   - Thai        (xn--o3cw4h = ไทย)
+//   - Arabic      (xn--wgbh1c = مصر, xn--mgbaam7a8h = امارات)
+func TestCheckIDNDomains(t *testing.T) {
+	addr, cleanup := startNormalDNSServer(t)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithTimeout(5*time.Second),
+	)
+
+	ctx := context.Background()
+
+	// validPunycode contains domains that MUST pass IsValidDomain and resolve
+	// successfully through the DNS checker pipeline.
+	validPunycode := []struct {
+		name   string
+		domain string // already Punycode-encoded (ASCII wire format)
+	}{
+		// Indonesian — plain ASCII .id ccTLD
+		{"Indonesian plain ASCII .id", "contoh.id"},
+		// Indonesian — hypothetical Punycode-encoded Bahasa SLD under .id
+		{"Indonesian Punycode SLD + .id", "xn--mlh5bm9hra.id"},
+		// Indonesian — Punycode SLD with internal hyphens and digits
+		{"Indonesian Punycode SLD hyphenated + .id", "xn--contoh-p18d.id"},
+
+		// Thai — ทดสอบ.ไทย → xn--12c1fe0br.xn--o3cw4h
+		{"Thai Punycode SLD + Thai ccTLD", "xn--12c1fe0br.xn--o3cw4h"},
+		// Thai — Punycode SLD under standard ASCII .th TLD
+		{"Thai Punycode SLD + .th", "xn--12c1fe0br.th"},
+
+		// Arabic — مثال.مصر → xn--mgbh0fb.xn--wgbh1c (example.egypt)
+		{"Arabic Punycode SLD + Egyptian ccTLD", "xn--mgbh0fb.xn--wgbh1c"},
+		// Arabic — موقع.امارات → xn--4gbrim.xn--mgbaam7a8h (site.uae)
+		{"Arabic Punycode SLD + UAE ccTLD", "xn--4gbrim.xn--mgbaam7a8h"},
+		// Arabic — Punycode SLD under standard ASCII .com TLD
+		{"Arabic Punycode SLD + .com", "xn--mgbh0fb.com"},
+		// Arabic — 3-label: subdomain + Punycode SLD + Arabic ccTLD
+		{"subdomain + Arabic Punycode domain", "www.xn--mgbh0fb.xn--wgbh1c"},
+	}
+
+	for _, tt := range validPunycode {
+		t.Run(tt.name, func(t *testing.T) {
+			// 1. Must pass structural validation.
+			assert.True(t, IsValidDomain(tt.domain),
+				"IsValidDomain(%q) should return true for valid Punycode domain", tt.domain)
+
+			// 2. normalizeDomain must be idempotent for already-lowercase Punycode.
+			normalized := normalizeDomain(tt.domain)
+			assert.Equal(t, tt.domain, normalized,
+				"normalizeDomain(%q) should be idempotent when already lowercase", tt.domain)
+
+			// 3. Full pipeline: normalization → validation → DNS must succeed.
+			result, err := c.CheckOne(ctx, tt.domain)
+			require.NoError(t, err, "CheckOne(%q) returned unexpected error", tt.domain)
+			assert.NoError(t, result.Error,
+				"CheckOne(%q) result.Error should be nil", tt.domain)
+			assert.False(t, result.Blocked,
+				"CheckOne(%q) should not be blocked by normal server", tt.domain)
+			assert.Equal(t, addr, result.Server,
+				"CheckOne(%q) should use the configured server", tt.domain)
+		})
+	}
+
+	// uppercasePunycode verifies that the normalization step (strings.ToLower)
+	// correctly lowercases Punycode labels before validation and DNS lookup.
+	// IsValidDomain uses EqualFold for the xn-- prefix, so mixed-case is valid,
+	// but the domain stored in Result.Domain must be the normalized (lowercase) form.
+	uppercasePunycode := []struct {
+		name       string
+		input      string // as supplied by caller (uppercase Punycode)
+		normalized string // expected after normalizeDomain
+	}{
+		{
+			"Thai uppercase Punycode",
+			"XN--12C1FE0BR.XN--O3CW4H",
+			"xn--12c1fe0br.xn--o3cw4h",
+		},
+		{
+			"Arabic uppercase Punycode (Egyptian ccTLD)",
+			"XN--MGBH0FB.XN--WGBH1C",
+			"xn--mgbh0fb.xn--wgbh1c",
+		},
+		{
+			"Arabic uppercase Punycode (UAE ccTLD)",
+			"XN--4GBRIM.XN--MGBAAM7A8H",
+			"xn--4gbrim.xn--mgbaam7a8h",
+		},
+		{
+			"Indonesian uppercase Punycode SLD",
+			"XN--MLH5BM9HRA.ID",
+			"xn--mlh5bm9hra.id",
+		},
+	}
+
+	for _, tt := range uppercasePunycode {
+		t.Run(tt.name, func(t *testing.T) {
+			// normalizeDomain must lowercase the Punycode label.
+			assert.Equal(t, tt.normalized, normalizeDomain(tt.input),
+				"normalizeDomain(%q) should lowercase to %q", tt.input, tt.normalized)
+
+			// IsValidDomain must accept the uppercase form directly.
+			assert.True(t, IsValidDomain(tt.input),
+				"IsValidDomain(%q) should accept uppercase Punycode", tt.input)
+
+			// CheckOne must normalize, validate, and store the lowercase domain.
+			result, err := c.CheckOne(ctx, tt.input)
+			require.NoError(t, err, "CheckOne(%q) returned unexpected error", tt.input)
+			assert.NoError(t, result.Error,
+				"CheckOne(%q) result.Error should be nil", tt.input)
+			assert.Equal(t, tt.normalized, result.Domain,
+				"CheckOne(%q) result.Domain should be normalized lowercase", tt.input)
+		})
+	}
+
+	// rawUnicode verifies that non-ASCII (raw Unicode) domain inputs are
+	// rejected by IsValidDomain before any DNS query is issued.
+	// Callers MUST convert Unicode to Punycode externally.
+	rawUnicode := []struct {
+		name   string
+		domain string // raw Unicode — not valid wire format
+	}{
+		{"raw Thai Unicode", "ทดสอบ.ไทย"},
+		{"raw Arabic Unicode (Egyptian ccTLD)", "مثال.مصر"},
+		{"raw Arabic Unicode (UAE ccTLD)", "موقع.امارات"},
+		{"raw Arabic SLD and TLD", "كوم.مثال"},
+	}
+
+	for _, tt := range rawUnicode {
+		t.Run(tt.name, func(t *testing.T) {
+			// Structural validation must reject raw Unicode.
+			assert.False(t, IsValidDomain(tt.domain),
+				"IsValidDomain(%q) should return false for raw Unicode", tt.domain)
+
+			// The full pipeline must return ErrInvalidDomain without a DNS query.
+			result, err := c.CheckOne(ctx, tt.domain)
+			require.NoError(t, err,
+				"CheckOne(%q) outer error should be nil (invalid domain is a Result error)", tt.domain)
+			assert.ErrorIs(t, result.Error, ErrInvalidDomain,
+				"CheckOne(%q) should return ErrInvalidDomain for raw Unicode", tt.domain)
+			assert.False(t, result.Blocked,
+				"CheckOne(%q) must not be blocked when validation fails", tt.domain)
+		})
+	}
+
+	// Batch check — all valid Punycode domains at once.
+	t.Run("batch check valid Punycode", func(t *testing.T) {
+		domains := make([]string, len(validPunycode))
+		for i, tt := range validPunycode {
+			domains[i] = tt.domain
+		}
+
+		results, err := c.Check(ctx, domains...)
+		require.NoError(t, err)
+		require.Len(t, results, len(validPunycode))
+
+		for i, r := range results {
+			assert.Equal(t, validPunycode[i].domain, r.Domain, "result[%d].Domain", i)
+			assert.NoError(t, r.Error, "result[%d] unexpected error", i)
+			assert.False(t, r.Blocked, "result[%d] unexpectedly blocked", i)
+		}
+	})
+}
