@@ -422,6 +422,7 @@ make build
 - [ ] Tingkatkan `github.com/miekg/dns` ke v2 atau gunakan alternatif modern untuk meningkatkan kinerja dan fitur jaringan, karena implementasinya di Go dan efektivitasnya yang tinggi untuk jaringan.
 - [x] Implementasikan versi CLI (dibundel dalam repositori ini) untuk memeriksa domain langsung dari terminal tanpa perlu menulis kode Go.
 - [ ] Implementasikan versi server [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) ([Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro)) (dibundel dalam repositori ini) untuk mengintegrasikan nawala-checker secara langsung dengan agen AI dan LLM.
+- [ ] Implementasikan versi server [JSON-RPC 2.0](https://www.jsonrpc.org/specification) murni (dibundel dalam repositori ini) untuk integrasi lintas bahasa melalui stdio atau TCP, serupa cara kerja MCP namun menggunakan protokol kawat JSON-RPC standar.
 
 ## Lisensi
 
