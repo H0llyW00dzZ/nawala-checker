@@ -1366,13 +1366,15 @@ func TestCheckUnderscoreDomains(t *testing.T) {
 //
 // The checker operates exclusively on ASCII wire-format labels. Consumers are
 // responsible for converting Unicode domain names to Punycode (e.g., via
-// golang.org/x/net/idna) before calling Check or CheckOne.
+// [golang.org/x/net/idna]) before calling Check or CheckOne.
 //
 // This test covers three scripts with real-world ccTLD assignments:
 //
 //   - Indonesian  (.id — ASCII TLD; SLDs with Bahasa script use Punycode)
 //   - Thai        (xn--o3cw4h = ไทย)
 //   - Arabic      (xn--wgbh1c = مصر, xn--mgbaam7a8h = امارات)
+//
+// [golang.org/x/net/idna]: https://pkg.go.dev/golang.org/x/net/idna
 func TestCheckIDNDomains(t *testing.T) {
 	addr, cleanup := startNormalDNSServer(t)
 	defer cleanup()
