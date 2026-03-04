@@ -12,10 +12,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // testWriter creates a Writer backed by a bytes.Buffer for testing.
@@ -32,34 +33,24 @@ func flushAndRead(w *Writer, buf *bytes.Buffer) string {
 
 func TestNewWriter_Stdout(t *testing.T) {
 	w, err := NewWriter("", false)
-	if err != nil {
-		t.Fatalf("NewWriter(\"\", false) error: %v", err)
-	}
+	require.NoError(t, err)
 	defer w.Close()
 
-	if w.closer != nil {
-		t.Error("expected closer to be nil for stdout")
-	}
+	assert.Nil(t, w.closer, "expected closer to be nil for stdout")
 }
 
 func TestNewWriter_File(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "out.txt")
 	w, err := NewWriter(path, false)
-	if err != nil {
-		t.Fatalf("NewWriter(%q, false) error: %v", path, err)
-	}
+	require.NoError(t, err)
 	defer w.Close()
 
-	if w.closer == nil {
-		t.Error("expected closer to be non-nil for file output")
-	}
+	assert.NotNil(t, w.closer, "expected closer to be non-nil for file output")
 }
 
 func TestNewWriter_InvalidPath(t *testing.T) {
 	_, err := NewWriter("/nonexistent/dir/out.txt", false)
-	if err == nil {
-		t.Fatal("expected error for invalid path, got nil")
-	}
+	assert.Error(t, err, "expected error for invalid path")
 }
 
 func TestWriter_WriteResult_Text(t *testing.T) {
@@ -72,15 +63,9 @@ func TestWriter_WriteResult_Text(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	if !strings.Contains(out, "google.com") {
-		t.Errorf("output missing domain: %q", out)
-	}
-	if !strings.Contains(out, "NOT BLOCKED") {
-		t.Errorf("expected NOT BLOCKED, got: %q", out)
-	}
-	if !strings.Contains(out, "8.8.8.8") {
-		t.Errorf("output missing server: %q", out)
-	}
+	assert.Contains(t, out, "google.com")
+	assert.Contains(t, out, "NOT BLOCKED")
+	assert.Contains(t, out, "8.8.8.8")
 }
 
 func TestWriter_WriteResult_TextBlocked(t *testing.T) {
@@ -93,9 +78,7 @@ func TestWriter_WriteResult_TextBlocked(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	if !strings.Contains(out, "BLOCKED") {
-		t.Errorf("output missing BLOCKED status: %q", out)
-	}
+	assert.Contains(t, out, "BLOCKED")
 }
 
 func TestWriter_WriteResult_TextError(t *testing.T) {
@@ -108,9 +91,7 @@ func TestWriter_WriteResult_TextError(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	if !strings.Contains(out, "error: timeout") {
-		t.Errorf("output missing error status: %q", out)
-	}
+	assert.Contains(t, out, "error: timeout")
 }
 
 func TestWriter_WriteResult_JSON(t *testing.T) {
@@ -124,18 +105,11 @@ func TestWriter_WriteResult_JSON(t *testing.T) {
 
 	out := flushAndRead(w, buf)
 	var jr jsonResult
-	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &jr); err != nil {
-		t.Fatalf("invalid JSON output: %v\nraw: %q", err, out)
-	}
-	if jr.Domain != "google.com" {
-		t.Errorf("Domain = %q, want %q", jr.Domain, "google.com")
-	}
-	if jr.Blocked {
-		t.Errorf("Blocked = %v, want false", jr.Blocked)
-	}
-	if jr.Error != "" {
-		t.Errorf("Error = %q, want empty", jr.Error)
-	}
+	require.NoError(t, json.Unmarshal([]byte(out), &jr))
+
+	assert.Equal(t, "google.com", jr.Domain)
+	assert.False(t, jr.Blocked)
+	assert.Empty(t, jr.Error)
 }
 
 func TestWriter_WriteResult_JSONWithError(t *testing.T) {
@@ -149,12 +123,9 @@ func TestWriter_WriteResult_JSONWithError(t *testing.T) {
 
 	out := flushAndRead(w, buf)
 	var jr jsonResult
-	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &jr); err != nil {
-		t.Fatalf("invalid JSON: %v", err)
-	}
-	if jr.Error != "dns timeout" {
-		t.Errorf("Error = %q, want %q", jr.Error, "dns timeout")
-	}
+	require.NoError(t, json.Unmarshal([]byte(out), &jr))
+
+	assert.Equal(t, "dns timeout", jr.Error)
 }
 
 func TestWriter_WriteStatus_Text_Online(t *testing.T) {
@@ -167,15 +138,9 @@ func TestWriter_WriteStatus_Text_Online(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	if !strings.Contains(out, "8.8.8.8") {
-		t.Errorf("output missing server: %q", out)
-	}
-	if !strings.Contains(out, "ONLINE") {
-		t.Errorf("output missing ONLINE status: %q", out)
-	}
-	if !strings.Contains(out, "42ms") {
-		t.Errorf("output missing latency: %q", out)
-	}
+	assert.Contains(t, out, "8.8.8.8")
+	assert.Contains(t, out, "ONLINE")
+	assert.Contains(t, out, "42ms")
 }
 
 func TestWriter_WriteStatus_Text_Offline(t *testing.T) {
@@ -188,12 +153,8 @@ func TestWriter_WriteStatus_Text_Offline(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	if !strings.Contains(out, "OFFLINE") {
-		t.Errorf("output missing OFFLINE status: %q", out)
-	}
-	if !strings.Contains(out, "connection refused") {
-		t.Errorf("output missing error: %q", out)
-	}
+	assert.Contains(t, out, "OFFLINE")
+	assert.Contains(t, out, "connection refused")
 }
 
 func TestWriter_WriteStatus_Text_Offline_NoError(t *testing.T) {
@@ -205,9 +166,7 @@ func TestWriter_WriteStatus_Text_Offline_NoError(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	if !strings.Contains(out, "OFFLINE") {
-		t.Errorf("output missing OFFLINE status: %q", out)
-	}
+	assert.Contains(t, out, "OFFLINE")
 }
 
 func TestWriter_WriteStatus_JSON_Online(t *testing.T) {
@@ -221,18 +180,11 @@ func TestWriter_WriteStatus_JSON_Online(t *testing.T) {
 
 	out := flushAndRead(w, buf)
 	var js jsonStatus
-	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &js); err != nil {
-		t.Fatalf("invalid JSON: %v", err)
-	}
-	if js.Server != "8.8.8.8" {
-		t.Errorf("Server = %q, want %q", js.Server, "8.8.8.8")
-	}
-	if !js.Online {
-		t.Error("Online = false, want true")
-	}
-	if js.LatencyMs != 5 {
-		t.Errorf("LatencyMs = %d, want 5", js.LatencyMs)
-	}
+	require.NoError(t, json.Unmarshal([]byte(out), &js))
+
+	assert.Equal(t, "8.8.8.8", js.Server)
+	assert.True(t, js.Online)
+	assert.Equal(t, int64(5), js.LatencyMs)
 }
 
 func TestWriter_WriteStatus_JSON_Offline(t *testing.T) {
@@ -246,51 +198,34 @@ func TestWriter_WriteStatus_JSON_Offline(t *testing.T) {
 
 	out := flushAndRead(w, buf)
 	var js jsonStatus
-	if err := json.Unmarshal([]byte(strings.TrimSpace(out)), &js); err != nil {
-		t.Fatalf("invalid JSON: %v", err)
-	}
-	if js.Error != "unreachable" {
-		t.Errorf("Error = %q, want %q", js.Error, "unreachable")
-	}
+	require.NoError(t, json.Unmarshal([]byte(out), &js))
+
+	assert.Equal(t, "unreachable", js.Error)
 }
 
 func TestWriter_Close_File(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "out.txt")
 	w, err := NewWriter(path, false)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	w.WriteResult(nawala.Result{Domain: "test.com", Server: "8.8.8.8"})
-	if err := w.Close(); err != nil {
-		t.Fatalf("Close() error: %v", err)
-	}
+	require.NoError(t, w.Close())
 
 	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(data), "test.com") {
-		t.Errorf("file content missing domain: %q", string(data))
-	}
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "test.com")
 }
 
 func TestWriter_Close_Stdout(t *testing.T) {
 	w, err := NewWriter("", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("Close() error: %v", err)
-	}
+	require.NoError(t, err)
+	assert.NoError(t, w.Close())
 }
 
 func TestWriter_Close_FlushError(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "flush_err.txt")
 	w, err := NewWriter(path, false)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Write something to fill the bufio buffer.
 	w.WriteResult(nawala.Result{Domain: "test.com", Server: "8.8.8.8"})
@@ -303,7 +238,5 @@ func TestWriter_Close_FlushError(t *testing.T) {
 	w.WriteResult(nawala.Result{Domain: "test2.com", Server: "8.8.8.8"})
 
 	err = w.Close()
-	if err == nil {
-		t.Fatal("expected error from Close() after underlying file was closed, got nil")
-	}
+	assert.Error(t, err, "expected error from Close() after underlying file was closed")
 }
