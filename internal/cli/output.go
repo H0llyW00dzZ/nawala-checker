@@ -60,7 +60,9 @@ func (w *Writer) WriteResult(r nawala.Result) {
 
 // writeText writes a check result as a tab-separated text line.
 //
-// TODO: use tablewriter for better formatting?
+// TODO: use [tablewriter] for better formatting?
+//
+// [tablewriter]: https://pkg.go.dev/github.com/olekukonko/tablewriter
 func (w *Writer) writeText(r nawala.Result) {
 	status := "NOT BLOCKED"
 	if r.Blocked {
