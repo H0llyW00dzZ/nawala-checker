@@ -50,5 +50,7 @@
 // Long-form help descriptions for each command are stored as plain-text
 // files under usage/ and compiled into the binary via [embed]. This keeps
 // command descriptions editable without modifying Go source code.
-// See magic_embed.go for the embed directives.
+// See [magic_embed.go] for the embed directives.
+//
+// [magic_embed.go]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/internal/cli/magic_embed.go
 package cli
