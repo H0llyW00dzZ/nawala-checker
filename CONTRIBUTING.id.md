@@ -12,13 +12,17 @@ Proyek ini mengikuti tata letak (layout) Go SDK standar untuk memastikan penggun
 
 ```text
 nawala-checker/
+├── cmd/
+│   └── nawala/       # Titik masuk (entry point) CLI (main.go).
+├── internal/
+│   └── cli/          # Perintah CLI, pemuatan konfigurasi, format output, dan teks penggunaan.
 ├── src/
-│   └── nawala/      # Logika pengecekan DNS, opsi-opsi, tipe structs, dan cache.
-├── examples/        # Contoh kode yang dapat dijalankan (basic, custom, status, hotreload).
-├── .github/         # Alur kerja (workflows) CI/CD dan template GitHub.
-├── Makefile         # Perintah untuk build, test, dan coverage.
-├── README.md        # Dokumentasi utama (Bahasa Inggris).
-└── README.id.md     # Dokumentasi terjemahan (Bahasa Indonesia).
+│   └── nawala/       # Logika pengecekan DNS, opsi-opsi, tipe structs, dan cache.
+├── examples/         # Contoh kode yang dapat dijalankan (basic, custom, status, hotreload).
+├── .github/          # Alur kerja (workflows) CI/CD dan template GitHub.
+├── Makefile          # Perintah untuk build, test, dan coverage.
+├── README.md         # Dokumentasi utama (Bahasa Inggris).
+└── README.id.md      # Dokumentasi terjemahan (Bahasa Indonesia).
 ```
 
 ## Persiapan dan Verifikasi
@@ -65,13 +69,14 @@ git checkout -b feature/nama-fitur-anda
     ```
 
 **Dokumentasi (Sinkronisasi Multibahasa & Kode)**:
-*   `nawala-checker` mengelola dokumentasi dalam bahasa Inggris ([`README.md`](README.md)) dan bahasa Indonesia ([`README.id.md`](README.id.md)), serta dokumentasi level-paket (GoDoc) di [`src/nawala/docs.go`](src/nawala/docs.go).
+*   `nawala-checker` mengelola dokumentasi dalam bahasa Inggris ([`README.md`](README.md)) dan bahasa Indonesia ([`README.id.md`](README.id.md)), serta dokumentasi level-paket (GoDoc) di [`src/nawala/docs.go`](src/nawala/docs.go) dan [`internal/cli/docs.go`](internal/cli/docs.go).
 *   Jika Pull Request Anda menambahkan fitur baru, mengubah API publik, atau memodifikasi perilaku yang ada, Anda **wajib memperbarui [`README.md`](README.md), [`README.id.md`](README.id.md), [`src/nawala/docs.go`](src/nawala/docs.go), serta kode terkait di direktori [`examples/`](examples/)** untuk memastikan keakuratan teknis dan konsistensi di seluruh sumber dokumentasi.
+*   Perubahan khusus CLI juga harus memperbarui teks penggunaan (usage text) yang di-embed di [`internal/cli/usage/`](internal/cli/usage/) dan [`internal/cli/docs.go`](internal/cli/docs.go).
 
 ### 3. Melakukan Commit dan Pemformatan
 Sebelum melakukan komit, pastikan kode Anda diformat dengan benar:
 ```bash
-gofmt -s -w ./src/...
+gofmt -s -w ./src/... ./internal/...
 ```
 
 Tulis pesan komit (commit messages) yang jelas dan deskriptif. Kami mendorong penggunaan Conventional Commits:

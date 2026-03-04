@@ -12,13 +12,17 @@ This project follows a canonical Go SDK layout to ensure idiomatic usage and min
 
 ```text
 nawala-checker/
+├── cmd/
+│   └── nawala/       # CLI entry point (main.go).
+├── internal/
+│   └── cli/          # CLI commands, config loading, output formatting, and usage text.
 ├── src/
-│   └── nawala/      # Core DNS checking logic, options, typed structs, and cache.
-├── examples/        # Executable examples (basic, custom, status, hotreload).
-├── .github/         # CI/CD workflows and GitHub templates.
-├── Makefile         # Build, test, and coverage commands.
-├── README.md        # Primary English documentation.
-└── README.id.md     # Localized Indonesian documentation.
+│   └── nawala/       # Core DNS checking logic, options, typed structs, and cache.
+├── examples/         # Executable examples (basic, custom, status, hotreload).
+├── .github/          # CI/CD workflows and GitHub templates.
+├── Makefile          # Build, test, and coverage commands.
+├── README.md         # Primary English documentation.
+└── README.id.md      # Localized Indonesian documentation.
 ```
 
 ## Setup and Verification
@@ -65,13 +69,14 @@ git checkout -b feature/your-feature-name
     ```
 
 **Documentation (Multilingual & Code Sync)**:
-*   The `nawala-checker` maintains both English ([`README.md`](README.md)) and Indonesian ([`README.id.md`](README.id.md)) documentation, as well as package-level GoDoc in [`src/nawala/docs.go`](src/nawala/docs.go).
+*   The `nawala-checker` maintains both English ([`README.md`](README.md)) and Indonesian ([`README.id.md`](README.id.md)) documentation, as well as package-level GoDoc in [`src/nawala/docs.go`](src/nawala/docs.go) and [`internal/cli/docs.go`](internal/cli/docs.go).
 *   If your pull request adds a new feature, changes the public API, or modifies existing behavior, you **must update [`README.md`](README.md), [`README.id.md`](README.id.md), [`src/nawala/docs.go`](src/nawala/docs.go), and relevant code in the [`examples/`](examples/) directory** to ensure technical accuracy and consistency across all documentation sources.
+*   CLI-specific changes must also update the embedded usage text in [`internal/cli/usage/`](internal/cli/usage/) and [`internal/cli/docs.go`](internal/cli/docs.go).
 
 ### 3. Committing and Formatting
 Before committing, ensure your code is properly formatted:
 ```bash
-gofmt -s -w ./src/...
+gofmt -s -w ./src/... ./internal/...
 ```
 
 Write clear, descriptive commit messages. We encourage Conventional Commits:
