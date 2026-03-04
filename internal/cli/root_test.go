@@ -7,6 +7,7 @@ package cli
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -333,5 +334,37 @@ func TestErrPartialFailure(t *testing.T) {
 	}
 	if ErrPartialFailure.Error() == "" {
 		t.Fatal("ErrPartialFailure should have a message")
+	}
+}
+
+func TestRunRoot_Success_Delegation(t *testing.T) {
+	mockAddr, cleanup := createMockDNSServer(t)
+	defer cleanup()
+
+	cfgContent := fmt.Sprintf(`{
+		"timeout": "1s",
+		"max_retries": 0,
+		"servers": [{"address": "%s", "keyword": "test", "query_type": "A"}]
+	}`, mockAddr)
+
+	cfgPath := filepath.Join(t.TempDir(), "success_root.json")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	saved := configPath
+	configPath = cfgPath
+	defer func() { configPath = saved }()
+
+	var buf bytes.Buffer
+	rootCmd.SetOut(&buf)
+	rootCmd.SetErr(&buf)
+	// reset args to avoid flag clash, and simulate passing 'google.com' as arg to rootCmd
+	rootCmd.SetArgs([]string{"google.com"})
+
+	// Call runRoot directly to cover the "return runCheck(cmd, args)" path.
+	err := runRoot(rootCmd, []string{"google.com"})
+	if err != nil {
+		t.Fatalf("runRoot() expected nil error, got: %v", err)
 	}
 }

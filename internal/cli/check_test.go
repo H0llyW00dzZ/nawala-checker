@@ -6,6 +6,8 @@
 package cli
 
 import (
+	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -247,6 +249,7 @@ func TestRunCheck_PartialFailure(t *testing.T) {
 	cmd.SetArgs([]string{"--output", outPath, "google.com"})
 
 	// This should return ErrPartialFailure or a check-failed error.
+	// This should return ErrPartialFailure or a check-failed error.
 	_ = cmd.Execute()
 }
 
@@ -267,5 +270,69 @@ func TestRunCheck_NoServers(t *testing.T) {
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatal("expected error from empty servers, got nil")
+	}
+}
+
+func createMockDNSServer(t *testing.T) (string, func()) {
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() {
+		buf := make([]byte, 512)
+		for {
+			n, addr, err := conn.ReadFromUDP(buf)
+			if err != nil {
+				close(done)
+				return
+			}
+			if n >= 12 {
+				// Create a valid DNS response (Standard query response, No error)
+				resp := append([]byte(nil), buf[:n]...) // copy request
+				resp[2] |= 0x80                         // Set QR bit (Response)
+				conn.WriteToUDP(resp, addr)
+			}
+		}
+	}()
+	return conn.LocalAddr().String(), func() {
+		conn.Close()
+		<-done
+	}
+}
+
+func TestRunCheck_Success(t *testing.T) {
+	mockAddr, cleanup := createMockDNSServer(t)
+	defer cleanup()
+
+	cfgContent := fmt.Sprintf(`{
+		"timeout": "1s",
+		"max_retries": 0,
+		"servers": [{"address": "%s", "keyword": "test", "query_type": "A"}]
+	}`, mockAddr)
+
+	cfgPath := filepath.Join(t.TempDir(), "success.json")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	saved := configPath
+	configPath = cfgPath
+	defer func() { configPath = saved }()
+
+	outPath := filepath.Join(t.TempDir(), "success_results.txt")
+	cmd := newCheckCmd()
+	cmd.SetArgs([]string{"--output", outPath, "google.com"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("expected nil error (success), got: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output file: %v", err)
+	}
+	if !strings.Contains(string(data), "google.com") {
+		t.Errorf("output missing google.com: %q", string(data))
 	}
 }
