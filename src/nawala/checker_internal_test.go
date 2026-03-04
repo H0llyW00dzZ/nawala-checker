@@ -1088,6 +1088,7 @@ func TestDNSQueryPortLogic(t *testing.T) {
 		name       string
 		serverAddr string
 		wantAddr   string
+		skipOS     string // skip on this GOOS (e.g., "windows")
 	}{
 		{
 			name:       "IPv4 without port",
@@ -1124,10 +1125,38 @@ func TestDNSQueryPortLogic(t *testing.T) {
 			serverAddr: "localhost:" + port,
 			wantAddr:   ":" + port, // localhost resolves to 127.0.0.1 or [::1] depending on OS
 		},
+
+		// IPv6 zone ID formats (RFC 6874, RFC 4007)
+		// Zone IDs like %eth0 are used for link-local addresses.
+		// Skipped on Windows: zone IDs use platform-specific interface names
+		// (%eth0 on Linux/macOS vs numeric indices like %15 on Windows),
+		// and error message formatting differs across platforms.
+		{
+			name:       "IPv6 zone ID without brackets and port",
+			serverAddr: "fe80::1%eth0",
+			wantAddr:   "[fe80::1%eth0]:53",
+			skipOS:     "windows",
+		},
+		{
+			name:       "IPv6 zone ID with brackets but no port",
+			serverAddr: "[fe80::1%eth0]",
+			wantAddr:   "[fe80::1%eth0]:53",
+			skipOS:     "windows",
+		},
+		{
+			name:       "IPv6 zone ID with brackets and port",
+			serverAddr: "[fe80::1%eth0]:" + port,
+			wantAddr:   "[fe80::1%eth0]:" + port,
+			skipOS:     "windows",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOS != "" && runtime.GOOS == tt.skipOS {
+				t.Skipf("skipped on %s: IPv6 zone IDs use platform-specific interface names", tt.skipOS)
+			}
+
 			q := dnsQuery{
 				client:    customClient,
 				domain:    "example.com",
