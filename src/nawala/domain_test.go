@@ -7,6 +7,10 @@ package nawala
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/net/idna"
 )
 
 func TestIsValidDomain(t *testing.T) {
@@ -187,6 +191,109 @@ func TestIsValidTLD(t *testing.T) {
 			if got := isValidTLD(tt.label); got != tt.want {
 				t.Errorf("isValidTLD(%q) = %v, want %v", tt.label, got, tt.want)
 			}
+		})
+	}
+}
+
+// TestIsValidDomainWithIDNA verifies the recommended consumer workflow for
+// Internationalized Domain Names: Unicode → [idna.Lookup.ToASCII] → [IsValidDomain].
+//
+// Consumers of this SDK must convert Unicode domain names to Punycode
+// (ASCII-Compatible Encoding) before passing them to [IsValidDomain],
+// [Checker.Check], or [Checker.CheckOne]. This test exercises that contract by:
+//
+//  1. Converting raw Unicode domains to Punycode via [idna.Lookup.ToASCII].
+//  2. Asserting that the Punycode output matches the expected wire-format string.
+//  3. Asserting that [IsValidDomain] accepts the converted Punycode domain.
+//  4. Asserting that [IsValidDomain] rejects the raw Unicode input (pre-conversion).
+//
+// The test covers multiple scripts: Indonesian, Thai, Arabic, Cyrillic, Chinese,
+// and multi-label (subdomain + IDN) domains.
+//
+// [idna.Lookup.ToASCII]: https://pkg.go.dev/golang.org/x/net/idna#Profile.ToASCII
+func TestIsValidDomainWithIDNA(t *testing.T) {
+	// roundTrip contains Unicode domains that, after IDNA conversion,
+	// must produce valid Punycode accepted by IsValidDomain.
+	roundTrip := []struct {
+		name     string
+		unicode  string // raw Unicode input
+		expected string // expected Punycode output from idna.Lookup.ToASCII
+	}{
+		// Indonesian — plain ASCII domains are a no-op through IDNA.
+		{"Indonesian plain ASCII .id", "contoh.id", "contoh.id"},
+		{"Indonesian plain ASCII tes.id", "tes.id", "tes.id"},
+
+		// Thai — ทดสอบ.ไทย → xn--l3cfk7dp.xn--o3cw4h
+		// Note: idna.Lookup applies UTS #46 mapping which may produce different
+		// Punycode than raw IDNA2003 encoding (e.g., xn--l3cfk7dp vs xn--12c1fe0br).
+		{"Thai SLD + Thai ccTLD", "ทดสอบ.ไทย", "xn--l3cfk7dp.xn--o3cw4h"},
+		// Thai SLD under standard ASCII TLD
+		{"Thai SLD + .th", "ทดสอบ.th", "xn--l3cfk7dp.th"},
+
+		// Arabic — مثال.مصر → xn--mgbh0fb.xn--wgbh1c
+		{"Arabic SLD + Egyptian ccTLD", "مثال.مصر", "xn--mgbh0fb.xn--wgbh1c"},
+		// Arabic — موقع.امارات → xn--4gbrim.xn--mgbaam7a8h
+		{"Arabic SLD + UAE ccTLD", "موقع.امارات", "xn--4gbrim.xn--mgbaam7a8h"},
+		// Arabic SLD under .com
+		{"Arabic SLD + .com", "مثال.com", "xn--mgbh0fb.com"},
+
+		// Cyrillic — пример.рф → xn--e1afmkfd.xn--p1ai
+		{"Cyrillic SLD + Russian ccTLD", "пример.рф", "xn--e1afmkfd.xn--p1ai"},
+
+		// Chinese — 例え.中国
+		{"Chinese/Japanese SLD + Chinese ccTLD", "例え.中国", "xn--r8jz45g.xn--fiqs8s"},
+
+		// Mixed: ASCII subdomain + Unicode SLD + Unicode TLD
+		{"subdomain + Arabic IDN", "www.مثال.مصر", "www.xn--mgbh0fb.xn--wgbh1c"},
+		// Uppercase ASCII subdomain + Unicode (tests case normalization)
+		{"uppercase subdomain + Thai IDN", "WWW.ทดสอบ.ไทย", "www.xn--l3cfk7dp.xn--o3cw4h"},
+
+		// German (UTS #46 mapping: ü → u + combining → Punycode)
+		{"German umlaut", "bücher.de", "xn--bcher-kva.de"},
+	}
+
+	for _, tt := range roundTrip {
+		t.Run(tt.name, func(t *testing.T) {
+			// 1. Convert Unicode → Punycode via idna.Lookup.ToASCII.
+			ascii, err := idna.Lookup.ToASCII(tt.unicode)
+			require.NoError(t, err, "idna.Lookup.ToASCII(%q) returned error", tt.unicode)
+			assert.Equal(t, tt.expected, ascii,
+				"idna.Lookup.ToASCII(%q) produced unexpected Punycode", tt.unicode)
+
+			// 2. The Punycode output must pass IsValidDomain.
+			assert.True(t, IsValidDomain(ascii),
+				"IsValidDomain(%q) should return true after IDNA conversion", ascii)
+
+			// 3. The raw Unicode input must be rejected by IsValidDomain.
+			// (Unless it's pure ASCII, in which case it's valid as-is.)
+			if tt.unicode != tt.expected {
+				assert.False(t, IsValidDomain(tt.unicode),
+					"IsValidDomain(%q) should return false for raw Unicode", tt.unicode)
+			}
+		})
+	}
+
+	// defenseInDepth contains inputs where idna.Lookup.ToASCII succeeds
+	// (returns a result without error) but the output is still structurally
+	// invalid for DNS use. IsValidDomain provides a second layer of defense
+	// by rejecting these domains.
+	defenseInDepth := []struct {
+		name    string
+		unicode string
+	}{
+		// Single-label Unicode (no TLD) — IDNA converts it, but
+		// IsValidDomain rejects single-label domains (no dot separator).
+		{"single label Unicode", "ทดสอบ"},
+		// Empty string — IDNA returns "" without error,
+		// but IsValidDomain rejects empty input.
+		{"empty string", ""},
+	}
+
+	for _, tt := range defenseInDepth {
+		t.Run("defense in depth/"+tt.name, func(t *testing.T) {
+			ascii, _ := idna.Lookup.ToASCII(tt.unicode)
+			assert.False(t, IsValidDomain(ascii),
+				"IsValidDomain(%q) should reject structurally invalid IDNA output", ascii)
 		})
 	}
 }
