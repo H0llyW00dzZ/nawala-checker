@@ -170,8 +170,8 @@ func TestWriter_WriteStatus_Text_Online(t *testing.T) {
 	if !strings.Contains(out, "8.8.8.8") {
 		t.Errorf("output missing server: %q", out)
 	}
-	if !strings.Contains(out, "online") {
-		t.Errorf("output missing online status: %q", out)
+	if !strings.Contains(out, "ONLINE") {
+		t.Errorf("output missing ONLINE status: %q", out)
 	}
 	if !strings.Contains(out, "42ms") {
 		t.Errorf("output missing latency: %q", out)
