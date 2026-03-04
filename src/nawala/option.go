@@ -131,6 +131,7 @@ func WithMaxRetries(n int) Option {
 func WithCache(cache Cache) Option {
 	return func(c *Checker) {
 		c.cache = cache
+		c.cacheSet = true
 	}
 }
 

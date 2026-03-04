@@ -164,3 +164,46 @@ func TestConfig_ToOptions_InvalidCacheTTL(t *testing.T) {
 	_, err := cfg.toOptions()
 	assert.Error(t, err, "expected error for invalid cache_ttl")
 }
+
+// TestConfig_ToOptions_DisableCacheTrue verifies that disable_cache:true
+// emits a WithCache(nil) option, which is absent when disable_cache:false.
+func TestConfig_ToOptions_DisableCacheTrue(t *testing.T) {
+	disableTrue := true
+	disableFalse := false
+
+	cfgTrue := &Config{DisableCache: &disableTrue}
+	cfgFalse := &Config{DisableCache: &disableFalse}
+	cfgNil := &Config{}
+
+	optsTrue, err := cfgTrue.toOptions()
+	require.NoError(t, err)
+	assert.Len(t, optsTrue, 1, "disable_cache:true should produce exactly 1 option (WithCache(nil))")
+
+	optsFalse, err := cfgFalse.toOptions()
+	require.NoError(t, err)
+	assert.Len(t, optsFalse, 0, "disable_cache:false should produce no options")
+
+	optsNil, err := cfgNil.toOptions()
+	require.NoError(t, err)
+	assert.Len(t, optsNil, 0, "nil DisableCache should produce no options")
+}
+
+// TestBuildChecker_DisableCacheNoCache verifies the full CLI→SDK path:
+// a config file with disable_cache:true must produce a Checker whose
+// FlushCache() is a safe no-op (cache is nil, not re-created by New()).
+func TestBuildChecker_DisableCacheNoCache(t *testing.T) {
+	content := `{"disable_cache": true}`
+	path := filepath.Join(t.TempDir(), "nocache.json")
+	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
+
+	saved := configPath
+	configPath = path
+	defer func() { configPath = saved }()
+
+	checker, err := buildChecker()
+	require.NoError(t, err)
+	require.NotNil(t, checker)
+
+	// FlushCache must not panic when cache is nil.
+	assert.NotPanics(t, func() { checker.FlushCache() })
+}
