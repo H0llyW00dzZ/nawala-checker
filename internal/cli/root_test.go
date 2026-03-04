@@ -164,8 +164,6 @@ func TestCheckCmd_Help(t *testing.T) {
 	}
 }
 
-
-
 func TestRunRoot_NoArgs(t *testing.T) {
 	saved := configPath
 	configPath = ""
@@ -186,8 +184,6 @@ func TestRunRoot_NoArgs(t *testing.T) {
 		t.Errorf("expected help output, got: %q", buf.String())
 	}
 }
-
-
 
 func TestStatusCmd_Help(t *testing.T) {
 	var buf bytes.Buffer
@@ -308,8 +304,6 @@ func TestRunStatus_NoServers(t *testing.T) {
 	}
 }
 
-
-
 func TestExecute_Success(t *testing.T) {
 	saved := configPath
 	configPath = ""
@@ -325,8 +319,6 @@ func TestExecute_Success(t *testing.T) {
 		t.Fatalf("Execute() error: %v", err)
 	}
 }
-
-
 
 func TestErrPartialFailure(t *testing.T) {
 	if ErrPartialFailure == nil {
