@@ -34,28 +34,36 @@ func init() {
 // configuration. Values are expressed as strings (durations) or primitives
 // so the output is always a valid config file the user can reuse.
 type effectiveConfig struct {
-	Timeout      string        `json:"timeout"        yaml:"timeout"`
-	MaxRetries   int           `json:"max_retries"    yaml:"max_retries"`
-	CacheTTL     string        `json:"cache_ttl"      yaml:"cache_ttl"`
-	DisableCache bool          `json:"disable_cache"  yaml:"disable_cache"`
-	Concurrency  int           `json:"concurrency"    yaml:"concurrency"`
-	EDNS0Size    uint16        `json:"edns0_size"     yaml:"edns0_size"`
-	Servers      []ServerDef   `json:"servers"        yaml:"servers"`
+	Timeout      string      `json:"timeout"        yaml:"timeout"`
+	MaxRetries   int         `json:"max_retries"    yaml:"max_retries"`
+	CacheTTL     string      `json:"cache_ttl"      yaml:"cache_ttl"`
+	DisableCache bool        `json:"disable_cache"  yaml:"disable_cache"`
+	Concurrency  int         `json:"concurrency"    yaml:"concurrency"`
+	EDNS0Size    uint16      `json:"edns0_size"     yaml:"edns0_size"`
+	Servers      []ServerDef `json:"servers"        yaml:"servers"`
 }
 
-// sdkDefaults returns an effectiveConfig populated with the SDK's built-in defaults.
-// These mirror the constants in src/nawala/checker.go.
-func sdkDefaults() effectiveConfig {
-	servers := nawala.New().Servers()
+// coalesce returns *ptr if ptr is non-nil, otherwise def.
+// Used to apply optional Config fields over effectiveConfig defaults.
+func coalesce[T any](ptr *T, def T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
+}
+
+// resolveEffectiveConfig builds the final configuration by starting from the
+// SDK defaults and overlaying any explicitly set fields from cfg (nil = use default).
+// cfg may be nil when no config file is loaded.
+func resolveEffectiveConfig(cfg *Config) effectiveConfig {
+	c := nawala.New()
+	servers := c.Servers()
 	defs := make([]ServerDef, len(servers))
 	for i, s := range servers {
-		defs[i] = ServerDef{
-			Address:   s.Address,
-			Keyword:   s.Keyword,
-			QueryType: s.QueryType,
-		}
+		defs[i] = ServerDef{Address: s.Address, Keyword: s.Keyword, QueryType: s.QueryType}
 	}
-	return effectiveConfig{
+
+	eff := effectiveConfig{
 		Timeout:      (5 * time.Second).String(),
 		MaxRetries:   2,
 		CacheTTL:     (5 * time.Minute).String(),
@@ -64,48 +72,46 @@ func sdkDefaults() effectiveConfig {
 		EDNS0Size:    1232,
 		Servers:      defs,
 	}
-}
 
-// mergeConfig overlays the user-supplied Config on top of the SDK defaults.
-func mergeConfig(base effectiveConfig, cfg *Config) effectiveConfig {
-	if cfg.Timeout != "" {
-		base.Timeout = cfg.Timeout
+	if cfg == nil {
+		return eff
 	}
-	if cfg.MaxRetries != nil {
-		base.MaxRetries = *cfg.MaxRetries
+
+	// Pointer fields: coalesce dereferences the pointer or keeps the default.
+	eff.MaxRetries = coalesce(cfg.MaxRetries, eff.MaxRetries)
+	eff.DisableCache = coalesce(cfg.DisableCache, eff.DisableCache)
+	eff.Concurrency = coalesce(cfg.Concurrency, eff.Concurrency)
+	eff.EDNS0Size = coalesce(cfg.EDNS0Size, eff.EDNS0Size)
+
+	// String/slice fields: empty/nil means "not set".
+	if cfg.Timeout != "" {
+		eff.Timeout = cfg.Timeout
 	}
 	if cfg.CacheTTL != "" {
-		base.CacheTTL = cfg.CacheTTL
-	}
-	if cfg.DisableCache != nil {
-		base.DisableCache = *cfg.DisableCache
-	}
-	if cfg.Concurrency != nil {
-		base.Concurrency = *cfg.Concurrency
-	}
-	if cfg.EDNS0Size != nil {
-		base.EDNS0Size = *cfg.EDNS0Size
+		eff.CacheTTL = cfg.CacheTTL
 	}
 	if cfg.Servers != nil {
-		base.Servers = cfg.Servers
+		eff.Servers = cfg.Servers
 	}
-	return base
+
+	return eff
 }
 
 // runConfig resolves the effective configuration and writes it to stdout or a file.
 func runConfig(cmd *cobra.Command, _ []string) error {
 	outputPath, _ := cmd.Flags().GetString("output")
-	jsonMode, _  := cmd.Flags().GetBool("json")
+	jsonMode, _ := cmd.Flags().GetBool("json")
 
-	// Resolve effective config: start from SDK defaults, merge loaded file.
-	eff := sdkDefaults()
+	// Resolve effective config: SDK defaults overlaid with any loaded file.
+	var cfg *Config
 	if configPath != "" {
-		cfg, err := loadConfig(configPath)
+		loaded, err := loadConfig(configPath)
 		if err != nil {
 			return err
 		}
-		eff = mergeConfig(eff, cfg)
+		cfg = loaded
 	}
+	eff := resolveEffectiveConfig(cfg)
 
 	// Build the envelope.
 	type envelope struct {

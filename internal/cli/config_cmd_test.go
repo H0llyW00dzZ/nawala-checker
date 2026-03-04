@@ -240,19 +240,17 @@ func TestConfigCmd_Help(t *testing.T) {
 }
 
 func TestRunConfig_MarshalErrorJSON(t *testing.T) {
-	// For coverage symmetry — json.Marshal on effectiveConfig can't fail
-	// with real data, so just verify the happy path produces valid output.
-	eff := sdkDefaults()
+	// For coverage symmetry — resolveEffectiveConfig(nil) returns SDK defaults.
+	eff := resolveEffectiveConfig(nil)
 	if eff.Timeout == "" {
-		t.Error("sdkDefaults returned empty timeout")
+		t.Error("resolveEffectiveConfig returned empty timeout")
 	}
 	if eff.EDNS0Size == 0 {
-		t.Error("sdkDefaults returned zero EDNS0Size")
+		t.Error("resolveEffectiveConfig returned zero EDNS0Size")
 	}
 }
 
 func TestRunConfig_MergeConfig_AllFields(t *testing.T) {
-	base := sdkDefaults()
 	retries := 5
 	concurrency := 75
 	edns := uint16(2048)
@@ -268,7 +266,7 @@ func TestRunConfig_MergeConfig_AllFields(t *testing.T) {
 			{Address: "1.1.1.1", Keyword: "test", QueryType: "A"},
 		},
 	}
-	merged := mergeConfig(base, cfg)
+	merged := resolveEffectiveConfig(cfg)
 
 	if merged.Timeout != "15s" {
 		t.Errorf("expected timeout=15s, got %q", merged.Timeout)
@@ -294,11 +292,10 @@ func TestRunConfig_MergeConfig_AllFields(t *testing.T) {
 }
 
 func TestRunConfig_MergeConfig_EmptyFields(t *testing.T) {
-	base := sdkDefaults()
-	origTimeout := base.Timeout
-	cfg := &Config{} // all nil/zero — nothing should change
-	merged := mergeConfig(base, cfg)
-
+	eff := resolveEffectiveConfig(nil)
+	origTimeout := eff.Timeout
+	// resolveEffectiveConfig with empty Config keeps defaults.
+	merged := resolveEffectiveConfig(&Config{})
 	if merged.Timeout != origTimeout {
 		t.Errorf("empty config changed timeout: got %q", merged.Timeout)
 	}
