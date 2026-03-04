@@ -19,12 +19,13 @@ import (
 
 // Config holds the CLI configuration loaded from a JSON or YAML file.
 type Config struct {
-	Timeout     string      `json:"timeout"      yaml:"timeout"`
-	MaxRetries  *int        `json:"max_retries"   yaml:"max_retries"`
-	CacheTTL    string      `json:"cache_ttl"     yaml:"cache_ttl"`
-	Concurrency *int        `json:"concurrency"   yaml:"concurrency"`
-	EDNS0Size   *uint16     `json:"edns0_size"    yaml:"edns0_size"`
-	Servers     []ServerDef `json:"servers"       yaml:"servers"`
+	Timeout      string      `json:"timeout"       yaml:"timeout"`
+	MaxRetries   *int        `json:"max_retries"   yaml:"max_retries"`
+	CacheTTL     string      `json:"cache_ttl"     yaml:"cache_ttl"`
+	DisableCache *bool       `json:"disable_cache" yaml:"disable_cache"`
+	Concurrency  *int        `json:"concurrency"   yaml:"concurrency"`
+	EDNS0Size    *uint16     `json:"edns0_size"    yaml:"edns0_size"`
+	Servers      []ServerDef `json:"servers"       yaml:"servers"`
 }
 
 // ServerDef defines a DNS server in the config file.
@@ -67,6 +68,7 @@ func (c *Config) toOptions() ([]nawala.Option, error) {
 		c.parseTimeout,
 		c.parseMaxRetries,
 		c.parseCacheTTL,
+		c.parseDisableCache,
 		c.parseConcurrency,
 		c.parseEDNS0Size,
 		c.parseServers,
@@ -105,6 +107,14 @@ func (c *Config) parseMaxRetries() (nawala.Option, error) {
 		return nil, nil
 	}
 	return nawala.WithMaxRetries(*c.MaxRetries), nil
+}
+
+// parseDisableCache returns a WithCache(nil) option if DisableCache is true.
+func (c *Config) parseDisableCache() (nawala.Option, error) {
+	if c.DisableCache != nil && *c.DisableCache {
+		return nawala.WithCache(nil), nil
+	}
+	return nil, nil
 }
 
 // parseCacheTTL parses the cache_ttl string into a time.Duration and returns a WithCacheTTL option.
