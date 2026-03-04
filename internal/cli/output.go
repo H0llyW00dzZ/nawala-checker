@@ -109,8 +109,12 @@ func (w *Writer) WriteStatus(s nawala.ServerStatus) {
 }
 
 // writeStatusText writes a server health status as a tab-separated text line.
+//
+// TODO: use [tablewriter] for better formatting?
+//
+// [tablewriter]: https://pkg.go.dev/github.com/olekukonko/tablewriter
 func (w *Writer) writeStatusText(s nawala.ServerStatus) {
-	status := "online"
+	status := "ONLINE"
 	if !s.Online {
 		status = "OFFLINE"
 	}
