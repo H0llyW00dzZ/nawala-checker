@@ -1124,6 +1124,24 @@ func TestDNSQueryPortLogic(t *testing.T) {
 			serverAddr: "localhost:" + port,
 			wantAddr:   ":" + port, // localhost resolves to 127.0.0.1 or [::1] depending on OS
 		},
+
+		// IPv6 zone ID formats (RFC 6874, RFC 4007)
+		// Zone IDs like %eth0 are used for link-local addresses.
+		{
+			name:       "IPv6 zone ID without brackets and port",
+			serverAddr: "fe80::1%eth0",
+			wantAddr:   "[fe80::1%eth0]:53",
+		},
+		{
+			name:       "IPv6 zone ID with brackets but no port",
+			serverAddr: "[fe80::1%eth0]",
+			wantAddr:   "[fe80::1%eth0]:53",
+		},
+		{
+			name:       "IPv6 zone ID with brackets and port",
+			serverAddr: "[fe80::1%eth0]:" + port,
+			wantAddr:   "[fe80::1%eth0]:" + port,
+		},
 	}
 
 	for _, tt := range tests {
