@@ -41,6 +41,55 @@ go get github.com/H0llyW00dzZ/nawala-checker
 
 Requires **Go 1.25.6** or later.
 
+### CLI
+
+Install the `nawala` command-line tool:
+
+```bash
+go install github.com/H0llyW00dzZ/nawala-checker/cmd/nawala@latest
+```
+
+Usage:
+
+```bash
+# Check domains (shorthand — delegates to "check")
+nawala google.com reddit.com
+
+# Check domains from a file
+nawala check --file domains.txt
+
+# JSON output (NDJSON — one object per line)
+nawala check google.com --json
+
+# Write results to a file
+nawala check --file domains.txt -o results.txt
+
+# Use a custom config (JSON or YAML)
+nawala check --config config.yaml --file domains.txt
+
+# Show DNS server health and latency
+nawala status
+
+# Print version
+nawala --version
+```
+
+Configuration file example (`config.yaml`):
+
+```yaml
+timeout: 10s
+max_retries: 3
+cache_ttl: 10m
+concurrency: 50
+servers:
+  - address: "180.131.144.144"
+    keyword: "internetpositif"
+    query_type: "A"
+  - address: "103.155.26.28"
+    keyword: "trustpositif"
+    query_type: "A"
+```
+
 ## Quick Start
 
 ```go
@@ -325,10 +374,14 @@ Today, while the original Nawala DNS filtering might be historical, its legacy l
 ```
 nawala-checker/
 ├── .github/            # CI workflows and Dependabot configuration
+├── cmd/
+│   └── nawala/         # CLI entry point
 ├── examples/           # Runnable usage examples (basic, custom, status)
+├── internal/
+│   └── cli/            # CLI package (commands, config, output)
 ├── Makefile            # Build and test shortcuts
 └── src/
-    └── nawala/          # Core SDK package (checker, cache, DNS, options, types)
+    └── nawala/         # Core SDK package (checker, cache, DNS, options, types)
 ```
 
 ## Testing
@@ -354,12 +407,15 @@ make test-cover
 
 # Skip live DNS tests.
 make test-short
+
+# Build the CLI binary.
+make build
 ```
 
 ## Roadmap
 
 - [ ] Upgrade `github.com/miekg/dns` to v2 or use a modern alternative for improved networking performance and features, due to its implementation in Go and its high effectiveness for networking.
-- [ ] Implement a CLI version (bundled in this repository) for checking domains directly from the terminal without writing Go code.
+- [x] Implement a CLI version (bundled in this repository) for checking domains directly from the terminal without writing Go code.
 
 ## License
 

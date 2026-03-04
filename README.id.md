@@ -41,6 +41,55 @@ go get github.com/H0llyW00dzZ/nawala-checker
 
 Membutuhkan **Go 1.25.6** atau lebih baru.
 
+### CLI
+
+Instal alat baris perintah `nawala`:
+
+```bash
+go install github.com/H0llyW00dzZ/nawala-checker/cmd/nawala@latest
+```
+
+Penggunaan:
+
+```bash
+# Periksa domain (singkatan — mendelegasikan ke "check")
+nawala google.com reddit.com
+
+# Periksa domain dari file
+nawala check --file domains.txt
+
+# Output JSON (NDJSON — satu objek per baris)
+nawala check google.com --json
+
+# Tulis hasil ke file
+nawala check --file domains.txt -o results.txt
+
+# Gunakan konfigurasi kustom (JSON atau YAML)
+nawala check --config config.yaml --file domains.txt
+
+# Tampilkan kesehatan dan latensi server DNS
+nawala status
+
+# Tampilkan versi
+nawala --version
+```
+
+Contoh file konfigurasi (`config.yaml`):
+
+```yaml
+timeout: 10s
+max_retries: 3
+cache_ttl: 10m
+concurrency: 50
+servers:
+  - address: "180.131.144.144"
+    keyword: "internetpositif"
+    query_type: "A"
+  - address: "103.155.26.28"
+    keyword: "trustpositif"
+    query_type: "A"
+```
+
 ## Mulai Cepat
 
 ```go
@@ -325,10 +374,14 @@ Hari ini, meskipun layanan DNS filtering Nawala yang asli mungkin sudah menjadi 
 ```
 nawala-checker/
 ├── .github/            # Alur kerja CI dan konfigurasi Dependabot
+├── cmd/
+│   └── nawala/         # Titik masuk CLI
 ├── examples/           # Contoh penggunaan yang dapat dijalankan (basic, custom, status)
+├── internal/
+│   └── cli/            # Paket CLI (perintah, konfigurasi, output)
 ├── Makefile            # Pintasan build dan test
 └── src/
-    └── nawala/          # Paket SDK inti (checker, cache, DNS, options, types)
+    └── nawala/         # Paket SDK inti (checker, cache, DNS, options, types)
 ```
 
 ## Pengujian
@@ -354,12 +407,15 @@ make test-cover
 
 # Lewati tes DNS langsung.
 make test-short
+
+# Bangun biner CLI.
+make build
 ```
 
 ## Peta Jalan
 
 - [ ] Tingkatkan `github.com/miekg/dns` ke v2 atau gunakan alternatif modern untuk meningkatkan kinerja dan fitur jaringan, karena implementasinya di Go dan efektivitasnya yang tinggi untuk jaringan.
-- [ ] Implementasikan versi CLI (dibundel dalam repositori ini) untuk memeriksa domain langsung dari terminal tanpa perlu menulis kode Go.
+- [x] Implementasikan versi CLI (dibundel dalam repositori ini) untuk memeriksa domain langsung dari terminal tanpa perlu menulis kode Go.
 
 ## Lisensi
 
