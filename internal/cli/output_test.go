@@ -25,9 +25,9 @@ func testWriter(jsonMode bool) (*Writer, *bytes.Buffer) {
 	return &Writer{w: bufio.NewWriter(&buf), json: jsonMode}, &buf
 }
 
-// flushAndRead flushes the Writer and returns the buffer contents.
+// flushAndRead flushes the Writer, closes it (triggering array caps), and returns the buffer contents.
 func flushAndRead(w *Writer, buf *bytes.Buffer) string {
-	w.w.Flush()
+	w.Close()
 	return buf.String()
 }
 
@@ -104,8 +104,14 @@ func TestWriter_WriteResult_JSON(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	var jr jsonResult
-	require.NoError(t, json.Unmarshal([]byte(out), &jr))
+	var wrapper struct {
+		Nawala struct {
+			Result []jsonResult `json:"result"`
+		} `json:"nawala"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	require.Len(t, wrapper.Nawala.Result, 1)
+	jr := wrapper.Nawala.Result[0]
 
 	assert.Equal(t, "google.com", jr.Domain)
 	assert.False(t, jr.Blocked)
@@ -122,8 +128,14 @@ func TestWriter_WriteResult_JSONWithError(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	var jr jsonResult
-	require.NoError(t, json.Unmarshal([]byte(out), &jr))
+	var wrapper struct {
+		Nawala struct {
+			Result []jsonResult `json:"result"`
+		} `json:"nawala"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	require.Len(t, wrapper.Nawala.Result, 1)
+	jr := wrapper.Nawala.Result[0]
 
 	assert.Equal(t, "dns timeout", jr.Error)
 }
@@ -179,8 +191,14 @@ func TestWriter_WriteStatus_JSON_Online(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	var js jsonStatus
-	require.NoError(t, json.Unmarshal([]byte(out), &js))
+	var wrapper struct {
+		Nawala struct {
+			Status []jsonStatus `json:"status"`
+		} `json:"nawala"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	require.Len(t, wrapper.Nawala.Status, 1)
+	js := wrapper.Nawala.Status[0]
 
 	assert.Equal(t, "8.8.8.8", js.Server)
 	assert.True(t, js.Online)
@@ -197,8 +215,14 @@ func TestWriter_WriteStatus_JSON_Offline(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
-	var js jsonStatus
-	require.NoError(t, json.Unmarshal([]byte(out), &js))
+	var wrapper struct {
+		Nawala struct {
+			Status []jsonStatus `json:"status"`
+		} `json:"nawala"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	require.Len(t, wrapper.Nawala.Status, 1)
+	js := wrapper.Nawala.Status[0]
 
 	assert.Equal(t, "unreachable", js.Error)
 }

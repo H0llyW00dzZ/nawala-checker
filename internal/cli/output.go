@@ -17,9 +17,10 @@ import (
 
 // Writer handles formatted output of check results to stdout or a file.
 type Writer struct {
-	w      *bufio.Writer
-	closer io.Closer // non-nil when writing to a file
-	json   bool      // output as NDJSON
+	w           *bufio.Writer
+	closer      io.Closer // non-nil when writing to a file
+	json        bool      // output as JSON
+	jsonStarted bool      // tracks if we started the JSON array
 }
 
 // NewWriter creates a Writer that writes to the given path.
@@ -75,7 +76,7 @@ func (w *Writer) writeText(r nawala.Result) {
 	w.w.Flush()
 }
 
-// writeJSON writes a check result as a single NDJSON line.
+// writeJSON writes a check result as a JSON array element.
 func (w *Writer) writeJSON(r nawala.Result) {
 	jr := jsonResult{
 		Domain:  r.Domain,
@@ -85,9 +86,15 @@ func (w *Writer) writeJSON(r nawala.Result) {
 	if r.Error != nil {
 		jr.Error = r.Error.Error()
 	}
+
 	data, _ := json.Marshal(jr)
+	if !w.jsonStarted {
+		w.w.WriteString(`{"nawala":{"result":[`)
+		w.jsonStarted = true
+	} else {
+		w.w.WriteString(",")
+	}
 	w.w.Write(data)
-	w.w.WriteByte('\n')
 	w.w.Flush()
 }
 
@@ -130,7 +137,7 @@ func (w *Writer) writeStatusText(s nawala.ServerStatus) {
 	w.w.Flush()
 }
 
-// writeStatusJSON writes a server health status as a single NDJSON line.
+// writeStatusJSON writes a server health status as a JSON array element.
 func (w *Writer) writeStatusJSON(s nawala.ServerStatus) {
 	js := jsonStatus{
 		Server:    s.Server,
@@ -141,13 +148,23 @@ func (w *Writer) writeStatusJSON(s nawala.ServerStatus) {
 		js.Error = s.Error.Error()
 	}
 	data, _ := json.Marshal(js)
+
+	if !w.jsonStarted {
+		w.w.WriteString(`{"nawala":{"status":[`)
+		w.jsonStarted = true
+	} else {
+		w.w.WriteString(",")
+	}
 	w.w.Write(data)
-	w.w.WriteByte('\n')
 	w.w.Flush()
 }
 
-// Close flushes any buffered data and closes the underlying file (if any).
+// Close flushes any buffered data, writes JSON caps, and closes the file.
 func (w *Writer) Close() error {
+	if w.json && w.jsonStarted {
+		w.w.WriteString("]}}\n")
+		w.jsonStarted = false
+	}
 	if err := w.w.Flush(); err != nil {
 		return err
 	}
