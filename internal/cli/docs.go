@@ -24,11 +24,15 @@
 //	timeout: 10s
 //	max_retries: 3
 //	cache_ttl: 10m
+//	disable_cache: false
 //	concurrency: 50
 //	servers:
 //	  - address: "180.131.144.144"
 //	    keyword: "internetpositif"
 //	    query_type: "A"
+//
+// Set disable_cache: true to disable the built-in in-memory cache entirely.
+// When set, the cache_ttl field has no effect.
 //
 // # Domain Input
 //

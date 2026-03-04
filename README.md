@@ -80,6 +80,7 @@ Configuration file example (`config.yaml`):
 timeout: 10s
 max_retries: 3
 cache_ttl: 10m
+disable_cache: false
 concurrency: 50
 servers:
   - address: "180.131.144.144"
@@ -89,6 +90,10 @@ servers:
     keyword: "trustpositif"
     query_type: "A"
 ```
+
+> [!NOTE]
+> Set `disable_cache: true` to disable the built-in in-memory cache entirely.
+> When set, `cache_ttl` has no effect.
 
 ## Quick Start
 
