@@ -140,6 +140,25 @@ func TestWriter_WriteResult_JSONWithError(t *testing.T) {
 	assert.Equal(t, "dns timeout", jr.Error)
 }
 
+func TestWriter_WriteResult_JSON_MultipleResults(t *testing.T) {
+	w, buf := testWriter(true)
+
+	w.WriteResult(nawala.Result{Domain: "google.com", Blocked: false, Server: "8.8.8.8"})
+	w.WriteResult(nawala.Result{Domain: "reddit.com", Blocked: true, Server: "8.8.8.8"})
+
+	out := flushAndRead(w, buf)
+	var wrapper struct {
+		Nawala struct {
+			Result []jsonResult `json:"result"`
+		} `json:"nawala"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	require.Len(t, wrapper.Nawala.Result, 2)
+	assert.Equal(t, "google.com", wrapper.Nawala.Result[0].Domain)
+	assert.Equal(t, "reddit.com", wrapper.Nawala.Result[1].Domain)
+	assert.True(t, wrapper.Nawala.Result[1].Blocked)
+}
+
 func TestWriter_WriteStatus_Text_Online(t *testing.T) {
 	w, buf := testWriter(false)
 
@@ -225,6 +244,24 @@ func TestWriter_WriteStatus_JSON_Offline(t *testing.T) {
 	js := wrapper.Nawala.Status[0]
 
 	assert.Equal(t, "unreachable", js.Error)
+}
+
+func TestWriter_WriteStatus_JSON_MultipleStatuses(t *testing.T) {
+	w, buf := testWriter(true)
+
+	w.WriteStatus(nawala.ServerStatus{Server: "8.8.8.8", Online: true, LatencyMs: 10})
+	w.WriteStatus(nawala.ServerStatus{Server: "1.1.1.1", Online: true, LatencyMs: 20})
+
+	out := flushAndRead(w, buf)
+	var wrapper struct {
+		Nawala struct {
+			Status []jsonStatus `json:"status"`
+		} `json:"nawala"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	require.Len(t, wrapper.Nawala.Status, 2)
+	assert.Equal(t, "8.8.8.8", wrapper.Nawala.Status[0].Server)
+	assert.Equal(t, "1.1.1.1", wrapper.Nawala.Status[1].Server)
 }
 
 func TestWriter_Close_File(t *testing.T) {
