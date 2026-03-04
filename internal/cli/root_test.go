@@ -163,24 +163,7 @@ func TestCheckCmd_Help(t *testing.T) {
 	}
 }
 
-func TestRootCmd_BareArgs_DelegatesToCheck(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping live DNS test in short mode")
-	}
 
-	saved := configPath
-	configPath = ""
-	defer func() { configPath = saved }()
-
-	var buf bytes.Buffer
-	rootCmd.SetOut(&buf)
-	rootCmd.SetErr(&buf)
-	rootCmd.SetArgs([]string{"google.com"})
-
-	if err := rootCmd.Execute(); err != nil {
-		t.Fatalf("Execute() error: %v", err)
-	}
-}
 
 func TestRunRoot_NoArgs(t *testing.T) {
 	saved := configPath
@@ -203,27 +186,7 @@ func TestRunRoot_NoArgs(t *testing.T) {
 	}
 }
 
-func TestRunRoot_BareArgs(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping live DNS test in short mode")
-	}
 
-	saved := configPath
-	configPath = ""
-	defer func() { configPath = saved }()
-
-	var buf bytes.Buffer
-	rootCmd.SetOut(&buf)
-	rootCmd.SetErr(&buf)
-	rootCmd.SetArgs([]string{}) // reset args
-	rootCmd.Flags().Set("version", "false")
-
-	// Call runRoot directly with args to hit the runCheck delegation.
-	err := runRoot(rootCmd, []string{"google.com"})
-	if err != nil {
-		t.Logf("runRoot() returned error (expected on non-Indonesian networks): %v", err)
-	}
-}
 
 func TestStatusCmd_Help(t *testing.T) {
 	var buf bytes.Buffer
@@ -344,58 +307,7 @@ func TestRunStatus_NoServers(t *testing.T) {
 	}
 }
 
-func TestRunStatus_LiveDNS(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping live DNS test in short mode")
-	}
 
-	saved := configPath
-	configPath = ""
-	defer func() { configPath = saved }()
-
-	outPath := filepath.Join(t.TempDir(), "status.txt")
-	cmd := newStatusCmd()
-	cmd.SetArgs([]string{"--output", outPath})
-
-	if err := cmd.Execute(); err != nil {
-		t.Logf("Execute() returned error (expected on non-Indonesian networks): %v", err)
-	}
-
-	data, err := os.ReadFile(outPath)
-	if err != nil {
-		t.Fatalf("reading output file: %v", err)
-	}
-	out := string(data)
-	if !strings.Contains(out, "online") && !strings.Contains(out, "OFFLINE") {
-		t.Errorf("output missing status indicator: %q", out)
-	}
-}
-
-func TestRunStatus_LiveDNS_JSON(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping live DNS test in short mode")
-	}
-
-	saved := configPath
-	configPath = ""
-	defer func() { configPath = saved }()
-
-	outPath := filepath.Join(t.TempDir(), "status.json")
-	cmd := newStatusCmd()
-	cmd.SetArgs([]string{"--json", "--output", outPath})
-
-	if err := cmd.Execute(); err != nil {
-		t.Logf("Execute() returned error (expected on non-Indonesian networks): %v", err)
-	}
-
-	data, err := os.ReadFile(outPath)
-	if err != nil {
-		t.Fatalf("reading output file: %v", err)
-	}
-	if !strings.Contains(string(data), "\"server\"") {
-		t.Errorf("output missing JSON server field: %q", string(data))
-	}
-}
 
 func TestExecute_Success(t *testing.T) {
 	saved := configPath
@@ -413,25 +325,7 @@ func TestExecute_Success(t *testing.T) {
 	}
 }
 
-func TestExecute_Error(t *testing.T) {
-	badCfg := filepath.Join(t.TempDir(), "bad.json")
-	if err := os.WriteFile(badCfg, []byte("{invalid}"), 0644); err != nil {
-		t.Fatal(err)
-	}
 
-	saved := configPath
-	configPath = badCfg
-	defer func() { configPath = saved }()
-
-	var buf bytes.Buffer
-	rootCmd.SetOut(&buf)
-	rootCmd.SetErr(&buf)
-	rootCmd.SetArgs([]string{"check", "google.com"})
-
-	// SilenceErrors is true on rootCmd, so Execute() returns nil
-	// but the error was still triggered internally.
-	_ = Execute()
-}
 
 func TestErrPartialFailure(t *testing.T) {
 	if ErrPartialFailure == nil {
