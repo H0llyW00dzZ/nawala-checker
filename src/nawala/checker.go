@@ -47,6 +47,7 @@ type Checker struct {
 	maxRetries  int
 	concurrency int
 	cache       Cache
+	cacheSet    bool // true when WithCache was called explicitly (even with nil)
 	cacheTTL    time.Duration
 	edns0Size   uint16
 	dnsClient   *dns.Client
@@ -78,8 +79,9 @@ func New(opts ...Option) *Checker {
 		opt(c)
 	}
 
-	// Initialize cache if not set by option.
-	if c.cache == nil {
+	// Initialize cache only when WithCache was not explicitly called.
+	// If WithCache(nil) was called, cacheSet is true and cache stays nil (disabled).
+	if !c.cacheSet {
 		c.cache = newMemoryCache(c.cacheTTL)
 	}
 
