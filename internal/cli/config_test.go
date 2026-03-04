@@ -73,7 +73,7 @@ servers:
 	assert.Equal(t, "15s", cfg.Timeout)
 	require.NotNil(t, cfg.MaxRetries)
 	assert.Equal(t, 5, *cfg.MaxRetries)
-	
+
 	require.NotNil(t, cfg.DisableCache)
 	assert.False(t, *cfg.DisableCache)
 
