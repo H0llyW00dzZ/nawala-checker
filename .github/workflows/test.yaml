@@ -64,18 +64,18 @@ jobs:
         go-version: ${{ matrix.go-version }}
 
     - name: Run go vet
-      run: go vet ./src/...
+      run: go vet ./...
       shell: bash
 
     - name: Run tests with coverage (with race detector)
       if: matrix.os != 'windows-11-arm'
-      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./src/...
+      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./src/... ./internal/...
       shell: bash
       # continue-on-error: true
 
     - name: Run tests with coverage (without race detector)
       if: matrix.os == 'windows-11-arm'
-      run: go test -v -coverprofile=coverage.txt -covermode=atomic ./src/...
+      run: go test -v -coverprofile=coverage.txt -covermode=atomic ./src/... ./internal/...
       shell: bash
       # continue-on-error: true
 

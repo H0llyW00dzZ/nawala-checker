@@ -1,0 +1,13 @@
+Show the health status and latency of all configured DNS servers.
+
+Each server is probed with a simple DNS query (A record for google.com)
+and the result includes whether the server is online and the round-trip
+latency in milliseconds.
+
+Use --config to check health of custom server configurations.
+
+Examples:
+  nawala status
+  nawala status --config custom.yaml
+  nawala status --json
+  nawala status --json -o health.json

@@ -34,6 +34,15 @@
 // dialers, etc.). The default Nawala servers are simply pre-configured
 // defaults; the SDK itself is fully independent and actively maintained.
 //
+// # CLI
+//
+// A command-line interface is bundled in this repository at cmd/nawala.
+// Install it with:
+//
+//	go install github.com/H0llyW00dzZ/nawala-checker/cmd/nawala@latest
+//
+// Run nawala --help for usage information.
+//
 // # Features
 //
 //   - Concurrent domain checking — check multiple domains in parallel

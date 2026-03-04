@@ -1,0 +1,17 @@
+Check whether domains are blocked by Indonesian ISP DNS filters.
+
+This tool queries known Nawala and Komdigi DNS servers for each domain
+and inspects the response for blocking indicators — CNAME redirects to
+"internetpositif.id" (Nawala-style) or Extended DNS Error 15 with
+"trustpositif.komdigi.go.id" (Komdigi-style).
+
+Usage:
+  nawala [domains...]                 check domains (shorthand)
+  nawala check [domains...] [flags]   check domains (explicit)
+  nawala status [flags]               show DNS server health
+
+Examples:
+  nawala google.com reddit.com
+  nawala check --file domains.txt
+  nawala check --file domains.txt --json -o results.json
+  nawala status --config custom.yaml
