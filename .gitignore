@@ -33,3 +33,4 @@ bin
 changelog.md
 coverage.txt
 coverage.out
+e2e_test_*
