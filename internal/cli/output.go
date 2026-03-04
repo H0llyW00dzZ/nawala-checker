@@ -59,8 +59,12 @@ func (w *Writer) WriteResult(r nawala.Result) {
 }
 
 // writeText writes a check result as a tab-separated text line.
+//
+// TODO: use [tablewriter] for better formatting?
+//
+// [tablewriter]: https://pkg.go.dev/github.com/olekukonko/tablewriter
 func (w *Writer) writeText(r nawala.Result) {
-	status := "not_blocked"
+	status := "NOT BLOCKED"
 	if r.Blocked {
 		status = "BLOCKED"
 	}
@@ -105,8 +109,12 @@ func (w *Writer) WriteStatus(s nawala.ServerStatus) {
 }
 
 // writeStatusText writes a server health status as a tab-separated text line.
+//
+// TODO: use [tablewriter] for better formatting?
+//
+// [tablewriter]: https://pkg.go.dev/github.com/olekukonko/tablewriter
 func (w *Writer) writeStatusText(s nawala.ServerStatus) {
-	status := "online"
+	status := "ONLINE"
 	if !s.Online {
 		status = "OFFLINE"
 	}
