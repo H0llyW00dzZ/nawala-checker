@@ -19,6 +19,7 @@ func TestLoadConfig_JSON(t *testing.T) {
 		"timeout": "10s",
 		"max_retries": 3,
 		"cache_ttl": "5m",
+		"disable_cache": true,
 		"concurrency": 50,
 		"edns0_size": 4096,
 		"servers": [
@@ -37,6 +38,9 @@ func TestLoadConfig_JSON(t *testing.T) {
 	assert.Equal(t, 3, *cfg.MaxRetries)
 
 	assert.Equal(t, "5m", cfg.CacheTTL)
+	require.NotNil(t, cfg.DisableCache)
+	assert.True(t, *cfg.DisableCache)
+
 	require.NotNil(t, cfg.Concurrency)
 	assert.Equal(t, 50, *cfg.Concurrency)
 
@@ -52,6 +56,7 @@ func TestLoadConfig_YAML(t *testing.T) {
 timeout: 15s
 max_retries: 5
 cache_ttl: 10m
+disable_cache: false
 concurrency: 200
 edns0_size: 2048
 servers:
@@ -68,7 +73,10 @@ servers:
 	assert.Equal(t, "15s", cfg.Timeout)
 	require.NotNil(t, cfg.MaxRetries)
 	assert.Equal(t, 5, *cfg.MaxRetries)
-	
+
+	require.NotNil(t, cfg.DisableCache)
+	assert.False(t, *cfg.DisableCache)
+
 	require.Len(t, cfg.Servers, 1)
 	assert.Equal(t, "AAAA", cfg.Servers[0].QueryType)
 }
@@ -116,12 +124,14 @@ func TestConfig_ToOptions_AllFields(t *testing.T) {
 	retries := 3
 	concurrency := 50
 	edns0 := uint16(4096)
+	disableCache := true
 	cfg := &Config{
-		Timeout:     "10s",
-		MaxRetries:  &retries,
-		CacheTTL:    "5m",
-		Concurrency: &concurrency,
-		EDNS0Size:   &edns0,
+		Timeout:      "10s",
+		MaxRetries:   &retries,
+		CacheTTL:     "5m",
+		DisableCache: &disableCache,
+		Concurrency:  &concurrency,
+		EDNS0Size:    &edns0,
 		Servers: []ServerDef{
 			{Address: "8.8.8.8", Keyword: "blocked", QueryType: "A"},
 			{Address: "8.8.4.4", Keyword: "blocked", QueryType: "A"},
@@ -130,7 +140,7 @@ func TestConfig_ToOptions_AllFields(t *testing.T) {
 
 	opts, err := cfg.toOptions()
 	require.NoError(t, err)
-	assert.Len(t, opts, 6)
+	assert.Len(t, opts, 7)
 }
 
 func TestConfig_ToOptions_Empty(t *testing.T) {

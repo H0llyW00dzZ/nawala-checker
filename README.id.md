@@ -80,6 +80,7 @@ Contoh file konfigurasi (`config.yaml`):
 timeout: 10s
 max_retries: 3
 cache_ttl: 10m
+disable_cache: false
 concurrency: 50
 servers:
   - address: "180.131.144.144"
@@ -89,6 +90,10 @@ servers:
     keyword: "trustpositif"
     query_type: "A"
 ```
+
+> [!NOTE]
+> Atur `disable_cache: true` untuk menonaktifkan cache dalam memori bawaan sepenuhnya.
+> Jika diaktifkan, nilai `cache_ttl` tidak berpengaruh.
 
 ## Mulai Cepat
 

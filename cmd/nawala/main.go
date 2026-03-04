@@ -58,6 +58,8 @@ import (
 	"github.com/H0llyW00dzZ/nawala-checker/internal/cli"
 )
 
+// this best parctice to make main function small and simple
+// and keep all the logic in the internal/cli package
 func main() {
 	if err := cli.Execute(); err != nil {
 		os.Exit(1)
