@@ -60,7 +60,7 @@ func (w *Writer) WriteResult(r nawala.Result) {
 
 // writeText writes a check result as a tab-separated text line.
 func (w *Writer) writeText(r nawala.Result) {
-	status := "not_blocked"
+	status := "NOT BLOCKED"
 	if r.Blocked {
 		status = "BLOCKED"
 	}

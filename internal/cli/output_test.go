@@ -75,8 +75,8 @@ func TestWriter_WriteResult_Text(t *testing.T) {
 	if !strings.Contains(out, "google.com") {
 		t.Errorf("output missing domain: %q", out)
 	}
-	if !strings.Contains(out, "not_blocked") {
-		t.Errorf("output missing status: %q", out)
+	if !strings.Contains(out, "NOT BLOCKED") {
+		t.Errorf("expected NOT BLOCKED, got: %q", out)
 	}
 	if !strings.Contains(out, "8.8.8.8") {
 		t.Errorf("output missing server: %q", out)
