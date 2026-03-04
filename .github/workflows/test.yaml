@@ -70,22 +70,13 @@ jobs:
     - name: Run tests with coverage (with race detector)
       if: matrix.os != 'windows-11-arm'
       run: |
-        go test -v -race -coverprofile=coverage_src.txt -covermode=atomic ./src/...
-        go test -v -race -coverprofile=coverage_cli.txt -covermode=atomic ./internal/...
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./src/... ./internal/...
       shell: bash
 
     - name: Run tests with coverage (without race detector)
       if: matrix.os == 'windows-11-arm'
       run: |
-        go test -v -coverprofile=coverage_src.txt -covermode=atomic ./src/...
-        go test -v -coverprofile=coverage_cli.txt -covermode=atomic ./internal/...
-      shell: bash
-
-    - name: Merge coverage profiles
-      run: |
-        head -1 coverage_src.txt > coverage.txt
-        tail -n +2 coverage_src.txt >> coverage.txt
-        tail -n +2 coverage_cli.txt >> coverage.txt
+        go test -v -coverprofile=coverage.txt -covermode=atomic ./src/... ./internal/...
       shell: bash
 
     - name: Upload coverage to Codecov
