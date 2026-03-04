@@ -9,6 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadConfig_JSON(t *testing.T) {
@@ -24,36 +27,24 @@ func TestLoadConfig_JSON(t *testing.T) {
 	}`
 
 	path := filepath.Join(t.TempDir(), "config.json")
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
 
 	cfg, err := loadConfig(path)
-	if err != nil {
-		t.Fatalf("loadConfig(%q) error: %v", path, err)
-	}
+	require.NoError(t, err)
 
-	if cfg.Timeout != "10s" {
-		t.Errorf("Timeout = %q, want %q", cfg.Timeout, "10s")
-	}
-	if cfg.MaxRetries == nil || *cfg.MaxRetries != 3 {
-		t.Errorf("MaxRetries = %v, want 3", cfg.MaxRetries)
-	}
-	if cfg.CacheTTL != "5m" {
-		t.Errorf("CacheTTL = %q, want %q", cfg.CacheTTL, "5m")
-	}
-	if cfg.Concurrency == nil || *cfg.Concurrency != 50 {
-		t.Errorf("Concurrency = %v, want 50", cfg.Concurrency)
-	}
-	if cfg.EDNS0Size == nil || *cfg.EDNS0Size != 4096 {
-		t.Errorf("EDNS0Size = %v, want 4096", cfg.EDNS0Size)
-	}
-	if len(cfg.Servers) != 1 {
-		t.Fatalf("len(Servers) = %d, want 1", len(cfg.Servers))
-	}
-	if cfg.Servers[0].Address != "8.8.8.8" {
-		t.Errorf("Servers[0].Address = %q, want %q", cfg.Servers[0].Address, "8.8.8.8")
-	}
+	assert.Equal(t, "10s", cfg.Timeout)
+	require.NotNil(t, cfg.MaxRetries)
+	assert.Equal(t, 3, *cfg.MaxRetries)
+
+	assert.Equal(t, "5m", cfg.CacheTTL)
+	require.NotNil(t, cfg.Concurrency)
+	assert.Equal(t, 50, *cfg.Concurrency)
+
+	require.NotNil(t, cfg.EDNS0Size)
+	assert.Equal(t, uint16(4096), *cfg.EDNS0Size)
+
+	require.Len(t, cfg.Servers, 1)
+	assert.Equal(t, "8.8.8.8", cfg.Servers[0].Address)
 }
 
 func TestLoadConfig_YAML(t *testing.T) {
@@ -69,83 +60,56 @@ servers:
     query_type: "AAAA"
 `
 	path := filepath.Join(t.TempDir(), "config.yaml")
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
 
 	cfg, err := loadConfig(path)
-	if err != nil {
-		t.Fatalf("loadConfig(%q) error: %v", path, err)
-	}
+	require.NoError(t, err)
 
-	if cfg.Timeout != "15s" {
-		t.Errorf("Timeout = %q, want %q", cfg.Timeout, "15s")
-	}
-	if cfg.MaxRetries == nil || *cfg.MaxRetries != 5 {
-		t.Errorf("MaxRetries = %v, want 5", cfg.MaxRetries)
-	}
-	if len(cfg.Servers) != 1 || cfg.Servers[0].QueryType != "AAAA" {
-		t.Errorf("Servers = %+v, want 1 server with QueryType AAAA", cfg.Servers)
-	}
+	assert.Equal(t, "15s", cfg.Timeout)
+	require.NotNil(t, cfg.MaxRetries)
+	assert.Equal(t, 5, *cfg.MaxRetries)
+	
+	require.Len(t, cfg.Servers, 1)
+	assert.Equal(t, "AAAA", cfg.Servers[0].QueryType)
 }
 
 func TestLoadConfig_YML(t *testing.T) {
 	content := `timeout: 5s`
 	path := filepath.Join(t.TempDir(), "config.yml")
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
 
 	cfg, err := loadConfig(path)
-	if err != nil {
-		t.Fatalf("loadConfig(%q) error: %v", path, err)
-	}
-	if cfg.Timeout != "5s" {
-		t.Errorf("Timeout = %q, want %q", cfg.Timeout, "5s")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "5s", cfg.Timeout)
 }
 
 func TestLoadConfig_UnsupportedFormat(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
-	if err := os.WriteFile(path, []byte("key = 'value'"), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(path, []byte("key = 'value'"), 0644))
 
 	_, err := loadConfig(path)
-	if err == nil {
-		t.Fatal("expected error for unsupported format, got nil")
-	}
+	assert.Error(t, err, "expected error for unsupported format")
 }
 
 func TestLoadConfig_FileNotFound(t *testing.T) {
 	_, err := loadConfig("/nonexistent/config.json")
-	if err == nil {
-		t.Fatal("expected error for missing file, got nil")
-	}
+	assert.Error(t, err, "expected error for missing file")
 }
 
 func TestLoadConfig_InvalidJSON(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "bad.json")
-	if err := os.WriteFile(path, []byte("{invalid json}"), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(path, []byte("{invalid json}"), 0644))
 
 	_, err := loadConfig(path)
-	if err == nil {
-		t.Fatal("expected error for invalid JSON, got nil")
-	}
+	assert.Error(t, err, "expected error for invalid JSON")
 }
 
 func TestLoadConfig_InvalidYAML(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "bad.yaml")
-	if err := os.WriteFile(path, []byte(":\n  :\n    - [invalid"), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(path, []byte(":\n  :\n    - [invalid"), 0644))
 
 	_, err := loadConfig(path)
-	if err == nil {
-		t.Fatal("expected error for invalid YAML, got nil")
-	}
+	assert.Error(t, err, "expected error for invalid YAML")
 }
 
 func TestConfig_ToOptions_AllFields(t *testing.T) {
@@ -165,43 +129,28 @@ func TestConfig_ToOptions_AllFields(t *testing.T) {
 	}
 
 	opts, err := cfg.toOptions()
-	if err != nil {
-		t.Fatalf("toOptions() error: %v", err)
-	}
-
-	// timeout + retries + cacheTTL + concurrency + edns0 + servers = 6
-	if len(opts) != 6 {
-		t.Errorf("len(opts) = %d, want 6", len(opts))
-	}
+	require.NoError(t, err)
+	assert.Len(t, opts, 6)
 }
 
 func TestConfig_ToOptions_Empty(t *testing.T) {
 	cfg := &Config{}
 
 	opts, err := cfg.toOptions()
-	if err != nil {
-		t.Fatalf("toOptions() error: %v", err)
-	}
-
-	if len(opts) != 0 {
-		t.Errorf("len(opts) = %d, want 0", len(opts))
-	}
+	require.NoError(t, err)
+	assert.Len(t, opts, 0)
 }
 
 func TestConfig_ToOptions_InvalidTimeout(t *testing.T) {
 	cfg := &Config{Timeout: "not-a-duration"}
 
 	_, err := cfg.toOptions()
-	if err == nil {
-		t.Fatal("expected error for invalid timeout, got nil")
-	}
+	assert.Error(t, err, "expected error for invalid timeout")
 }
 
 func TestConfig_ToOptions_InvalidCacheTTL(t *testing.T) {
 	cfg := &Config{CacheTTL: "bad"}
 
 	_, err := cfg.toOptions()
-	if err == nil {
-		t.Fatal("expected error for invalid cache_ttl, got nil")
-	}
+	assert.Error(t, err, "expected error for invalid cache_ttl")
 }
