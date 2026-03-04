@@ -422,7 +422,7 @@ make build
 - [ ] Upgrade `github.com/miekg/dns` to v2 or use a modern alternative for improved networking performance and features, due to its implementation in Go and its high effectiveness for networking.
 - [x] Implement a CLI version (bundled in this repository) for checking domains directly from the terminal without writing Go code.
 - [ ] Implement an [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) ([Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro)) server version (bundled in this repository) for integrating nawala-checker directly with LLMs and AI agents.
-- [ ] Implement a pure [JSON-RPC 2.0](https://www.jsonrpc.org/specification) server (bundled in this repository) for language-agnostic integration over stdio or TCP, similar in spirit to how MCP works but using the standard JSON-RPC wire protocol.
+- [ ] Implement a pure [JSON-RPC 2.0](https://www.jsonrpc.org/specification) server version (bundled in this repository) for language-agnostic integration over stdio or TCP, similar in spirit to how MCP works but using the standard JSON-RPC wire protocol.
 
 ## License
 
