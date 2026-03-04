@@ -207,4 +207,3 @@ func TestBuildChecker_DisableCacheNoCache(t *testing.T) {
 	// FlushCache must not panic when cache is nil.
 	assert.NotPanics(t, func() { checker.FlushCache() })
 }
-
