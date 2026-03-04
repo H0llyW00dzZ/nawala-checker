@@ -1,0 +1,33 @@
+The config command prints the effective configuration to stdout or a file.
+
+When no --config flag is provided, SDK defaults are shown. When --config is
+provided, the file is loaded and its values override the defaults; the final
+resolved configuration is printed.
+
+Output formats:
+
+  --yaml (default)   YAML in the nawala envelope schema
+  --json             JSON in the nawala envelope schema
+
+The output is always a valid config file that can be passed back to --config:
+
+  nawala config -o myconfig.json --json
+  nawala check --config myconfig.json --file domains.txt
+
+Config file format (JSON):
+
+  {
+    "nawala": {
+      "configuration": {
+        "timeout": "10s",
+        "max_retries": 2,
+        "cache_ttl": "5m",
+        "disable_cache": false,
+        "concurrency": 100,
+        "edns0_size": 1232,
+        "servers": [
+          {"address": "180.131.144.144", "keyword": "internetpositif", "query_type": "A"}
+        ]
+      }
+    }
+  }

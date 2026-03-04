@@ -231,11 +231,7 @@ func TestRunCheck_PartialFailure(t *testing.T) {
 	// Use a config with a non-routable DNS server and tiny timeout
 	// to force result-level errors (ErrPartialFailure).
 	badServerCfg := filepath.Join(t.TempDir(), "bad_server.json")
-	cfgContent := `{
-		"timeout": "1ms",
-		"max_retries": 0,
-		"servers": [{"address": "192.0.2.1", "keyword": "test", "query_type": "A"}]
-	}`
+	cfgContent := `{"nawala":{"configuration":{"timeout":"1ms","max_retries":0,"servers":[{"address":"192.0.2.1","keyword":"test","query_type":"A"}]}}}`
 	if err := os.WriteFile(badServerCfg, []byte(cfgContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +253,7 @@ func TestRunCheck_NoServers(t *testing.T) {
 	// Config with empty servers array causes ErrNoDNSServers,
 	// triggering the "check failed" error wrapping path.
 	cfgPath := filepath.Join(t.TempDir(), "no_servers.json")
-	if err := os.WriteFile(cfgPath, []byte(`{"servers": []}`), 0644); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(`{"nawala":{"configuration":{"servers":[]}}}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -305,11 +301,7 @@ func TestRunCheck_Success(t *testing.T) {
 	mockAddr, cleanup := createMockDNSServer(t)
 	defer cleanup()
 
-	cfgContent := fmt.Sprintf(`{
-		"timeout": "1s",
-		"max_retries": 0,
-		"servers": [{"address": "%s", "keyword": "test", "query_type": "A"}]
-	}`, mockAddr)
+	cfgContent := fmt.Sprintf(`{"nawala":{"configuration":{"timeout":"1s","max_retries":0,"servers":[{"address":"%s","keyword":"test","query_type":"A"}]}}}`, mockAddr)
 
 	cfgPath := filepath.Join(t.TempDir(), "success.json")
 	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {

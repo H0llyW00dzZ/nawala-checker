@@ -51,6 +51,7 @@ func init() {
 
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(configCmd)
 }
 
 // Execute runs the root command and returns any error.
