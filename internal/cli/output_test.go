@@ -569,12 +569,12 @@ func TestWriter_Close_JSON_EmptyStatuses(t *testing.T) {
 }
 
 func TestXlsxColWidth(t *testing.T) {
-	// Normal content: width = charCount + 2 padding.
-	assert.Equal(t, float64(12), xlsxColWidth(10))
-	// Content so short it falls below the minimum floor of 8.
-	assert.Equal(t, float64(8), xlsxColWidth(1))
-	// Exactly at the floor boundary (6 + 2 = 8).
-	assert.Equal(t, float64(8), xlsxColWidth(6))
-	// Just above the floor (7 + 2 = 9).
-	assert.Equal(t, float64(9), xlsxColWidth(7))
+	// Normal content: width = charCount + 6 padding.
+	assert.Equal(t, float64(16), xlsxColWidth(10))
+	// Content so short it falls below the minimum floor of 10.
+	assert.Equal(t, float64(10), xlsxColWidth(1))
+	// Exactly at the floor boundary (4 + 6 = 10, hits min).
+	assert.Equal(t, float64(10), xlsxColWidth(4))
+	// Just above the floor (7 + 6 = 13).
+	assert.Equal(t, float64(13), xlsxColWidth(7))
 }
