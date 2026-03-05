@@ -9,11 +9,3 @@ treated as comments, and blank lines are ignored.
 By default, results are streamed to stdout as tab-separated text.
 Other formats available are json, html, and xlsx. Use the --format
 flag to choose a format, and --output (-o) to write results to a file.
-
-Examples:
-  nawala check google.com reddit.com github.com
-  nawala check --file domains.txt
-  nawala check --file domains.txt --format json
-  nawala check --file domains.txt --format html -o report.html
-  nawala check --file domains.txt --format xlsx -o results.xlsx
-  nawala check --config custom.yaml --file domains.txt --format json -o out.json

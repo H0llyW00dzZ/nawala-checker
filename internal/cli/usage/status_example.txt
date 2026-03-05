@@ -1,0 +1,5 @@
+  nawala status
+  nawala status --config custom.yaml
+  nawala status --format json
+  nawala status --format html -o stat.html
+  nawala status --format xlsx -o health.xlsx
