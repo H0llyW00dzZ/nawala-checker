@@ -73,7 +73,11 @@ func queryDNS(ctx context.Context, q dnsQuery) (*dns.Msg, error) {
 		// so JoinHostPort can correctly re-add them along with the port.
 		server = strings.TrimPrefix(server, "[")
 		server = strings.TrimSuffix(server, "]")
-		server = net.JoinHostPort(server, "53")
+		defaultPort := "53"
+		if q.client != nil && q.client.Net == "tcp-tls" {
+			defaultPort = "853"
+		}
+		server = net.JoinHostPort(server, defaultPort)
 	}
 
 	resp, _, err := q.client.ExchangeContext(ctx, msg, server)
