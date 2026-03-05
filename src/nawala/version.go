@@ -6,4 +6,4 @@
 package nawala
 
 // Version is the current version of the nawala SDK and CLI.
-const Version = "0.6.3"
+const Version = "0.6.4"
