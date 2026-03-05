@@ -1,0 +1,6 @@
+  nawala check google.com reddit.com github.com
+  nawala check --file domains.txt
+  nawala check --file domains.txt --format json
+  nawala check --file domains.txt --format html -o report.html
+  nawala check --file domains.txt --format xlsx -o results.xlsx
+  nawala check --config custom.yaml --file domains.txt --format json -o out.json

@@ -13,11 +13,20 @@ import _ "embed" // required for //go:embed directives below
 //go:embed usage/root_long.txt
 var rootLong string
 
+//go:embed usage/root_example.txt
+var rootExample string
+
 //go:embed usage/check_long.txt
 var checkLong string
 
+//go:embed usage/check_example.txt
+var checkExample string
+
 //go:embed usage/status_long.txt
 var statusLong string
+
+//go:embed usage/status_example.txt
+var statusExample string
 
 //go:embed usage/config_long.txt
 var configLong string
@@ -29,3 +38,4 @@ var resultHTMLTemplate string
 
 //go:embed templates/status.html
 var statusHTMLTemplate string
+

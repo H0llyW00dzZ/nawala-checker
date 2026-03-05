@@ -14,11 +14,12 @@ import (
 
 // statusCmd is the "status" subcommand.
 var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show DNS server health status",
-	Long:  statusLong,
-	Args:  cobra.NoArgs,
-	RunE:  runStatus,
+	Use:     "status",
+	Short:   "Show DNS server health status",
+	Long:    statusLong,
+	Example: statusExample,
+	Args:    cobra.NoArgs,
+	RunE:    runStatus,
 }
 
 func init() {

@@ -17,11 +17,12 @@ import (
 
 // checkCmd is the "check" subcommand.
 var checkCmd = &cobra.Command{
-	Use:   "check [domains...]",
-	Short: "Check domains for DNS blocking",
-	Long:  checkLong,
-	Args:  cobra.ArbitraryArgs,
-	RunE:  runCheck,
+	Use:     "check [domains...]",
+	Short:   "Check domains for DNS blocking",
+	Long:    checkLong,
+	Example: checkExample,
+	Args:    cobra.ArbitraryArgs,
+	RunE:    runCheck,
 }
 
 func init() {

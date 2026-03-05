@@ -22,9 +22,10 @@ var configPath string
 
 // rootCmd is the base command for the nawala CLI.
 var rootCmd = &cobra.Command{
-	Use:   "nawala [domains...]",
-	Short: "Check domains against Indonesian ISP DNS filters",
-	Long:  rootLong,
+	Use:     "nawala [domains...]",
+	Short:   "Check domains against Indonesian ISP DNS filters",
+	Long:    rootLong,
+	Example: rootExample,
 	// When bare args are provided (no subcommand), delegate to check.
 	Args: cobra.ArbitraryArgs,
 	RunE: runRoot,
