@@ -481,3 +481,65 @@ func TestWriter_Close_XLSX_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "forced write error")
 }
+
+// --- Tests for pitfall fixes ---
+
+func TestNewWriter_XLSX_SkipsFileCreate(t *testing.T) {
+	// Pitfall #6: XLSX with a file path should NOT open an os.Create file
+	// descriptor. excelize.SaveAs manages file I/O directly.
+	path := filepath.Join(t.TempDir(), "skip_create.xlsx")
+	w, err := NewWriter(path, FormatXLSX)
+	require.NoError(t, err)
+
+	assert.Nil(t, w.w, "expected w.w to be nil for XLSX file path (no bufio.Writer)")
+	assert.Nil(t, w.closer, "expected closer to be nil for XLSX file path (no os.Create)")
+	assert.Equal(t, path, w.outputPath, "expected outputPath to be set")
+
+	// Write and close; the XLSX should still be created via SaveAs.
+	w.WriteResult(nawala.Result{Domain: "test.com", Blocked: false, Server: "8.8.8.8"})
+	require.NoError(t, w.Close())
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Greater(t, info.Size(), int64(0), "XLSX file should be non-empty")
+}
+
+func TestWriter_Close_JSON_EmptyResults(t *testing.T) {
+	// Pitfall #8: Closing a JSON writer with zero results should emit
+	// a valid empty JSON envelope instead of an empty file.
+	w, buf := testWriter(FormatJSON)
+
+	err := w.Close()
+	require.NoError(t, err)
+
+	out := buf.String()
+	var wrapper struct {
+		Nawala struct {
+			Result []jsonResult `json:"result"`
+		} `json:"nawala"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &wrapper),
+		"expected valid JSON, got: %s", out)
+	assert.Empty(t, wrapper.Nawala.Result, "expected empty result array")
+}
+
+func TestWriter_Close_JSON_EmptyStatuses(t *testing.T) {
+	// Pitfall #8: When a JSON writer with "status" key has zero writes,
+	// Close should emit a valid empty envelope. We simulate this by
+	// setting jsonKey manually (since no WriteStatus was called).
+	w, buf := testWriter(FormatJSON)
+	w.jsonKey = "status" // simulate the intent to write statuses
+
+	err := w.Close()
+	require.NoError(t, err)
+
+	out := buf.String()
+	var wrapper struct {
+		Nawala struct {
+			Status []jsonStatus `json:"status"`
+		} `json:"nawala"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &wrapper),
+		"expected valid JSON, got: %s", out)
+	assert.Empty(t, wrapper.Nawala.Status, "expected empty status array")
+}
