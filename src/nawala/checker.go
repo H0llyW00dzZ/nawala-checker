@@ -94,16 +94,23 @@ func New(opts ...Option) *Checker {
 	if c.dnsClient == nil {
 		client := &dns.Client{
 			Timeout: c.timeout,
-			Net:     c.dnsProtocol,
 		}
-		// Build TLS config only for tcp-tls and only when explicitly requested,
-		// so UDP/TCP paths have zero overhead.
-		if c.dnsProtocol == "tcp-tls" && (c.tlsSkipVerify || c.tlsServerName != "") {
+
+		switch c.dnsProtocol {
+		case "tcp-tls":
+			// Build TLS config only for tcp-tls and only when explicitly requested,
+			// so UDP/TCP paths have zero overhead.
+			client.Net = "tcp-tls"
 			client.TLSConfig = &tls.Config{
-				InsecureSkipVerify: c.tlsSkipVerify, //nolint:gosec // intentional user opt-in
 				ServerName:         c.tlsServerName,
+				InsecureSkipVerify: c.tlsSkipVerify,
 			}
+		case "tcp":
+			client.Net = "tcp"
+		default:
+			client.Net = "udp"
 		}
+
 		c.dnsClient = client
 	}
 
