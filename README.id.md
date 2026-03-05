@@ -193,11 +193,9 @@ c := nawala.New(
     // Batasi pemeriksaan serentak hingga 50 goroutine.
     nawala.WithConcurrency(50),
 
-    // Gunakan klien DNS kustom (misalnya, untuk TCP atau DNS-over-TLS).
-    nawala.WithDNSClient(&dns.Client{
-        Timeout: 10 * time.Second,
-        Net:     "tcp-tls",
-    }),
+    // Gunakan transport DNS-over-TLS (DoT).
+    nawala.WithProtocol("tcp-tls"),
+    nawala.WithTLSServerName("dns.example.com"),
 
     // Atur ukuran EDNS0 kustom (default adalah 1232 untuk mencegah fragmentasi).
     nawala.WithEDNS0Size(4096),
@@ -214,6 +212,9 @@ c := nawala.New(
 | `WithCache(c)` | dalam-memori | Implementasi `Cache` kustom (pass `nil` untuk menonaktifkan) |
 | `WithConcurrency(n)` | `100` | Maksimum pemeriksaan DNS serentak (ukuran semaphore) |
 | `WithEDNS0Size(n)` | `1232` | Ukuran buffer UDP EDNS0 (mencegah fragmentasi) |
+| `WithProtocol(s)` | `"udp"` | Transport DNS: `"udp"`, `"tcp"`, atau `"tcp-tls"` (DoT) |
+| `WithTLSServerName(s)` | `""` | Override nama server TLS SNI (hanya tcp-tls) |
+| `WithTLSSkipVerify()` | `false` | Lewati verifikasi sertifikat TLS (hanya tcp-tls) |
 | `WithDNSClient(c)` | klien UDP | `*dns.Client` kustom untuk TCP, TLS, atau dialer kustom |
 | `WithServer(s)` | — | **Usang (Deprecated):** gunakan `Checker.SetServers`. Tambahkan atau ganti server tunggal |
 | `WithServers(s)` | Default Nawala | Ganti semua server DNS |
