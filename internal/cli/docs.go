@@ -61,7 +61,7 @@
 //
 // # Output
 //
-// Results are streamed to stdout by default, or written to a file with the
+// Results are written to stdout by default, or to a file with the
 // --output (-o) flag. Output formats are controlled by the --format flag:
 //
 //   - text (default) — tab-separated columns: domain, status, server
