@@ -1567,3 +1567,97 @@ func TestCheckIDNDomains(t *testing.T) {
 		}
 	})
 }
+
+// TestWithProtocol verifies that WithProtocol sets dnsProtocol correctly
+// and that invalid values are silently ignored (default "udp" kept).
+func TestWithProtocol(t *testing.T) {
+	cases := []struct {
+		proto string
+		want  string
+	}{
+		{"udp", "udp"},
+		{"tcp", "tcp"},
+		{"tcp-tls", "tcp-tls"},
+		{"invalid", "udp"},
+		{"", "udp"},
+	}
+	for _, tc := range cases {
+		c := New(WithProtocol(tc.proto))
+		assert.Equal(t, tc.want, c.dnsProtocol, "proto=%q", tc.proto)
+	}
+}
+
+// TestWithTLSServerName verifies the field is stored and TLS config is populated.
+func TestWithTLSServerName(t *testing.T) {
+	c := New(WithProtocol("tcp-tls"), WithTLSServerName("dns.example.com"))
+	assert.Equal(t, "dns.example.com", c.tlsServerName)
+	require.NotNil(t, c.dnsClient.TLSConfig, "TLSConfig should be set for tcp-tls + server name")
+	assert.Equal(t, "dns.example.com", c.dnsClient.TLSConfig.ServerName)
+	assert.False(t, c.dnsClient.TLSConfig.InsecureSkipVerify)
+}
+
+// TestWithTLSSkipVerify verifies InsecureSkipVerify is propagated to dns.Client.TLSConfig.
+func TestWithTLSSkipVerify(t *testing.T) {
+	c := New(WithProtocol("tcp-tls"), WithTLSSkipVerify())
+	assert.True(t, c.tlsSkipVerify)
+	require.NotNil(t, c.dnsClient.TLSConfig, "TLSConfig should be set for tcp-tls + skip-verify")
+	assert.True(t, c.dnsClient.TLSConfig.InsecureSkipVerify)
+}
+
+// TestWithTLSOptions_NoEffectWithoutTCPTLS verifies that TLS options do not
+// create a TLSConfig when the protocol is udp or tcp.
+func TestWithTLSOptions_NoEffectWithoutTCPTLS(t *testing.T) {
+	c := New(WithProtocol("udp"), WithTLSSkipVerify(), WithTLSServerName("example.com"))
+	assert.Nil(t, c.dnsClient.TLSConfig, "TLSConfig must be nil for UDP even with TLS options set")
+}
+
+// TestWithProtocol_TCP runs an actual DNS query over TCP to exercise that
+// code path through queryDNS.
+func TestWithProtocol_TCP(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer ln.Close()
+
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Answer = append(m.Answer, &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   r.Question[0].Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    60,
+			},
+			A: net.ParseIP("127.0.0.1"),
+		})
+		_ = w.WriteMsg(m)
+	})
+	srv := &dns.Server{Listener: ln, Handler: handler, Net: "tcp"}
+	go func() { _ = srv.ActivateAndServe() }()
+	time.Sleep(30 * time.Millisecond)
+
+	c := New(
+		WithProtocol("tcp"),
+		WithServers([]DNSServer{
+			{Address: ln.Addr().String(), Keyword: "test", QueryType: "A"},
+		}),
+		WithTimeout(3*time.Second),
+	)
+	assert.Equal(t, "tcp", c.dnsClient.Net)
+
+	result, err := c.CheckOne(context.Background(), "example.com")
+	require.NoError(t, err)
+	assert.NoError(t, result.Error)
+}
+
+// TestWithProtocol_TLSSkipVerifyAndServerName verifies both TLS options combine.
+func TestWithProtocol_TLSSkipVerifyAndServerName(t *testing.T) {
+	c := New(
+		WithProtocol("tcp-tls"),
+		WithTLSSkipVerify(),
+		WithTLSServerName("custom.dns"),
+	)
+	require.NotNil(t, c.dnsClient.TLSConfig)
+	assert.True(t, c.dnsClient.TLSConfig.InsecureSkipVerify)
+	assert.Equal(t, "custom.dns", c.dnsClient.TLSConfig.ServerName)
+}

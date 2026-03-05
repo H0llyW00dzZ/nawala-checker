@@ -7,6 +7,7 @@ package nawala
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"sync"
@@ -41,16 +42,19 @@ var defaultServers = []DNSServer{
 // Checker performs DNS-based domain blocking checks against
 // Nawala/Kominfo (now Komdigi) DNS servers.
 type Checker struct {
-	mu          sync.RWMutex
-	servers     []DNSServer
-	timeout     time.Duration
-	maxRetries  int
-	concurrency int
-	cache       Cache
-	cacheSet    bool // true when WithCache was called explicitly (even with nil)
-	cacheTTL    time.Duration
-	edns0Size   uint16
-	dnsClient   *dns.Client
+	mu            sync.RWMutex
+	servers       []DNSServer
+	timeout       time.Duration
+	maxRetries    int
+	concurrency   int
+	cache         Cache
+	cacheSet      bool // true when WithCache was called explicitly (even with nil)
+	cacheTTL      time.Duration
+	edns0Size     uint16
+	dnsProtocol   string // dns.Client.Net value: "udp", "tcp", or "tcp-tls"
+	tlsServerName string // TLS SNI server name override (tcp-tls only)
+	tlsSkipVerify bool   // skip TLS certificate verification (tcp-tls only)
+	dnsClient     *dns.Client
 }
 
 // New creates a new [Checker] with the default Nawala DNS server
@@ -72,6 +76,7 @@ func New(opts ...Option) *Checker {
 		concurrency: defaultConcurrency,
 		edns0Size:   defaultEDNS0Size,
 		cacheTTL:    defaultCacheTTL,
+		dnsProtocol: "udp",
 	}
 	copy(c.servers, defaultServers)
 
@@ -87,10 +92,19 @@ func New(opts ...Option) *Checker {
 
 	// Initialize shared DNS client if not set by WithDNSClient option.
 	if c.dnsClient == nil {
-		c.dnsClient = &dns.Client{
+		client := &dns.Client{
 			Timeout: c.timeout,
-			Net:     "udp",
+			Net:     c.dnsProtocol,
 		}
+		// Build TLS config only for tcp-tls and only when explicitly requested,
+		// so UDP/TCP paths have zero overhead.
+		if c.dnsProtocol == "tcp-tls" && (c.tlsSkipVerify || c.tlsServerName != "") {
+			client.TLSConfig = &tls.Config{
+				InsecureSkipVerify: c.tlsSkipVerify, //nolint:gosec // intentional user opt-in
+				ServerName:         c.tlsServerName,
+			}
+		}
+		c.dnsClient = client
 	}
 
 	return c

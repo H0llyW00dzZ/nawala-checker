@@ -213,3 +213,50 @@ func TestBuildChecker_DisableCacheNoCache(t *testing.T) {
 	// FlushCache must not panic when cache is nil.
 	assert.NotPanics(t, func() { checker.FlushCache() })
 }
+
+func TestConfig_ToOptions_ParseProtocol(t *testing.T) {
+	// Set: returns WithProtocol option
+	cfg := &Config{Protocol: "tcp"}
+	opts, err := cfg.toOptions()
+	require.NoError(t, err)
+	require.Len(t, opts, 1, "expected one option for Protocol=tcp")
+
+	// Empty: no option
+	cfg2 := &Config{}
+	opts2, err := cfg2.toOptions()
+	require.NoError(t, err)
+	assert.Empty(t, opts2)
+}
+
+func TestConfig_ToOptions_ParseTLSServerName(t *testing.T) {
+	cfg := &Config{TLSServerName: "dns.example.com"}
+	opts, err := cfg.toOptions()
+	require.NoError(t, err)
+	require.Len(t, opts, 1)
+
+	cfg2 := &Config{}
+	opts2, err := cfg2.toOptions()
+	require.NoError(t, err)
+	assert.Empty(t, opts2)
+}
+
+func TestConfig_ToOptions_ParseTLSSkipVerify(t *testing.T) {
+	t1 := true
+	cfg := &Config{TLSSkipVerify: &t1}
+	opts, err := cfg.toOptions()
+	require.NoError(t, err)
+	require.Len(t, opts, 1)
+
+	// false → no option
+	f := false
+	cfg2 := &Config{TLSSkipVerify: &f}
+	opts2, err := cfg2.toOptions()
+	require.NoError(t, err)
+	assert.Empty(t, opts2)
+
+	// nil → no option
+	cfg3 := &Config{}
+	opts3, err := cfg3.toOptions()
+	require.NoError(t, err)
+	assert.Empty(t, opts3)
+}

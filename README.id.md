@@ -65,7 +65,14 @@ nawala check google.com --json
 nawala check --file domains.txt -o results.txt
 
 # Gunakan konfigurasi kustom (JSON atau YAML)
-nawala check --config config.yaml --file domains.txt
+nawala check --config config.json --file domains.txt
+
+# Periksa konfigurasi efektif (tampilkan semua default)
+nawala config
+nawala config --json
+
+# Buat file konfigurasi
+nawala config -o myconfig.json --json
 
 # Tampilkan kesehatan dan latensi server DNS
 nawala status
@@ -74,26 +81,40 @@ nawala status
 nawala --version
 ```
 
-Contoh file konfigurasi (`config.yaml`):
+Contoh file konfigurasi (`config.json`) — format nawala envelope:
 
-```yaml
-timeout: 10s
-max_retries: 3
-cache_ttl: 10m
-disable_cache: false
-concurrency: 50
-servers:
-  - address: "180.131.144.144"
-    keyword: "internetpositif"
-    query_type: "A"
-  - address: "103.155.26.28"
-    keyword: "trustpositif"
-    query_type: "A"
+```json
+{
+  "nawala": {
+    "configuration": {
+      "timeout": "10s",
+      "max_retries": 3,
+      "cache_ttl": "10m",
+      "disable_cache": false,
+      "concurrency": 50,
+      "protocol": "udp",
+      "tls_server_name": "",
+      "tls_skip_verify": false,
+      "servers": [
+        {"address": "180.131.144.144", "keyword": "internetpositif", "query_type": "A"},
+        {"address": "103.155.26.28",  "keyword": "trustpositif",    "query_type": "A"}
+      ]
+    }
+  }
+}
 ```
 
 > [!NOTE]
 > Atur `disable_cache: true` untuk menonaktifkan cache dalam memori bawaan sepenuhnya.
 > Jika diaktifkan, nilai `cache_ttl` tidak berpengaruh.
+>
+> Atur `protocol` ke `"udp"` (default), `"tcp"`, atau `"tcp-tls"` (DNS over TLS / DoT)
+> untuk memilih transport DNS. Timeout dan ukuran EDNS0 tetap berlaku di semua protokol.
+>
+> Untuk `tcp-tls`, dua field TLS opsional tersedia:
+> - `tls_server_name` — mengganti nama SNI TLS (berguna saat alamat server berupa IP)
+> - `tls_skip_verify` — menonaktifkan verifikasi sertifikat; hanya untuk sertifikat self-signed, jangan digunakan di production
+
 
 ## Mulai Cepat
 

@@ -255,13 +255,17 @@ func TestRunConfig_MergeConfig_AllFields(t *testing.T) {
 	concurrency := 75
 	edns := uint16(2048)
 	disableCache := true
+	skipVerify := true
 	cfg := &Config{
-		Timeout:      "15s",
-		MaxRetries:   &retries,
-		CacheTTL:     "20m",
-		DisableCache: &disableCache,
-		Concurrency:  &concurrency,
-		EDNS0Size:    &edns,
+		Timeout:       "15s",
+		MaxRetries:    &retries,
+		CacheTTL:      "20m",
+		DisableCache:  &disableCache,
+		Concurrency:   &concurrency,
+		EDNS0Size:     &edns,
+		Protocol:      "tcp",
+		TLSServerName: "dns.example.com",
+		TLSSkipVerify: &skipVerify,
 		Servers: []ServerDef{
 			{Address: "1.1.1.1", Keyword: "test", QueryType: "A"},
 		},
@@ -285,6 +289,15 @@ func TestRunConfig_MergeConfig_AllFields(t *testing.T) {
 	}
 	if merged.EDNS0Size != 2048 {
 		t.Errorf("expected edns0_size=2048, got %d", merged.EDNS0Size)
+	}
+	if merged.Protocol != "tcp" {
+		t.Errorf("expected protocol=tcp, got %q", merged.Protocol)
+	}
+	if merged.TLSServerName != "dns.example.com" {
+		t.Errorf("expected tls_server_name=dns.example.com, got %q", merged.TLSServerName)
+	}
+	if !merged.TLSSkipVerify {
+		t.Error("expected tls_skip_verify=true")
 	}
 	if len(merged.Servers) != 1 || merged.Servers[0].Address != "1.1.1.1" {
 		t.Errorf("unexpected servers: %v", merged.Servers)

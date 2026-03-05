@@ -65,7 +65,14 @@ nawala check google.com --json
 nawala check --file domains.txt -o results.txt
 
 # Use a custom config (JSON or YAML)
-nawala check --config config.yaml --file domains.txt
+nawala check --config config.json --file domains.txt
+
+# Inspect effective configuration (show all defaults)
+nawala config
+nawala config --json
+
+# Generate a config file
+nawala config -o myconfig.json --json
 
 # Show DNS server health and latency
 nawala status
@@ -74,26 +81,43 @@ nawala status
 nawala --version
 ```
 
-Configuration file example (`config.yaml`):
+Configuration file example (`config.json`) — nawala envelope format:
 
-```yaml
-timeout: 10s
-max_retries: 3
-cache_ttl: 10m
-disable_cache: false
-concurrency: 50
-servers:
-  - address: "180.131.144.144"
-    keyword: "internetpositif"
-    query_type: "A"
-  - address: "103.155.26.28"
-    keyword: "trustpositif"
-    query_type: "A"
+```json
+{
+  "nawala": {
+    "configuration": {
+      "timeout": "10s",
+      "max_retries": 3,
+      "cache_ttl": "10m",
+      "disable_cache": false,
+      "concurrency": 50,
+      "protocol": "udp",
+      "tls_server_name": "",
+      "tls_skip_verify": false,
+      "servers": [
+        {"address": "180.131.144.144", "keyword": "internetpositif", "query_type": "A"},
+        {"address": "103.155.26.28",  "keyword": "trustpositif",    "query_type": "A"}
+      ]
+    }
+  }
+}
 ```
 
 > [!NOTE]
 > Set `disable_cache: true` to disable the built-in in-memory cache entirely.
 > When set, `cache_ttl` has no effect.
+>
+> Set `protocol` to `"udp"` (default), `"tcp"`, or `"tcp-tls"` (DNS over TLS / DoT)
+> to select the DNS transport. Timeout and EDNS0 size compose correctly with all protocols.
+>
+> For `tcp-tls`, two optional fields control TLS:
+> - `tls_server_name` — sets the SNI and expected cert hostname. Required when the server
+>   address is an IP but the cert is issued for a hostname. Use this with `tls_skip_verify: false`
+>   for full cert verification against a trusted CA.
+> - `tls_skip_verify` — disables cert verification. Only for self-signed certs where no valid
+>   server name can be verified. Never use in production.
+
 
 ## Quick Start
 
