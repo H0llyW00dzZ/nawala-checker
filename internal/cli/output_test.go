@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"text/tabwriter"
 
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,12 @@ import (
 // testWriter creates a Writer backed by a bytes.Buffer for testing.
 func testWriter(jsonMode bool) (*Writer, *bytes.Buffer) {
 	var buf bytes.Buffer
-	return &Writer{w: bufio.NewWriter(&buf), json: jsonMode}, &buf
+	bw := bufio.NewWriter(&buf)
+	w := &Writer{w: bw, json: jsonMode}
+	if !jsonMode {
+		w.tw = tabwriter.NewWriter(bw, 0, 0, 4, ' ', 0)
+	}
+	return w, &buf
 }
 
 // flushAndRead flushes the Writer, closes it (triggering array caps), and returns the buffer contents.

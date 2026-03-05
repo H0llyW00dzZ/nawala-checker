@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"text/tabwriter"
 
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
 )
@@ -18,9 +19,10 @@ import (
 // Writer handles formatted output of check results to stdout or a file.
 type Writer struct {
 	w           *bufio.Writer
-	closer      io.Closer // non-nil when writing to a file
-	json        bool      // output as JSON
-	jsonStarted bool      // tracks if we started the JSON array
+	tw          *tabwriter.Writer // tab-aligned text output (nil in JSON mode)
+	closer      io.Closer         // non-nil when writing to a file
+	json        bool              // output as JSON
+	jsonStarted bool              // tracks if we started the JSON array
 }
 
 // NewWriter creates a Writer that writes to the given path.
@@ -30,15 +32,21 @@ func NewWriter(path string, jsonMode bool) (*Writer, error) {
 
 	if path == "" {
 		w.w = bufio.NewWriter(os.Stdout)
-		return w, nil
+	} else {
+		f, err := os.Create(path)
+		if err != nil {
+			return nil, fmt.Errorf("creating output file: %w", err)
+		}
+		w.w = bufio.NewWriter(f)
+		w.closer = f
 	}
 
-	f, err := os.Create(path)
-	if err != nil {
-		return nil, fmt.Errorf("creating output file: %w", err)
+	// For text-mode output, wrap the buffered writer in a tabwriter
+	// so columns align dynamically regardless of domain length.
+	if !jsonMode {
+		w.tw = tabwriter.NewWriter(w.w, 0, 0, 4, ' ', 0)
 	}
-	w.w = bufio.NewWriter(f)
-	w.closer = f
+
 	return w, nil
 }
 
@@ -59,11 +67,9 @@ func (w *Writer) WriteResult(r nawala.Result) {
 	w.writeText(r)
 }
 
-// writeText writes a check result as a tab-separated text line.
-//
-// TODO: use [tablewriter] for better formatting?
-//
-// [tablewriter]: https://pkg.go.dev/github.com/olekukonko/tablewriter
+// writeText writes a check result as a tab-aligned text line.
+// The tabwriter computes column widths at flush time so that all
+// rows share the same alignment, regardless of domain length.
 func (w *Writer) writeText(r nawala.Result) {
 	status := "NOT BLOCKED"
 	if r.Blocked {
@@ -72,8 +78,7 @@ func (w *Writer) writeText(r nawala.Result) {
 	if r.Error != nil {
 		status = fmt.Sprintf("error: %v", r.Error)
 	}
-	fmt.Fprintf(w.w, "%-30s\t%s\t%s\n", r.Domain, status, r.Server)
-	w.w.Flush()
+	fmt.Fprintf(w.tw, "%s\t%s\t%s\n", r.Domain, status, r.Server)
 }
 
 // writeJSON writes a check result as a JSON array element.
@@ -115,26 +120,21 @@ func (w *Writer) WriteStatus(s nawala.ServerStatus) {
 	w.writeStatusText(s)
 }
 
-// writeStatusText writes a server health status as a tab-separated text line.
-//
-// TODO: use [tablewriter] for better formatting?
-//
-// [tablewriter]: https://pkg.go.dev/github.com/olekukonko/tablewriter
+// writeStatusText writes a server health status as a tab-aligned text line.
 func (w *Writer) writeStatusText(s nawala.ServerStatus) {
 	status := "ONLINE"
 	if !s.Online {
 		status = "OFFLINE"
 	}
 	if s.Online {
-		fmt.Fprintf(w.w, "%-30s\t%s\t%dms\n", s.Server, status, s.LatencyMs)
+		fmt.Fprintf(w.tw, "%s\t%s\t%dms\n", s.Server, status, s.LatencyMs)
 	} else {
 		errMsg := ""
 		if s.Error != nil {
 			errMsg = s.Error.Error()
 		}
-		fmt.Fprintf(w.w, "%-30s\t%s\t%s\n", s.Server, status, errMsg)
+		fmt.Fprintf(w.tw, "%s\t%s\t%s\n", s.Server, status, errMsg)
 	}
-	w.w.Flush()
 }
 
 // writeStatusJSON writes a server health status as a JSON array element.
@@ -165,6 +165,13 @@ func (w *Writer) Close() error {
 		w.w.WriteString("]}}\n")
 		w.jsonStarted = false
 	}
+
+	// Flush the tabwriter first (computes column widths and writes to w.w),
+	// then flush the underlying bufio.Writer to the destination.
+	if w.tw != nil {
+		w.tw.Flush()
+	}
+
 	if err := w.w.Flush(); err != nil {
 		return err
 	}
