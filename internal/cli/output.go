@@ -109,12 +109,13 @@ func (w *Writer) WriteResult(r nawala.Result) {
 // The tabwriter computes column widths at flush time so that all
 // rows share the same alignment, regardless of domain length.
 func (w *Writer) writeText(r nawala.Result) {
-	status := "NOT BLOCKED"
-	if r.Blocked {
-		status = "BLOCKED"
-	}
+	var status string
 	if r.Error != nil {
 		status = fmt.Sprintf("error: %v", r.Error)
+	} else if r.Blocked {
+		status = "BLOCKED"
+	} else {
+		status = "NOT BLOCKED"
 	}
 	_, _ = fmt.Fprintf(w.tw, "%s\t%s\t%s\n", r.Domain, status, r.Server)
 }
