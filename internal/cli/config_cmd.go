@@ -41,7 +41,7 @@ type effectiveConfig struct {
 	Concurrency   int         `json:"concurrency"     yaml:"concurrency"`
 	EDNS0Size     uint16      `json:"edns0_size"      yaml:"edns0_size"`
 	Protocol      string      `json:"protocol"        yaml:"protocol"`
-	TLSServerName string      `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty"`
+	TLSServerName string      `json:"tls_server_name" yaml:"tls_server_name"`
 	TLSSkipVerify bool        `json:"tls_skip_verify" yaml:"tls_skip_verify"`
 	Servers       []ServerDef `json:"servers"         yaml:"servers"`
 }
@@ -138,7 +138,7 @@ func runConfig(cmd *cobra.Command, _ []string) error {
 	// neither json.Marshal nor yaml.Marshal can fail for these types.
 	var output []byte
 	if jsonMode {
-		output, _ = json.Marshal(env)
+		output, _ = json.MarshalIndent(env, "", "  ")
 		output = append(output, '\n')
 	} else {
 		output, _ = yaml.Marshal(env)
