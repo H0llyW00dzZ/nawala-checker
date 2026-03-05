@@ -269,6 +269,15 @@ func (w *Writer) closeHTML() error {
 	return nil
 }
 
+// xlsxColWidth converts a character count to an excelize [excelize.File.SetColWidth]
+// value. It adds a small padding so text never hugs the cell border, and
+// enforces a minimum so narrow columns (e.g. "Status") still look readable.
+func xlsxColWidth(charCount int) float64 {
+	const padding = 2
+	const minWidth = 8
+	return max(float64(charCount+padding), minWidth)
+}
+
 // closeXLSX builds an Excel workbook from collected results or statuses,
 // applies green/red fill styles, and saves to outputPath.
 func (w *Writer) closeXLSX() error {
@@ -304,28 +313,44 @@ func (w *Writer) closeXLSX() error {
 		_ = f.SetCellValue(sheet, "C1", "Server")
 		_ = f.SetCellStyle(sheet, "A1", "C1", headerStyle)
 
+		// Track max content width per column (seeded with header lengths).
+		maxA, maxB, maxC := len("Domain"), len("Status"), len("Server")
+
 		for i, r := range w.results {
 			row := i + 2
 			_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", row), r.Domain)
 			_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", row), r.Server)
+			if n := len(r.Domain); n > maxA {
+				maxA = n
+			}
+			if n := len(r.Server); n > maxC {
+				maxC = n
+			}
 
 			statusCell := fmt.Sprintf("B%d", row)
+			var statusText string
 			if r.Error != nil {
-				_ = f.SetCellValue(sheet, statusCell, fmt.Sprintf("error: %v", r.Error))
+				statusText = fmt.Sprintf("error: %v", r.Error)
+				_ = f.SetCellValue(sheet, statusCell, statusText)
 				_ = f.SetCellStyle(sheet, statusCell, statusCell, orangeStyle)
 			} else if r.Blocked {
-				_ = f.SetCellValue(sheet, statusCell, "BLOCKED")
+				statusText = "BLOCKED"
+				_ = f.SetCellValue(sheet, statusCell, statusText)
 				_ = f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
 			} else {
-				_ = f.SetCellValue(sheet, statusCell, "NOT BLOCKED")
+				statusText = "NOT BLOCKED"
+				_ = f.SetCellValue(sheet, statusCell, statusText)
 				_ = f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
+			}
+			if n := len(statusText); n > maxB {
+				maxB = n
 			}
 		}
 
-		// Auto-fit column widths.
-		_ = f.SetColWidth(sheet, "A", "A", 40)
-		_ = f.SetColWidth(sheet, "B", "B", 18)
-		_ = f.SetColWidth(sheet, "C", "C", 22)
+		// Apply auto-fit widths: content length + 2 padding, floor of 8.
+		_ = f.SetColWidth(sheet, "A", "A", xlsxColWidth(maxA))
+		_ = f.SetColWidth(sheet, "B", "B", xlsxColWidth(maxB))
+		_ = f.SetColWidth(sheet, "C", "C", xlsxColWidth(maxC))
 	}
 
 	if len(w.statuses) > 0 {
@@ -335,29 +360,45 @@ func (w *Writer) closeXLSX() error {
 		_ = f.SetCellValue(sheet, "C1", "Latency / Error")
 		_ = f.SetCellStyle(sheet, "A1", "C1", headerStyle)
 
+		// Track max content width per column (seeded with header lengths).
+		maxA, maxB, maxC := len("Server"), len("Status"), len("Latency / Error")
+
 		for i, s := range w.statuses {
 			row := i + 2
 			_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", row), s.Server)
+			if n := len(s.Server); n > maxA {
+				maxA = n
+			}
 
 			statusCell := fmt.Sprintf("B%d", row)
+			var statusLabel, colCText string
 			if s.Online {
-				_ = f.SetCellValue(sheet, statusCell, "ONLINE")
+				statusLabel = "ONLINE"
+				_ = f.SetCellValue(sheet, statusCell, statusLabel)
 				_ = f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
-				_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", row), fmt.Sprintf("%dms", s.LatencyMs))
+				colCText = fmt.Sprintf("%dms", s.LatencyMs)
+				_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", row), colCText)
 			} else {
-				_ = f.SetCellValue(sheet, statusCell, "OFFLINE")
+				statusLabel = "OFFLINE"
+				_ = f.SetCellValue(sheet, statusCell, statusLabel)
 				_ = f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
-				errMsg := ""
 				if s.Error != nil {
-					errMsg = s.Error.Error()
+					colCText = s.Error.Error()
 				}
-				_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", row), errMsg)
+				_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", row), colCText)
+			}
+			if n := len(statusLabel); n > maxB {
+				maxB = n
+			}
+			if n := len(colCText); n > maxC {
+				maxC = n
 			}
 		}
 
-		_ = f.SetColWidth(sheet, "A", "A", 22)
-		_ = f.SetColWidth(sheet, "B", "B", 12)
-		_ = f.SetColWidth(sheet, "C", "C", 30)
+		// Apply auto-fit widths: content length + 2 padding, floor of 8.
+		_ = f.SetColWidth(sheet, "A", "A", xlsxColWidth(maxA))
+		_ = f.SetColWidth(sheet, "B", "B", xlsxColWidth(maxB))
+		_ = f.SetColWidth(sheet, "C", "C", xlsxColWidth(maxC))
 	}
 
 	// Save to the output path. If outputPath is empty, write to stdout.

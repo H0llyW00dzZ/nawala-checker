@@ -381,7 +381,9 @@ func TestWriter_WriteStatus_XLSX(t *testing.T) {
 	require.NoError(t, err)
 
 	w.WriteStatus(nawala.ServerStatus{Server: "8.8.8.8", Online: true, LatencyMs: 5})
-	w.WriteStatus(nawala.ServerStatus{Server: "1.2.3.4", Online: false, Error: errors.New("refused")})
+	// Use a long error so its length exceeds both "OFFLINE" and "Latency / Error",
+	// exercising the maxB and maxC update branches in the auto-fit logic.
+	w.WriteStatus(nawala.ServerStatus{Server: "1.2.3.4", Online: false, Error: errors.New("nawala: connection refused: dial tcp 1.2.3.4:53: i/o timeout exceeded")})
 	require.NoError(t, w.Close())
 
 	info, err := os.Stat(path)
@@ -548,4 +550,15 @@ func TestWriter_Close_JSON_EmptyStatuses(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper),
 		"expected valid JSON, got: %s", out)
 	assert.Empty(t, wrapper.Nawala.Status, "expected empty status array")
+}
+
+func TestXlsxColWidth(t *testing.T) {
+	// Normal content: width = charCount + 2 padding.
+	assert.Equal(t, float64(12), xlsxColWidth(10))
+	// Content so short it falls below the minimum floor of 8.
+	assert.Equal(t, float64(8), xlsxColWidth(1))
+	// Exactly at the floor boundary (6 + 2 = 8).
+	assert.Equal(t, float64(8), xlsxColWidth(6))
+	// Just above the floor (7 + 2 = 9).
+	assert.Equal(t, float64(9), xlsxColWidth(7))
 }
