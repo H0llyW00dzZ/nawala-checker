@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// Embedded usage text for Cobra command Long descriptions.
+// Embedded usage text for Cobra command Long descriptions and Examples.
 // The text files are compiled into the binary and never read from disk.
 
 //go:embed usage/root_long.txt
@@ -46,6 +46,7 @@ func init() {
 }
 
 // Embedded HTML templates for report output.
+// Like the usage text above, they are compiled into the binary and never read from disk.
 
 //go:embed templates/result.html
 var resultHTMLTemplate string
