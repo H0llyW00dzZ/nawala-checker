@@ -123,24 +123,19 @@ func runConfig(cmd *cobra.Command, _ []string) error {
 	env.Nawala.Configuration = eff
 
 	// Serialise.
+	// effectiveConfig only contains string/int/bool/uint16 and []ServerDef —
+	// neither json.Marshal nor yaml.Marshal can fail for these types.
 	var output []byte
-	var err error
 	if jsonMode {
-		output, err = json.Marshal(env)
-		if err != nil {
-			return fmt.Errorf("marshalling config: %w", err)
-		}
+		output, _ = json.Marshal(env)
 		output = append(output, '\n')
 	} else {
-		output, err = yaml.Marshal(env)
-		if err != nil {
-			return fmt.Errorf("marshalling config: %w", err)
-		}
+		output, _ = yaml.Marshal(env)
 	}
 
 	// Write to file or stdout.
 	if outputPath == "" {
-		_, err = fmt.Fprint(cmd.OutOrStdout(), string(output))
+		_, err := fmt.Fprint(cmd.OutOrStdout(), string(output))
 		return err
 	}
 
