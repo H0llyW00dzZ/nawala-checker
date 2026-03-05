@@ -76,7 +76,7 @@ git checkout -b feature/your-feature-name
 ### 3. Committing and Formatting
 Before committing, ensure your code is properly formatted:
 ```bash
-gofmt -s -w ./src/... ./internal/...
+gofmt -s -w .
 ```
 
 Write clear, descriptive commit messages. We encourage Conventional Commits:

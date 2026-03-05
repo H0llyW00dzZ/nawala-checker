@@ -76,7 +76,7 @@ git checkout -b feature/nama-fitur-anda
 ### 3. Melakukan Commit dan Pemformatan
 Sebelum melakukan komit, pastikan kode Anda diformat dengan benar:
 ```bash
-gofmt -s -w ./src/... ./internal/...
+gofmt -s -w .
 ```
 
 Tulis pesan komit (commit messages) yang jelas dan deskriptif. Kami mendorong penggunaan Conventional Commits:
