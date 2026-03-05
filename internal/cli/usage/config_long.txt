@@ -20,6 +20,7 @@ Config file format (JSON):
     "nawala": {
       "configuration": {
         "timeout": "10s",
+        "command_timeout": "30s",
         "max_retries": 2,
         "cache_ttl": "5m",
         "disable_cache": false,

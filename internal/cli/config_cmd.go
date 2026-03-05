@@ -34,16 +34,17 @@ func init() {
 // configuration. Values are expressed as strings (durations) or primitives
 // so the output is always a valid config file the user can reuse.
 type effectiveConfig struct {
-	Timeout       string      `json:"timeout"         yaml:"timeout"`
-	MaxRetries    int         `json:"max_retries"     yaml:"max_retries"`
-	CacheTTL      string      `json:"cache_ttl"       yaml:"cache_ttl"`
-	DisableCache  bool        `json:"disable_cache"   yaml:"disable_cache"`
-	Concurrency   int         `json:"concurrency"     yaml:"concurrency"`
-	EDNS0Size     uint16      `json:"edns0_size"      yaml:"edns0_size"`
-	Protocol      string      `json:"protocol"        yaml:"protocol"`
-	TLSServerName string      `json:"tls_server_name" yaml:"tls_server_name"`
-	TLSSkipVerify bool        `json:"tls_skip_verify" yaml:"tls_skip_verify"`
-	Servers       []ServerDef `json:"servers"         yaml:"servers"`
+	Timeout        string      `json:"timeout"         yaml:"timeout"`
+	CommandTimeout string      `json:"command_timeout" yaml:"command_timeout"`
+	MaxRetries     int         `json:"max_retries"     yaml:"max_retries"`
+	CacheTTL       string      `json:"cache_ttl"       yaml:"cache_ttl"`
+	DisableCache   bool        `json:"disable_cache"   yaml:"disable_cache"`
+	Concurrency    int         `json:"concurrency"     yaml:"concurrency"`
+	EDNS0Size      uint16      `json:"edns0_size"      yaml:"edns0_size"`
+	Protocol       string      `json:"protocol"        yaml:"protocol"`
+	TLSServerName  string      `json:"tls_server_name" yaml:"tls_server_name"`
+	TLSSkipVerify  bool        `json:"tls_skip_verify" yaml:"tls_skip_verify"`
+	Servers        []ServerDef `json:"servers"         yaml:"servers"`
 }
 
 // coalesce returns *ptr if ptr is non-nil, otherwise def.
@@ -67,14 +68,15 @@ func resolveEffectiveConfig(cfg *Config) effectiveConfig {
 	}
 
 	eff := effectiveConfig{
-		Timeout:      (5 * time.Second).String(),
-		MaxRetries:   2,
-		CacheTTL:     (5 * time.Minute).String(),
-		DisableCache: false,
-		Concurrency:  100,
-		EDNS0Size:    1232,
-		Protocol:     "udp",
-		Servers:      defs,
+		Timeout:        (5 * time.Second).String(),
+		CommandTimeout: defaultCommandTimeout.String(),
+		MaxRetries:     2,
+		CacheTTL:       (5 * time.Minute).String(),
+		DisableCache:   false,
+		Concurrency:    100,
+		EDNS0Size:      1232,
+		Protocol:       "udp",
+		Servers:        defs,
 	}
 
 	if cfg == nil {
@@ -91,6 +93,9 @@ func resolveEffectiveConfig(cfg *Config) effectiveConfig {
 	// String/slice fields: empty/nil means "not set".
 	if cfg.Timeout != "" {
 		eff.Timeout = cfg.Timeout
+	}
+	if cfg.CommandTimeout != "" {
+		eff.CommandTimeout = cfg.CommandTimeout
 	}
 	if cfg.CacheTTL != "" {
 		eff.CacheTTL = cfg.CacheTTL
