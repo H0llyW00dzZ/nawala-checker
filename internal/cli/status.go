@@ -24,21 +24,27 @@ var statusCmd = &cobra.Command{
 
 func init() {
 	statusCmd.Flags().StringP("output", "o", "", "write results to a file instead of stdout")
-	statusCmd.Flags().Bool("json", false, "output results as NDJSON")
+	statusCmd.Flags().Bool("json", false, "output results as JSON")
+	statusCmd.Flags().Bool("html", false, "output results as an HTML report")
+	statusCmd.Flags().Bool("xlsx", false, "output results as an Excel spreadsheet")
 }
 
 // runStatus queries all configured DNS servers for health and latency,
 // then writes the results to the configured output.
 func runStatus(cmd *cobra.Command, _ []string) error {
 	outputPath, _ := cmd.Flags().GetString("output")
-	jsonMode, _ := cmd.Flags().GetBool("json")
+
+	format, err := resolveFormat(cmd)
+	if err != nil {
+		return err
+	}
 
 	checker, err := buildChecker()
 	if err != nil {
 		return err
 	}
 
-	w, err := NewWriter(outputPath, jsonMode)
+	w, err := NewWriter(outputPath, format)
 	if err != nil {
 		return err
 	}

@@ -21,3 +21,11 @@ var statusLong string
 
 //go:embed usage/config_long.txt
 var configLong string
+
+// Embedded HTML templates for report output.
+
+//go:embed templates/result.html
+var resultHTMLTemplate string
+
+//go:embed templates/status.html
+var statusHTMLTemplate string
