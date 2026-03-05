@@ -55,7 +55,7 @@ type ServerDef struct {
 // The file must use the nawala envelope format:
 //
 //	{"nawala":{"configuration":{...}}}  (JSON)
-//	
+//
 //	nawala:                              (YAML)
 //	  configuration:
 //	    timeout: 10s
