@@ -81,7 +81,9 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("check failed: %w", err)
 	}
 
-	// Stream results.
+	// Write results. All checks have completed at this point;
+	// text and JSON are flushed per-result, HTML and XLSX buffer
+	// until Close().
 	hasErrors := false
 	for _, r := range results {
 		w.WriteResult(r)
