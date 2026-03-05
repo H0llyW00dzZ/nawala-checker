@@ -124,7 +124,9 @@ func TestWriter_WriteResult_JSON(t *testing.T) {
 	jr := wrapper.Nawala.Result[0]
 
 	assert.Equal(t, "google.com", jr.Domain)
-	assert.False(t, jr.Blocked)
+	if assert.NotNil(t, jr.Blocked, "expected blocked to be present when no error") {
+		assert.False(t, *jr.Blocked)
+	}
 	assert.Empty(t, jr.Error)
 }
 
@@ -148,6 +150,8 @@ func TestWriter_WriteResult_JSONWithError(t *testing.T) {
 	jr := wrapper.Nawala.Result[0]
 
 	assert.Equal(t, "dns timeout", jr.Error)
+	// blocked must be absent from JSON when there is an error.
+	assert.Nil(t, jr.Blocked, "blocked should be omitted when error is present")
 }
 
 func TestWriter_WriteResult_JSON_MultipleResults(t *testing.T) {
@@ -166,7 +170,9 @@ func TestWriter_WriteResult_JSON_MultipleResults(t *testing.T) {
 	require.Len(t, wrapper.Nawala.Result, 2)
 	assert.Equal(t, "google.com", wrapper.Nawala.Result[0].Domain)
 	assert.Equal(t, "reddit.com", wrapper.Nawala.Result[1].Domain)
-	assert.True(t, wrapper.Nawala.Result[1].Blocked)
+	if assert.NotNil(t, wrapper.Nawala.Result[1].Blocked, "expected blocked to be present for successful result") {
+		assert.True(t, *wrapper.Nawala.Result[1].Blocked)
+	}
 }
 
 func TestWriter_WriteStatus_Text_Online(t *testing.T) {
