@@ -7,41 +7,39 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-// resolveFormat inspects the boolean format flags (--json, --html, --xlsx)
-// on cmd and returns the corresponding format constant. If no flag is set,
-// it defaults to FormatText. If more than one flag is set, it returns an error.
+// resolveFormat inspects the string format flag (--format)
+// on cmd and returns the corresponding format constant.
 func resolveFormat(cmd *cobra.Command) (string, error) {
-	jsonMode, _ := cmd.Flags().GetBool("json")
-	htmlMode, _ := cmd.Flags().GetBool("html")
-	xlsxMode, _ := cmd.Flags().GetBool("xlsx")
-
-	count := 0
-	if jsonMode {
-		count++
-	}
-	if htmlMode {
-		count++
-	}
-	if xlsxMode {
-		count++
+	formats, err := cmd.Flags().GetStringSlice("format")
+	if err != nil {
+		return "", err
 	}
 
-	if count > 1 {
-		return "", fmt.Errorf("only one output format flag may be used (--json, --html, --xlsx)")
+	if len(formats) > 1 {
+		return "", fmt.Errorf("only one output format flag may be used")
 	}
 
-	switch {
-	case jsonMode:
-		return FormatJSON, nil
-	case htmlMode:
-		return FormatHTML, nil
-	case xlsxMode:
-		return FormatXLSX, nil
+	var format string
+	if len(formats) == 1 {
+		format = formats[0]
+	} else {
+		format = FormatText // default if empty
+	}
+
+	// Check for comma-separated multiple formats, e.g. --format=json,html
+	if strings.Contains(format, ",") {
+		return "", fmt.Errorf("only one output format flag may be used")
+	}
+
+	switch format {
+	case FormatText, FormatJSON, FormatHTML, FormatXLSX:
+		return format, nil
 	default:
-		return FormatText, nil
+		return "", fmt.Errorf("invalid output format %q (expected text, json, html, or xlsx)", format)
 	}
 }

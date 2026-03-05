@@ -9,6 +9,6 @@ Use --config to check health of custom server configurations.
 Examples:
   nawala status
   nawala status --config custom.yaml
-  nawala status --json
-  nawala status --html -o stat.html
-  nawala status --xlsx -o health.xlsx
+  nawala status --format json
+  nawala status --format html -o stat.html
+  nawala status --format xlsx -o health.xlsx

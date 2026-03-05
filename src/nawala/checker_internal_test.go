@@ -769,7 +769,9 @@ func TestDNSOverTLS(t *testing.T) {
 	// 2. Start TLS Listener
 	listener, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig)
 	require.NoError(t, err)
-	defer listener.Close()
+	defer func() {
+		_ = listener.Close()
+	}()
 
 	// 3. Start DNS Server
 	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
@@ -954,7 +956,9 @@ func TestNawalaRPZStyleBlockingDoT(t *testing.T) {
 	// 2. Start TLS Listener
 	listener, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig)
 	require.NoError(t, err)
-	defer listener.Close()
+	defer func() {
+		_ = listener.Close()
+	}()
 
 	// 3. Simplified Nawala-style RPZ blacklist
 	blacklist := map[string]bool{
@@ -1629,7 +1633,9 @@ func TestWithTLSOptions_NoEffectWithoutTCPTLS(t *testing.T) {
 func TestWithProtocol_TCP(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	defer ln.Close()
+	defer func() {
+		_ = ln.Close()
+	}()
 
 	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
 		m := new(dns.Msg)

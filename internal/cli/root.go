@@ -32,7 +32,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	// If --version was requested, print and exit.
 	v, _ := cmd.Flags().GetBool("version")
 	if v {
-		fmt.Fprintf(cmd.OutOrStdout(), "nawala %s\n", nawala.Version)
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "nawala %s\n", nawala.Version)
 		return nil
 	}
 
@@ -42,7 +42,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	}
 
 	// Delegate to check with the same args.
-	return runCheck(cmd, args)
+	return runCheck(checkCmd, args)
 }
 
 func init() {
