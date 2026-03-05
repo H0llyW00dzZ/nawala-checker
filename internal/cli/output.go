@@ -12,6 +12,7 @@ import (
 	htmltemplate "html/template"
 	"io"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
@@ -104,7 +105,7 @@ func (w *Writer) writeText(r nawala.Result) {
 	if r.Error != nil {
 		status = fmt.Sprintf("error: %v", r.Error)
 	}
-	fmt.Fprintf(w.tw, "%s\t%s\t%s\n", r.Domain, status, r.Server)
+	_, _ = fmt.Fprintf(w.tw, "%s\t%s\t%s\n", r.Domain, status, r.Server)
 }
 
 // writeJSON writes a check result as a JSON array element.
@@ -120,13 +121,13 @@ func (w *Writer) writeJSON(r nawala.Result) {
 
 	data, _ := json.Marshal(jr)
 	if !w.jsonStarted {
-		w.w.WriteString(`{"nawala":{"result":[`)
+		_, _ = w.w.WriteString(`{"nawala":{"result":[`)
 		w.jsonStarted = true
 	} else {
-		w.w.WriteString(",")
+		_, _ = w.w.WriteString(",")
 	}
-	w.w.Write(data)
-	w.w.Flush()
+	_, _ = w.w.Write(data)
+	_ = w.w.Flush()
 }
 
 // jsonStatus is the JSON representation of a server health status.
@@ -156,13 +157,13 @@ func (w *Writer) writeStatusText(s nawala.ServerStatus) {
 		status = "OFFLINE"
 	}
 	if s.Online {
-		fmt.Fprintf(w.tw, "%s\t%s\t%dms\n", s.Server, status, s.LatencyMs)
+		_, _ = fmt.Fprintf(w.tw, "%s\t%s\t%dms\n", s.Server, status, s.LatencyMs)
 	} else {
 		errMsg := ""
 		if s.Error != nil {
-			errMsg = s.Error.Error()
+			errMsg = strings.TrimPrefix(s.Error.Error(), "nawala: ")
 		}
-		fmt.Fprintf(w.tw, "%s\t%s\t%s\n", s.Server, status, errMsg)
+		_, _ = fmt.Fprintf(w.tw, "%s\t%s\t%s\n", s.Server, status, errMsg)
 	}
 }
 
@@ -179,13 +180,13 @@ func (w *Writer) writeStatusJSON(s nawala.ServerStatus) {
 	data, _ := json.Marshal(js)
 
 	if !w.jsonStarted {
-		w.w.WriteString(`{"nawala":{"status":[`)
+		_, _ = w.w.WriteString(`{"nawala":{"status":[`)
 		w.jsonStarted = true
 	} else {
-		w.w.WriteString(",")
+		_, _ = w.w.WriteString(",")
 	}
-	w.w.Write(data)
-	w.w.Flush()
+	_, _ = w.w.Write(data)
+	_ = w.w.Flush()
 }
 
 // htmlResultData is the data passed to the result HTML template.
@@ -253,7 +254,9 @@ func (w *Writer) closeHTML() error {
 // applies green/red fill styles, and saves to outputPath.
 func (w *Writer) closeXLSX() error {
 	f := excelize.NewFile()
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	// Define cell styles.
 	greenStyle, _ := f.NewStyle(&excelize.Style{
@@ -277,65 +280,65 @@ func (w *Writer) closeXLSX() error {
 
 	if len(w.results) > 0 {
 		// Header row.
-		f.SetCellValue(sheet, "A1", "Domain")
-		f.SetCellValue(sheet, "B1", "Status")
-		f.SetCellValue(sheet, "C1", "Server")
-		f.SetCellStyle(sheet, "A1", "C1", headerStyle)
+		_ = f.SetCellValue(sheet, "A1", "Domain")
+		_ = f.SetCellValue(sheet, "B1", "Status")
+		_ = f.SetCellValue(sheet, "C1", "Server")
+		_ = f.SetCellStyle(sheet, "A1", "C1", headerStyle)
 
 		for i, r := range w.results {
 			row := i + 2
-			f.SetCellValue(sheet, fmt.Sprintf("A%d", row), r.Domain)
-			f.SetCellValue(sheet, fmt.Sprintf("C%d", row), r.Server)
+			_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", row), r.Domain)
+			_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", row), r.Server)
 
 			statusCell := fmt.Sprintf("B%d", row)
 			if r.Error != nil {
-				f.SetCellValue(sheet, statusCell, fmt.Sprintf("error: %v", r.Error))
-				f.SetCellStyle(sheet, statusCell, statusCell, orangeStyle)
+				_ = f.SetCellValue(sheet, statusCell, fmt.Sprintf("error: %v", r.Error))
+				_ = f.SetCellStyle(sheet, statusCell, statusCell, orangeStyle)
 			} else if r.Blocked {
-				f.SetCellValue(sheet, statusCell, "BLOCKED")
-				f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
+				_ = f.SetCellValue(sheet, statusCell, "BLOCKED")
+				_ = f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
 			} else {
-				f.SetCellValue(sheet, statusCell, "NOT BLOCKED")
-				f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
+				_ = f.SetCellValue(sheet, statusCell, "NOT BLOCKED")
+				_ = f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
 			}
 		}
 
 		// Auto-fit column widths.
-		f.SetColWidth(sheet, "A", "A", 40)
-		f.SetColWidth(sheet, "B", "B", 18)
-		f.SetColWidth(sheet, "C", "C", 22)
+		_ = f.SetColWidth(sheet, "A", "A", 40)
+		_ = f.SetColWidth(sheet, "B", "B", 18)
+		_ = f.SetColWidth(sheet, "C", "C", 22)
 	}
 
 	if len(w.statuses) > 0 {
 		// Header row.
-		f.SetCellValue(sheet, "A1", "Server")
-		f.SetCellValue(sheet, "B1", "Status")
-		f.SetCellValue(sheet, "C1", "Latency / Error")
-		f.SetCellStyle(sheet, "A1", "C1", headerStyle)
+		_ = f.SetCellValue(sheet, "A1", "Server")
+		_ = f.SetCellValue(sheet, "B1", "Status")
+		_ = f.SetCellValue(sheet, "C1", "Latency / Error")
+		_ = f.SetCellStyle(sheet, "A1", "C1", headerStyle)
 
 		for i, s := range w.statuses {
 			row := i + 2
-			f.SetCellValue(sheet, fmt.Sprintf("A%d", row), s.Server)
+			_ = f.SetCellValue(sheet, fmt.Sprintf("A%d", row), s.Server)
 
 			statusCell := fmt.Sprintf("B%d", row)
 			if s.Online {
-				f.SetCellValue(sheet, statusCell, "ONLINE")
-				f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
-				f.SetCellValue(sheet, fmt.Sprintf("C%d", row), fmt.Sprintf("%dms", s.LatencyMs))
+				_ = f.SetCellValue(sheet, statusCell, "ONLINE")
+				_ = f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
+				_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", row), fmt.Sprintf("%dms", s.LatencyMs))
 			} else {
-				f.SetCellValue(sheet, statusCell, "OFFLINE")
-				f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
+				_ = f.SetCellValue(sheet, statusCell, "OFFLINE")
+				_ = f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
 				errMsg := ""
 				if s.Error != nil {
 					errMsg = s.Error.Error()
 				}
-				f.SetCellValue(sheet, fmt.Sprintf("C%d", row), errMsg)
+				_ = f.SetCellValue(sheet, fmt.Sprintf("C%d", row), errMsg)
 			}
 		}
 
-		f.SetColWidth(sheet, "A", "A", 22)
-		f.SetColWidth(sheet, "B", "B", 12)
-		f.SetColWidth(sheet, "C", "C", 30)
+		_ = f.SetColWidth(sheet, "A", "A", 22)
+		_ = f.SetColWidth(sheet, "B", "B", 12)
+		_ = f.SetColWidth(sheet, "C", "C", 30)
 	}
 
 	// Save to the output path. If outputPath is empty, write to stdout.
@@ -351,7 +354,7 @@ func (w *Writer) Close() error {
 	switch w.format {
 	case FormatJSON:
 		if w.jsonStarted {
-			w.w.WriteString("]}}\n")
+			_, _ = w.w.WriteString("]}}\n")
 			w.jsonStarted = false
 		}
 	case FormatHTML:
@@ -373,7 +376,7 @@ func (w *Writer) Close() error {
 	// Flush the tabwriter first (computes column widths and writes to w.w),
 	// then flush the underlying bufio.Writer to the destination.
 	if w.tw != nil {
-		w.tw.Flush()
+		_ = w.tw.Flush()
 	}
 
 	if err := w.w.Flush(); err != nil {

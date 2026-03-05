@@ -22,13 +22,6 @@ import (
 func main() {
 	// Create a checker with custom configuration.
 	c := nawala.New(
-		// Add a custom DNS server alongside the defaults.
-		nawala.WithServer(nawala.DNSServer{
-			Address:   "8.8.8.8",
-			Keyword:   "blocked",
-			QueryType: "A",
-		}),
-
 		// Increase timeout for slow networks.
 		nawala.WithTimeout(15*time.Second),
 
@@ -40,6 +33,13 @@ func main() {
 	)
 
 	ctx := context.Background()
+
+	// Add a custom DNS server alongside the defaults.
+	c.SetServers(nawala.DNSServer{
+		Address:   "8.8.8.8",
+		Keyword:   "blocked",
+		QueryType: "A",
+	})
 
 	fmt.Println("=== Custom Configuration Check ===")
 	fmt.Println()

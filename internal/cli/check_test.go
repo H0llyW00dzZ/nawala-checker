@@ -162,9 +162,7 @@ func newCheckCmd() *cobra.Command {
 	}
 	cmd.Flags().StringP("file", "f", "", "path to a .txt file with one domain per line")
 	cmd.Flags().StringP("output", "o", "", "write results to a file instead of stdout")
-	cmd.Flags().Bool("json", false, "output results as JSON")
-	cmd.Flags().Bool("html", false, "output results as an HTML report")
-	cmd.Flags().Bool("xlsx", false, "output results as an Excel spreadsheet")
+	cmd.Flags().StringSlice("format", []string{"text"}, "output format (text, json, html, xlsx)")
 	return cmd
 }
 
@@ -289,12 +287,12 @@ func createMockDNSServer(t *testing.T) (string, func()) {
 				// Create a valid DNS response (Standard query response, No error)
 				resp := append([]byte(nil), buf[:n]...) // copy request
 				resp[2] |= 0x80                         // Set QR bit (Response)
-				conn.WriteToUDP(resp, addr)
+				_, _ = conn.WriteToUDP(resp, addr)
 			}
 		}
 	}()
 	return conn.LocalAddr().String(), func() {
-		conn.Close()
+		_ = conn.Close()
 		<-done
 	}
 }
@@ -318,6 +316,9 @@ func TestRunCheck_Success(t *testing.T) {
 	cmd := newCheckCmd()
 	cmd.SetArgs([]string{"--output", outPath, "google.com"})
 
+	flag := cmd.Flags().Lookup("format")
+	fmt.Printf("DEBUG IN TEST: flag type is %s\n", flag.Value.Type())
+
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("expected nil error (success), got: %v", err)
 	}
@@ -337,7 +338,7 @@ func TestRunCheck_MultipleFormatFlags(t *testing.T) {
 	defer func() { configPath = saved }()
 
 	cmd := newCheckCmd()
-	cmd.SetArgs([]string{"--json", "--html", "google.com"})
+	cmd.SetArgs([]string{"--format", "json", "--format", "html", "google.com"})
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatal("expected error from multiple format flags, got nil")

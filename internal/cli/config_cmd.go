@@ -154,7 +154,9 @@ func runConfig(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	defer w.Close()
-	w.w.WriteString(string(output))
+	defer func() {
+		_ = w.Close()
+	}()
+	_, _ = w.w.WriteString(string(output))
 	return nil
 }

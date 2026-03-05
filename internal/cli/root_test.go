@@ -173,7 +173,7 @@ func TestRunRoot_NoArgs(t *testing.T) {
 	rootCmd.SetOut(&buf)
 	rootCmd.SetErr(&buf)
 	rootCmd.SetArgs([]string{}) // reset args
-	rootCmd.Flags().Set("version", "false")
+	_ = rootCmd.Flags().Set("version", "false")
 
 	// Call runRoot directly with empty args to hit the len(args)==0 path.
 	err := runRoot(rootCmd, []string{})
@@ -224,9 +224,7 @@ func newStatusCmd() *cobra.Command {
 		RunE: runStatus,
 	}
 	cmd.Flags().StringP("output", "o", "", "write results to a file instead of stdout")
-	cmd.Flags().Bool("json", false, "output results as JSON")
-	cmd.Flags().Bool("html", false, "output results as an HTML report")
-	cmd.Flags().Bool("xlsx", false, "output results as an Excel spreadsheet")
+	cmd.Flags().StringSlice("format", []string{"text"}, "output format (text, json, html, xlsx)")
 	return cmd
 }
 
@@ -364,7 +362,7 @@ func TestRunStatus_MultipleFormatFlags(t *testing.T) {
 	defer func() { configPath = saved }()
 
 	cmd := newStatusCmd()
-	cmd.SetArgs([]string{"--json", "--xlsx"})
+	cmd.SetArgs([]string{"--format", "json", "--format", "xlsx"})
 	err := cmd.Execute()
 	if err == nil {
 		t.Fatal("expected error from multiple format flags, got nil")

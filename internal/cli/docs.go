@@ -61,12 +61,12 @@
 // # Output
 //
 // Results are streamed to stdout by default, or written to a file with the
-// --output (-o) flag. Four formats are available:
+// --output (-o) flag. Output formats are controlled by the --format flag:
 //
-//   - Text (default) — tab-separated columns: domain, status, server
-//   - NDJSON (--json) — one JSON object per line, suitable for piping
-//   - HTML (--html) — a styled table report with color-coded status cells
-//   - Excel (--xlsx) — an XLSX spreadsheet with colored cells
+//   - text (default) — tab-separated columns: domain, status, server
+//   - json           — one JSON object per line, suitable for piping (NDJSON)
+//   - html           — a styled table report with color-coded status cells
+//   - xlsx           — an XLSX spreadsheet with colored cells
 //
 // # Embedded Usage Text
 //

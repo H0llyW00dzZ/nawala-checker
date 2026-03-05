@@ -27,7 +27,7 @@
 //
 //	-f, --file string     path to a .txt file with one domain per line
 //	-o, --output string   write results to a file instead of stdout
-//	    --json            output results as NDJSON (one JSON object per line)
+//	    --format string   output format (text, json, html, xlsx) (default "text")
 //
 // # Config Flags
 //

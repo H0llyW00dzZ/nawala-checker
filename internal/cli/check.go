@@ -28,9 +28,7 @@ var checkCmd = &cobra.Command{
 func init() {
 	checkCmd.Flags().StringP("file", "f", "", "path to a .txt file with one domain per line")
 	checkCmd.Flags().StringP("output", "o", "", "write results to a file instead of stdout")
-	checkCmd.Flags().Bool("json", false, "output results as JSON")
-	checkCmd.Flags().Bool("html", false, "output results as an HTML report")
-	checkCmd.Flags().Bool("xlsx", false, "output results as an Excel spreadsheet")
+	checkCmd.Flags().StringSlice("format", []string{"text"}, "output format (text, json, html, xlsx)")
 }
 
 // runCheck is the shared implementation for both the root default action
@@ -64,7 +62,9 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer w.Close()
+	defer func() {
+		_ = w.Close()
+	}()
 
 	// Run checks with a 30-second overall timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -118,7 +118,9 @@ func collectDomains(args []string, filePath string) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("opening domain file: %w", err)
 		}
-		defer f.Close()
+		defer func() {
+			_ = f.Close()
+		}()
 
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {

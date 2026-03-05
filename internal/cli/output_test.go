@@ -33,14 +33,16 @@ func testWriter(format string) (*Writer, *bytes.Buffer) {
 
 // flushAndRead flushes the Writer, closes it (triggering array caps), and returns the buffer contents.
 func flushAndRead(w *Writer, buf *bytes.Buffer) string {
-	w.Close()
+	_ = w.Close()
 	return buf.String()
 }
 
 func TestNewWriter_Stdout(t *testing.T) {
 	w, err := NewWriter("", FormatText)
 	require.NoError(t, err)
-	defer w.Close()
+	defer func() {
+		_ = w.Close()
+	}()
 
 	assert.Nil(t, w.closer, "expected closer to be nil for stdout")
 }
@@ -49,7 +51,9 @@ func TestNewWriter_File(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "out.txt")
 	w, err := NewWriter(path, FormatText)
 	require.NoError(t, err)
-	defer w.Close()
+	defer func() {
+		_ = w.Close()
+	}()
 
 	assert.NotNil(t, w.closer, "expected closer to be non-nil for file output")
 }
@@ -298,7 +302,7 @@ func TestWriter_Close_FlushError(t *testing.T) {
 	w.WriteResult(nawala.Result{Domain: "test.com", Server: "8.8.8.8"})
 
 	// Close the underlying file to force a flush error.
-	w.closer.Close()
+	_ = w.closer.Close()
 	w.closer = nil // prevent double-close
 
 	// Write more data so bufio has unflushed content.

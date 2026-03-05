@@ -59,16 +59,16 @@ nawala google.com reddit.com
 nawala check --file domains.txt
 
 # Output JSON (NDJSON — satu objek per baris)
-nawala check google.com --json
+nawala check google.com --format json
 
 # Tulis hasil ke file (teks dipisahkan tab)
 nawala check --file domains.txt -o results.txt
 
 # Buat laporan HTML
-nawala check google.com reddit.com --html -o report.html
+nawala check google.com reddit.com --format html -o report.html
 
 # Buat spreadsheet Excel (XLSX)
-nawala check --file domains.txt --xlsx -o results.xlsx
+nawala check --file domains.txt --format xlsx -o results.xlsx
 
 # Gunakan konfigurasi kustom (JSON atau YAML)
 nawala check --config config.json --file domains.txt

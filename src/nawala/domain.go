@@ -103,7 +103,7 @@ func isValidTLD(label string) bool {
 
 	// Standard TLDs must be letters only
 	for _, c := range label {
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+		if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') {
 			return false
 		}
 	}

@@ -33,11 +33,7 @@ func WithServers(servers []DNSServer) Option {
 		deduped := make([]DNSServer, 0, len(servers))
 
 		for _, s := range servers {
-			key := serverKey{
-				Address:   s.Address,
-				Keyword:   s.Keyword,
-				QueryType: s.QueryType,
-			}
+			key := serverKey(s)
 			if _, ok := seen[key]; !ok {
 				seen[key] = struct{}{}
 				deduped = append(deduped, s)
