@@ -41,6 +41,7 @@ type Writer struct {
 
 	format      string // "text", "json", "html", "xlsx"
 	jsonStarted bool   // tracks if we started the JSON array
+	jsonKey     string // "result" or "status" — set by the first JSON write
 	outputPath  string // original path (needed by XLSX SaveAs)
 
 	// Buffered results/statuses for HTML and XLSX (rendered at Close time).
@@ -51,8 +52,18 @@ type Writer struct {
 // NewWriter creates a Writer that writes to the given path.
 // If path is empty, it writes to stdout.
 // Format must be one of: "text", "json", "html", "xlsx".
+//
+// For XLSX format with a non-empty path, no file is opened here;
+// [excelize.File.SaveAs] creates the file directly at Close time.
 func NewWriter(path string, format string) (*Writer, error) {
 	w := &Writer{format: format, outputPath: path}
+
+	// XLSX with a file path: excelize.SaveAs manages file I/O directly,
+	// so we skip os.Create to avoid an unused file descriptor.
+	if format == FormatXLSX && path != "" {
+		// w.w and w.closer remain nil; closeXLSX writes via SaveAs.
+		return w, nil
+	}
 
 	if path == "" {
 		w.w = bufio.NewWriter(os.Stdout)
@@ -123,6 +134,7 @@ func (w *Writer) writeJSON(r nawala.Result) {
 	if !w.jsonStarted {
 		_, _ = w.w.WriteString(`{"nawala":{"result":[`)
 		w.jsonStarted = true
+		w.jsonKey = "result"
 	} else {
 		_, _ = w.w.WriteString(",")
 	}
@@ -182,6 +194,7 @@ func (w *Writer) writeStatusJSON(s nawala.ServerStatus) {
 	if !w.jsonStarted {
 		_, _ = w.w.WriteString(`{"nawala":{"status":[`)
 		w.jsonStarted = true
+		w.jsonKey = "status"
 	} else {
 		_, _ = w.w.WriteString(",")
 	}
@@ -356,6 +369,14 @@ func (w *Writer) Close() error {
 		if w.jsonStarted {
 			_, _ = w.w.WriteString("]}}\n")
 			w.jsonStarted = false
+		} else if w.w != nil {
+			// No results/statuses were written. Emit a valid empty envelope
+			// so consumers always receive well-formed JSON.
+			key := w.jsonKey
+			if key == "" {
+				key = "result" // default envelope for check output
+			}
+			_, _ = fmt.Fprintf(w.w, "{\"nawala\":{\"%s\":[]}}\n", key)
 		}
 	case FormatHTML:
 		if err := w.closeHTML(); err != nil {
@@ -365,11 +386,7 @@ func (w *Writer) Close() error {
 		if err := w.closeXLSX(); err != nil {
 			return err
 		}
-		// XLSX writes directly via SaveAs/WriteTo; skip bufio/tabwriter flush
-		// and go straight to closing the opener (if any).
-		if w.closer != nil {
-			return w.closer.Close()
-		}
+		// XLSX writes directly via SaveAs/WriteTo; skip bufio/tabwriter flush.
 		return nil
 	}
 
