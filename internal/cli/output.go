@@ -86,9 +86,11 @@ func NewWriter(path string, format string) (*Writer, error) {
 }
 
 // jsonResult is the JSON representation of a check result.
+// Blocked is omitted when Error is set — a failed check has no meaningful block
+// state, and emitting false would be misleading to callers.
 type jsonResult struct {
 	Domain  string `json:"domain"`
-	Blocked bool   `json:"blocked"`
+	Blocked *bool  `json:"blocked,omitempty"`
 	Server  string `json:"server"`
 	Error   string `json:"error,omitempty"`
 }
@@ -123,12 +125,15 @@ func (w *Writer) writeText(r nawala.Result) {
 // writeJSON writes a check result as a JSON array element.
 func (w *Writer) writeJSON(r nawala.Result) {
 	jr := jsonResult{
-		Domain:  r.Domain,
-		Blocked: r.Blocked,
-		Server:  r.Server,
+		Domain: r.Domain,
+		Server: r.Server,
 	}
 	if r.Error != nil {
 		jr.Error = r.Error.Error()
+	} else {
+		// Only emit blocked when the check succeeded — a failed check has no
+		// meaningful block state.
+		jr.Blocked = &r.Blocked
 	}
 
 	data, _ := json.Marshal(jr)
