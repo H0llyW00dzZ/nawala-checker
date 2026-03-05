@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nawala Check Results</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #e0e0e0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, .3);
+        }
+
+        th {
+            background: #16213e;
+            padding: .75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #ccc;
+            text-transform: uppercase;
+            font-size: .8rem;
+            letter-spacing: .05em;
+        }
+
+        td {
+            padding: .65rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .blocked {
+            background: rgba(244, 67, 54, .18);
+            color: #ef5350;
+            font-weight: 600;
+        }
+
+        .not-blocked {
+            background: rgba(76, 175, 80, .18);
+            color: #66bb6a;
+            font-weight: 600;
+        }
+
+        .error {
+            background: rgba(255, 152, 0, .18);
+            color: #ffa726;
+            font-weight: 600;
+        }
+
+        .domain {
+            font-family: "SF Mono", "Fira Code", monospace;
+            font-size: .9rem;
+        }
+
+        .server {
+            color: #999;
+            font-family: "SF Mono", "Fira Code", monospace;
+            font-size: .85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Nawala Check Results</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Domain</th>
+                <th>Status</th>
+                <th>Server</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{- range .Results}}
+            <tr>
+                <td class="domain">{{.Domain}}</td>
+                {{- if .Error}}
+                <td class="error">error: {{.Error}}</td>
+                {{- else if .Blocked}}
+                <td class="blocked">BLOCKED</td>
+                {{- else}}
+                <td class="not-blocked">NOT BLOCKED</td>
+                {{- end}}
+                <td class="server">{{.Server}}</td>
+            </tr>
+            {{- end}}
+        </tbody>
+    </table>
+</body>
+
+</html>

@@ -21,11 +21,11 @@ import (
 )
 
 // testWriter creates a Writer backed by a bytes.Buffer for testing.
-func testWriter(jsonMode bool) (*Writer, *bytes.Buffer) {
+func testWriter(format string) (*Writer, *bytes.Buffer) {
 	var buf bytes.Buffer
 	bw := bufio.NewWriter(&buf)
-	w := &Writer{w: bw, json: jsonMode}
-	if !jsonMode {
+	w := &Writer{w: bw, format: format}
+	if format == FormatText {
 		w.tw = tabwriter.NewWriter(bw, 0, 0, 4, ' ', 0)
 	}
 	return w, &buf
@@ -38,7 +38,7 @@ func flushAndRead(w *Writer, buf *bytes.Buffer) string {
 }
 
 func TestNewWriter_Stdout(t *testing.T) {
-	w, err := NewWriter("", false)
+	w, err := NewWriter("", FormatText)
 	require.NoError(t, err)
 	defer w.Close()
 
@@ -47,7 +47,7 @@ func TestNewWriter_Stdout(t *testing.T) {
 
 func TestNewWriter_File(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "out.txt")
-	w, err := NewWriter(path, false)
+	w, err := NewWriter(path, FormatText)
 	require.NoError(t, err)
 	defer w.Close()
 
@@ -55,12 +55,12 @@ func TestNewWriter_File(t *testing.T) {
 }
 
 func TestNewWriter_InvalidPath(t *testing.T) {
-	_, err := NewWriter("/nonexistent/dir/out.txt", false)
+	_, err := NewWriter("/nonexistent/dir/out.txt", FormatText)
 	assert.Error(t, err, "expected error for invalid path")
 }
 
 func TestWriter_WriteResult_Text(t *testing.T) {
-	w, buf := testWriter(false)
+	w, buf := testWriter(FormatText)
 
 	w.WriteResult(nawala.Result{
 		Domain:  "google.com",
@@ -75,7 +75,7 @@ func TestWriter_WriteResult_Text(t *testing.T) {
 }
 
 func TestWriter_WriteResult_TextBlocked(t *testing.T) {
-	w, buf := testWriter(false)
+	w, buf := testWriter(FormatText)
 
 	w.WriteResult(nawala.Result{
 		Domain:  "blocked.com",
@@ -88,7 +88,7 @@ func TestWriter_WriteResult_TextBlocked(t *testing.T) {
 }
 
 func TestWriter_WriteResult_TextError(t *testing.T) {
-	w, buf := testWriter(false)
+	w, buf := testWriter(FormatText)
 
 	w.WriteResult(nawala.Result{
 		Domain: "fail.com",
@@ -101,7 +101,7 @@ func TestWriter_WriteResult_TextError(t *testing.T) {
 }
 
 func TestWriter_WriteResult_JSON(t *testing.T) {
-	w, buf := testWriter(true)
+	w, buf := testWriter(FormatJSON)
 
 	w.WriteResult(nawala.Result{
 		Domain:  "google.com",
@@ -125,7 +125,7 @@ func TestWriter_WriteResult_JSON(t *testing.T) {
 }
 
 func TestWriter_WriteResult_JSONWithError(t *testing.T) {
-	w, buf := testWriter(true)
+	w, buf := testWriter(FormatJSON)
 
 	w.WriteResult(nawala.Result{
 		Domain: "fail.com",
@@ -147,7 +147,7 @@ func TestWriter_WriteResult_JSONWithError(t *testing.T) {
 }
 
 func TestWriter_WriteResult_JSON_MultipleResults(t *testing.T) {
-	w, buf := testWriter(true)
+	w, buf := testWriter(FormatJSON)
 
 	w.WriteResult(nawala.Result{Domain: "google.com", Blocked: false, Server: "8.8.8.8"})
 	w.WriteResult(nawala.Result{Domain: "reddit.com", Blocked: true, Server: "8.8.8.8"})
@@ -166,7 +166,7 @@ func TestWriter_WriteResult_JSON_MultipleResults(t *testing.T) {
 }
 
 func TestWriter_WriteStatus_Text_Online(t *testing.T) {
-	w, buf := testWriter(false)
+	w, buf := testWriter(FormatText)
 
 	w.WriteStatus(nawala.ServerStatus{
 		Server:    "8.8.8.8",
@@ -181,7 +181,7 @@ func TestWriter_WriteStatus_Text_Online(t *testing.T) {
 }
 
 func TestWriter_WriteStatus_Text_Offline(t *testing.T) {
-	w, buf := testWriter(false)
+	w, buf := testWriter(FormatText)
 
 	w.WriteStatus(nawala.ServerStatus{
 		Server: "1.2.3.4",
@@ -195,7 +195,7 @@ func TestWriter_WriteStatus_Text_Offline(t *testing.T) {
 }
 
 func TestWriter_WriteStatus_Text_Offline_NoError(t *testing.T) {
-	w, buf := testWriter(false)
+	w, buf := testWriter(FormatText)
 
 	w.WriteStatus(nawala.ServerStatus{
 		Server: "1.2.3.4",
@@ -207,7 +207,7 @@ func TestWriter_WriteStatus_Text_Offline_NoError(t *testing.T) {
 }
 
 func TestWriter_WriteStatus_JSON_Online(t *testing.T) {
-	w, buf := testWriter(true)
+	w, buf := testWriter(FormatJSON)
 
 	w.WriteStatus(nawala.ServerStatus{
 		Server:    "8.8.8.8",
@@ -231,7 +231,7 @@ func TestWriter_WriteStatus_JSON_Online(t *testing.T) {
 }
 
 func TestWriter_WriteStatus_JSON_Offline(t *testing.T) {
-	w, buf := testWriter(true)
+	w, buf := testWriter(FormatJSON)
 
 	w.WriteStatus(nawala.ServerStatus{
 		Server: "1.2.3.4",
@@ -253,7 +253,7 @@ func TestWriter_WriteStatus_JSON_Offline(t *testing.T) {
 }
 
 func TestWriter_WriteStatus_JSON_MultipleStatuses(t *testing.T) {
-	w, buf := testWriter(true)
+	w, buf := testWriter(FormatJSON)
 
 	w.WriteStatus(nawala.ServerStatus{Server: "8.8.8.8", Online: true, LatencyMs: 10})
 	w.WriteStatus(nawala.ServerStatus{Server: "1.1.1.1", Online: true, LatencyMs: 20})
@@ -272,7 +272,7 @@ func TestWriter_WriteStatus_JSON_MultipleStatuses(t *testing.T) {
 
 func TestWriter_Close_File(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "out.txt")
-	w, err := NewWriter(path, false)
+	w, err := NewWriter(path, FormatText)
 	require.NoError(t, err)
 
 	w.WriteResult(nawala.Result{Domain: "test.com", Server: "8.8.8.8"})
@@ -284,14 +284,14 @@ func TestWriter_Close_File(t *testing.T) {
 }
 
 func TestWriter_Close_Stdout(t *testing.T) {
-	w, err := NewWriter("", false)
+	w, err := NewWriter("", FormatText)
 	require.NoError(t, err)
 	assert.NoError(t, w.Close())
 }
 
 func TestWriter_Close_FlushError(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "flush_err.txt")
-	w, err := NewWriter(path, false)
+	w, err := NewWriter(path, FormatText)
 	require.NoError(t, err)
 
 	// Write something to fill the bufio buffer.
@@ -306,4 +306,174 @@ func TestWriter_Close_FlushError(t *testing.T) {
 
 	err = w.Close()
 	assert.Error(t, err, "expected error from Close() after underlying file was closed")
+}
+
+// --- HTML output tests ---
+
+func TestWriter_WriteResult_HTML(t *testing.T) {
+	w, buf := testWriter(FormatHTML)
+
+	w.WriteResult(nawala.Result{Domain: "google.com", Blocked: false, Server: "8.8.8.8"})
+	w.WriteResult(nawala.Result{Domain: "blocked.com", Blocked: true, Server: "8.8.8.8"})
+	w.WriteResult(nawala.Result{Domain: "fail.com", Error: errors.New("timeout"), Server: "8.8.8.8"})
+
+	out := flushAndRead(w, buf)
+	assert.Contains(t, out, "<table>")
+	assert.Contains(t, out, "google.com")
+	assert.Contains(t, out, "NOT BLOCKED")
+	assert.Contains(t, out, "not-blocked")
+	assert.Contains(t, out, "blocked.com")
+	assert.Contains(t, out, "BLOCKED")
+	assert.Contains(t, out, `class="blocked"`)
+	assert.Contains(t, out, "fail.com")
+	assert.Contains(t, out, "error: timeout")
+	assert.Contains(t, out, `class="error"`)
+}
+
+func TestWriter_WriteStatus_HTML(t *testing.T) {
+	w, buf := testWriter(FormatHTML)
+
+	w.WriteStatus(nawala.ServerStatus{Server: "8.8.8.8", Online: true, LatencyMs: 5})
+	w.WriteStatus(nawala.ServerStatus{Server: "1.2.3.4", Online: false, Error: errors.New("refused")})
+
+	out := flushAndRead(w, buf)
+	assert.Contains(t, out, "<table>")
+	assert.Contains(t, out, "8.8.8.8")
+	assert.Contains(t, out, "ONLINE")
+	assert.Contains(t, out, `class="online"`)
+	assert.Contains(t, out, "1.2.3.4")
+	assert.Contains(t, out, "OFFLINE")
+	assert.Contains(t, out, `class="offline"`)
+	assert.Contains(t, out, "refused")
+}
+
+// --- XLSX output tests ---
+
+func TestWriter_WriteResult_XLSX(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "results.xlsx")
+	w, err := NewWriter(path, FormatXLSX)
+	require.NoError(t, err)
+
+	w.WriteResult(nawala.Result{Domain: "google.com", Blocked: false, Server: "8.8.8.8"})
+	w.WriteResult(nawala.Result{Domain: "blocked.com", Blocked: true, Server: "8.8.8.8"})
+	w.WriteResult(nawala.Result{Domain: "fail.com", Error: errors.New("timeout"), Server: "8.8.8.8"})
+	require.NoError(t, w.Close())
+
+	// Verify the file was created and is non-empty.
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Greater(t, info.Size(), int64(0), "XLSX file should not be empty")
+}
+
+func TestWriter_WriteStatus_XLSX(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "status.xlsx")
+	w, err := NewWriter(path, FormatXLSX)
+	require.NoError(t, err)
+
+	w.WriteStatus(nawala.ServerStatus{Server: "8.8.8.8", Online: true, LatencyMs: 5})
+	w.WriteStatus(nawala.ServerStatus{Server: "1.2.3.4", Online: false, Error: errors.New("refused")})
+	require.NoError(t, w.Close())
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Greater(t, info.Size(), int64(0), "XLSX file should not be empty")
+}
+
+func TestWriter_XLSX_StdoutWrite(t *testing.T) {
+	// Test the XLSX stdout/WriteTo path (outputPath == "").
+	w, buf := testWriter(FormatXLSX)
+
+	w.WriteResult(nawala.Result{Domain: "example.com", Blocked: false, Server: "8.8.8.8"})
+	err := w.Close()
+	require.NoError(t, err)
+	assert.Greater(t, buf.Len(), 0, "XLSX stdout output should not be empty")
+}
+
+func TestWriter_Close_XLSX_WithCloser(t *testing.T) {
+	// Test the Close() XLSX branch where closer != nil (file output).
+	path := filepath.Join(t.TempDir(), "close_test.xlsx")
+	w, err := NewWriter(path, FormatXLSX)
+	require.NoError(t, err)
+
+	w.WriteResult(nawala.Result{Domain: "test.com", Blocked: false, Server: "8.8.8.8"})
+	require.NoError(t, w.Close())
+
+	// Verify file exists and is valid.
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Greater(t, info.Size(), int64(0))
+}
+
+func TestWriter_Close_HTML_EmptyResults(t *testing.T) {
+	// Test closeHTML with no results and no statuses — returns nil.
+	w, buf := testWriter(FormatHTML)
+	err := w.Close()
+	require.NoError(t, err)
+	assert.Empty(t, buf.String(), "empty HTML output should produce no content")
+}
+
+func TestWriter_WriteResult_HTML_ErrorOnly(t *testing.T) {
+	// Specifically target the error branch in HTML result rendering.
+	w, buf := testWriter(FormatHTML)
+
+	w.WriteResult(nawala.Result{Domain: "err.com", Error: errors.New("dns fail"), Server: "8.8.8.8"})
+
+	out := flushAndRead(w, buf)
+	assert.Contains(t, out, "err.com")
+	assert.Contains(t, out, "error: dns fail")
+	assert.Contains(t, out, `class="error"`)
+}
+
+func TestWriter_WriteStatus_HTML_Online_Only(t *testing.T) {
+	// Specifically target the online-only path in HTML status rendering.
+	w, buf := testWriter(FormatHTML)
+
+	w.WriteStatus(nawala.ServerStatus{Server: "8.8.8.8", Online: true, LatencyMs: 10})
+
+	out := flushAndRead(w, buf)
+	assert.Contains(t, out, `class="online"`)
+	assert.Contains(t, out, "10ms")
+}
+
+func TestWriter_WriteStatus_XLSX_OfflineNoError(t *testing.T) {
+	// Test XLSX status with offline server and no error message.
+	path := filepath.Join(t.TempDir(), "status_no_err.xlsx")
+	w, err := NewWriter(path, FormatXLSX)
+	require.NoError(t, err)
+
+	w.WriteStatus(nawala.ServerStatus{Server: "1.2.3.4", Online: false})
+	require.NoError(t, w.Close())
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Greater(t, info.Size(), int64(0))
+}
+
+type errWriter struct{}
+
+func (errWriter) Write(p []byte) (n int, err error) {
+	return 0, errors.New("forced write error")
+}
+
+func TestWriter_Close_HTML_Error(t *testing.T) {
+	// Use an extremely small bufio.Writer over an errWriter to force
+	// template.Execute to fail when it flushes.
+	w := &Writer{format: FormatHTML}
+	w.w = bufio.NewWriterSize(errWriter{}, 16)
+	w.WriteResult(nawala.Result{Domain: "test.com", Server: "8.8.8.8"})
+
+	err := w.Close()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "forced write error")
+}
+
+func TestWriter_Close_XLSX_Error(t *testing.T) {
+	// Force f.WriteTo(w.w) to fail by using errWriter.
+	w := &Writer{format: FormatXLSX}
+	w.w = bufio.NewWriterSize(errWriter{}, 16)
+	w.WriteResult(nawala.Result{Domain: "test.com", Server: "8.8.8.8"})
+
+	err := w.Close()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "forced write error")
 }

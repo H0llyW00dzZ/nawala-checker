@@ -61,8 +61,14 @@ nawala check --file domains.txt
 # JSON output (NDJSON — one object per line)
 nawala check google.com --json
 
-# Write results to a file
+# Write results to a file (tab-separated text)
 nawala check --file domains.txt -o results.txt
+
+# Generate an HTML report
+nawala check google.com reddit.com --html -o report.html
+
+# Generate an Excel spreadsheet (XLSX)
+nawala check --file domains.txt --xlsx -o results.xlsx
 
 # Use a custom config (JSON or YAML)
 nawala check --config config.json --file domains.txt

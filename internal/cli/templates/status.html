@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nawala DNS Server Status</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #e0e0e0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, .3);
+        }
+
+        th {
+            background: #16213e;
+            padding: .75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #ccc;
+            text-transform: uppercase;
+            font-size: .8rem;
+            letter-spacing: .05em;
+        }
+
+        td {
+            padding: .65rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .online {
+            background: rgba(76, 175, 80, .18);
+            color: #66bb6a;
+            font-weight: 600;
+        }
+
+        .offline {
+            background: rgba(244, 67, 54, .18);
+            color: #ef5350;
+            font-weight: 600;
+        }
+
+        .server {
+            color: #999;
+            font-family: "SF Mono", "Fira Code", monospace;
+            font-size: .85rem;
+        }
+
+        .latency {
+            font-family: "SF Mono", "Fira Code", monospace;
+            font-size: .85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📡 Nawala DNS Server Status</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Server</th>
+                <th>Status</th>
+                <th>Latency / Error</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{- range .Statuses}}
+            <tr>
+                <td class="server">{{.Server}}</td>
+                {{- if .Online}}
+                <td class="online">ONLINE</td>
+                <td class="latency">{{.LatencyMs}}ms</td>
+                {{- else}}
+                <td class="offline">OFFLINE</td>
+                <td class="latency">{{.Error}}</td>
+                {{- end}}
+            </tr>
+            {{- end}}
+        </tbody>
+    </table>
+</body>
+
+</html>

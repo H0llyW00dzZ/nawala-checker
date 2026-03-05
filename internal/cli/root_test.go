@@ -224,7 +224,9 @@ func newStatusCmd() *cobra.Command {
 		RunE: runStatus,
 	}
 	cmd.Flags().StringP("output", "o", "", "write results to a file instead of stdout")
-	cmd.Flags().Bool("json", false, "output results as NDJSON")
+	cmd.Flags().Bool("json", false, "output results as JSON")
+	cmd.Flags().Bool("html", false, "output results as an HTML report")
+	cmd.Flags().Bool("xlsx", false, "output results as an Excel spreadsheet")
 	return cmd
 }
 
@@ -353,5 +355,21 @@ func TestRunRoot_Success_Delegation(t *testing.T) {
 	err := runRoot(rootCmd, []string{"google.com"})
 	if err != nil {
 		t.Fatalf("runRoot() expected nil error, got: %v", err)
+	}
+}
+
+func TestRunStatus_MultipleFormatFlags(t *testing.T) {
+	saved := configPath
+	configPath = ""
+	defer func() { configPath = saved }()
+
+	cmd := newStatusCmd()
+	cmd.SetArgs([]string{"--json", "--xlsx"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error from multiple format flags, got nil")
+	}
+	if !strings.Contains(err.Error(), "only one output format flag") {
+		t.Errorf("unexpected error: %v", err)
 	}
 }

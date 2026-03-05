@@ -9,26 +9,49 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	htmltemplate "html/template"
 	"io"
 	"os"
 	"text/tabwriter"
 
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
+	"github.com/xuri/excelize/v2"
+)
+
+// Parsed HTML templates — validated once at startup via template.Must.
+var (
+	resultTmpl = htmltemplate.Must(htmltemplate.New("result").Parse(resultHTMLTemplate))
+	statusTmpl = htmltemplate.Must(htmltemplate.New("status").Parse(statusHTMLTemplate))
+)
+
+// Output format constants.
+const (
+	FormatText = "text"
+	FormatJSON = "json"
+	FormatHTML = "html"
+	FormatXLSX = "xlsx"
 )
 
 // Writer handles formatted output of check results to stdout or a file.
 type Writer struct {
-	w           *bufio.Writer
-	tw          *tabwriter.Writer // tab-aligned text output (nil in JSON mode)
-	closer      io.Closer         // non-nil when writing to a file
-	json        bool              // output as JSON
-	jsonStarted bool              // tracks if we started the JSON array
+	w      *bufio.Writer
+	tw     *tabwriter.Writer // tab-aligned text output (text mode only)
+	closer io.Closer         // non-nil when writing to a file
+
+	format      string // "text", "json", "html", "xlsx"
+	jsonStarted bool   // tracks if we started the JSON array
+	outputPath  string // original path (needed by XLSX SaveAs)
+
+	// Buffered results/statuses for HTML and XLSX (rendered at Close time).
+	results  []nawala.Result
+	statuses []nawala.ServerStatus
 }
 
 // NewWriter creates a Writer that writes to the given path.
 // If path is empty, it writes to stdout.
-func NewWriter(path string, jsonMode bool) (*Writer, error) {
-	w := &Writer{json: jsonMode}
+// Format must be one of: "text", "json", "html", "xlsx".
+func NewWriter(path string, format string) (*Writer, error) {
+	w := &Writer{format: format, outputPath: path}
 
 	if path == "" {
 		w.w = bufio.NewWriter(os.Stdout)
@@ -43,7 +66,7 @@ func NewWriter(path string, jsonMode bool) (*Writer, error) {
 
 	// For text-mode output, wrap the buffered writer in a tabwriter
 	// so columns align dynamically regardless of domain length.
-	if !jsonMode {
+	if format == FormatText {
 		w.tw = tabwriter.NewWriter(w.w, 0, 0, 4, ' ', 0)
 	}
 
@@ -60,11 +83,14 @@ type jsonResult struct {
 
 // WriteResult formats and writes a single check result.
 func (w *Writer) WriteResult(r nawala.Result) {
-	if w.json {
+	switch w.format {
+	case FormatJSON:
 		w.writeJSON(r)
-		return
+	case FormatHTML, FormatXLSX:
+		w.results = append(w.results, r)
+	default:
+		w.writeText(r)
 	}
-	w.writeText(r)
 }
 
 // writeText writes a check result as a tab-aligned text line.
@@ -113,11 +139,14 @@ type jsonStatus struct {
 
 // WriteStatus formats and writes a single server status.
 func (w *Writer) WriteStatus(s nawala.ServerStatus) {
-	if w.json {
+	switch w.format {
+	case FormatJSON:
 		w.writeStatusJSON(s)
-		return
+	case FormatHTML, FormatXLSX:
+		w.statuses = append(w.statuses, s)
+	default:
+		w.writeStatusText(s)
 	}
-	w.writeStatusText(s)
 }
 
 // writeStatusText writes a server health status as a tab-aligned text line.
@@ -159,11 +188,186 @@ func (w *Writer) writeStatusJSON(s nawala.ServerStatus) {
 	w.w.Flush()
 }
 
+// htmlResultData is the data passed to the result HTML template.
+type htmlResultData struct {
+	Results []htmlResult
+}
+
+// htmlResult is a single row in the HTML result table.
+type htmlResult struct {
+	Domain  string
+	Blocked bool
+	Server  string
+	Error   string
+}
+
+// htmlStatusData is the data passed to the status HTML template.
+type htmlStatusData struct {
+	Statuses []htmlStatus
+}
+
+// htmlStatus is a single row in the HTML status table.
+type htmlStatus struct {
+	Server    string
+	Online    bool
+	LatencyMs int64
+	Error     string
+}
+
+// closeHTML renders the embedded HTML template with collected results or statuses.
+func (w *Writer) closeHTML() error {
+	if len(w.results) > 0 {
+		data := htmlResultData{Results: make([]htmlResult, len(w.results))}
+		for i, r := range w.results {
+			data.Results[i] = htmlResult{
+				Domain:  r.Domain,
+				Blocked: r.Blocked,
+				Server:  r.Server,
+			}
+			if r.Error != nil {
+				data.Results[i].Error = r.Error.Error()
+			}
+		}
+		return resultTmpl.Execute(w.w, data)
+	}
+
+	if len(w.statuses) > 0 {
+		data := htmlStatusData{Statuses: make([]htmlStatus, len(w.statuses))}
+		for i, s := range w.statuses {
+			data.Statuses[i] = htmlStatus{
+				Server:    s.Server,
+				Online:    s.Online,
+				LatencyMs: s.LatencyMs,
+			}
+			if s.Error != nil {
+				data.Statuses[i].Error = s.Error.Error()
+			}
+		}
+		return statusTmpl.Execute(w.w, data)
+	}
+
+	return nil
+}
+
+// closeXLSX builds an Excel workbook from collected results or statuses,
+// applies green/red fill styles, and saves to outputPath.
+func (w *Writer) closeXLSX() error {
+	f := excelize.NewFile()
+	defer f.Close()
+
+	// Define cell styles.
+	greenStyle, _ := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#C8E6C9"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Color: "#2E7D32"},
+	})
+	redStyle, _ := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#FFCDD2"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Color: "#C62828"},
+	})
+	orangeStyle, _ := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#FFE0B2"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Color: "#E65100"},
+	})
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"#37474F"}, Pattern: 1},
+		Font: &excelize.Font{Bold: true, Color: "#ECEFF1"},
+	})
+
+	sheet := "Sheet1"
+
+	if len(w.results) > 0 {
+		// Header row.
+		f.SetCellValue(sheet, "A1", "Domain")
+		f.SetCellValue(sheet, "B1", "Status")
+		f.SetCellValue(sheet, "C1", "Server")
+		f.SetCellStyle(sheet, "A1", "C1", headerStyle)
+
+		for i, r := range w.results {
+			row := i + 2
+			f.SetCellValue(sheet, fmt.Sprintf("A%d", row), r.Domain)
+			f.SetCellValue(sheet, fmt.Sprintf("C%d", row), r.Server)
+
+			statusCell := fmt.Sprintf("B%d", row)
+			if r.Error != nil {
+				f.SetCellValue(sheet, statusCell, fmt.Sprintf("error: %v", r.Error))
+				f.SetCellStyle(sheet, statusCell, statusCell, orangeStyle)
+			} else if r.Blocked {
+				f.SetCellValue(sheet, statusCell, "BLOCKED")
+				f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
+			} else {
+				f.SetCellValue(sheet, statusCell, "NOT BLOCKED")
+				f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
+			}
+		}
+
+		// Auto-fit column widths.
+		f.SetColWidth(sheet, "A", "A", 40)
+		f.SetColWidth(sheet, "B", "B", 18)
+		f.SetColWidth(sheet, "C", "C", 22)
+	}
+
+	if len(w.statuses) > 0 {
+		// Header row.
+		f.SetCellValue(sheet, "A1", "Server")
+		f.SetCellValue(sheet, "B1", "Status")
+		f.SetCellValue(sheet, "C1", "Latency / Error")
+		f.SetCellStyle(sheet, "A1", "C1", headerStyle)
+
+		for i, s := range w.statuses {
+			row := i + 2
+			f.SetCellValue(sheet, fmt.Sprintf("A%d", row), s.Server)
+
+			statusCell := fmt.Sprintf("B%d", row)
+			if s.Online {
+				f.SetCellValue(sheet, statusCell, "ONLINE")
+				f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
+				f.SetCellValue(sheet, fmt.Sprintf("C%d", row), fmt.Sprintf("%dms", s.LatencyMs))
+			} else {
+				f.SetCellValue(sheet, statusCell, "OFFLINE")
+				f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
+				errMsg := ""
+				if s.Error != nil {
+					errMsg = s.Error.Error()
+				}
+				f.SetCellValue(sheet, fmt.Sprintf("C%d", row), errMsg)
+			}
+		}
+
+		f.SetColWidth(sheet, "A", "A", 22)
+		f.SetColWidth(sheet, "B", "B", 12)
+		f.SetColWidth(sheet, "C", "C", 30)
+	}
+
+	// Save to the output path. If outputPath is empty, write to stdout.
+	if w.outputPath != "" {
+		return f.SaveAs(w.outputPath)
+	}
+	_, err := f.WriteTo(w.w)
+	return err
+}
+
 // Close flushes any buffered data, writes JSON caps, and closes the file.
 func (w *Writer) Close() error {
-	if w.json && w.jsonStarted {
-		w.w.WriteString("]}}\n")
-		w.jsonStarted = false
+	switch w.format {
+	case FormatJSON:
+		if w.jsonStarted {
+			w.w.WriteString("]}}\n")
+			w.jsonStarted = false
+		}
+	case FormatHTML:
+		if err := w.closeHTML(); err != nil {
+			return err
+		}
+	case FormatXLSX:
+		if err := w.closeXLSX(); err != nil {
+			return err
+		}
+		// XLSX writes directly via SaveAs/WriteTo; skip bufio/tabwriter flush
+		// and go straight to closing the opener (if any).
+		if w.closer != nil {
+			return w.closer.Close()
+		}
+		return nil
 	}
 
 	// Flush the tabwriter first (computes column widths and writes to w.w),

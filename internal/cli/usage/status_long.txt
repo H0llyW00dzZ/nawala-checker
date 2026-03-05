@@ -10,4 +10,5 @@ Examples:
   nawala status
   nawala status --config custom.yaml
   nawala status --json
-  nawala status --json -o health.json
+  nawala status --html -o stat.html
+  nawala status --xlsx -o health.xlsx

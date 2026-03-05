@@ -162,7 +162,9 @@ func newCheckCmd() *cobra.Command {
 	}
 	cmd.Flags().StringP("file", "f", "", "path to a .txt file with one domain per line")
 	cmd.Flags().StringP("output", "o", "", "write results to a file instead of stdout")
-	cmd.Flags().Bool("json", false, "output results as NDJSON")
+	cmd.Flags().Bool("json", false, "output results as JSON")
+	cmd.Flags().Bool("html", false, "output results as an HTML report")
+	cmd.Flags().Bool("xlsx", false, "output results as an Excel spreadsheet")
 	return cmd
 }
 
@@ -326,5 +328,21 @@ func TestRunCheck_Success(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "google.com") {
 		t.Errorf("output missing google.com: %q", string(data))
+	}
+}
+
+func TestRunCheck_MultipleFormatFlags(t *testing.T) {
+	saved := configPath
+	configPath = ""
+	defer func() { configPath = saved }()
+
+	cmd := newCheckCmd()
+	cmd.SetArgs([]string{"--json", "--html", "google.com"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error from multiple format flags, got nil")
+	}
+	if !strings.Contains(err.Error(), "only one output format flag") {
+		t.Errorf("unexpected error: %v", err)
 	}
 }

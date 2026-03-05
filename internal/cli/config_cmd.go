@@ -150,7 +150,7 @@ func runConfig(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	w, err := NewWriter(outputPath, false)
+	w, err := NewWriter(outputPath, FormatText)
 	if err != nil {
 		return err
 	}
