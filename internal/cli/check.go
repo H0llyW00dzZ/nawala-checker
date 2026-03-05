@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -52,7 +51,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build checker from config.
-	checker, err := buildChecker()
+	checker, cmdTimeout, err := buildChecker()
 	if err != nil {
 		return err
 	}
@@ -66,8 +65,8 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		_ = w.Close()
 	}()
 
-	// Run checks with a 30-second overall timeout.
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// Run checks with the configured command timeout (default 30s).
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
 
 	results, err := checker.Check(ctx, domains...)

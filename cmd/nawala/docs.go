@@ -47,6 +47,7 @@
 //	  "nawala": {
 //	    "configuration": {
 //	      "timeout": "10s",
+//	      "command_timeout": "30s",
 //	      "max_retries": 3,
 //	      "cache_ttl": "10m",
 //	      "disable_cache": false,
@@ -66,6 +67,7 @@
 //	nawala:
 //	  configuration:
 //	    timeout: 10s
+//	    command_timeout: 30s
 //	    max_retries: 3
 //	    cache_ttl: 10m
 //	    disable_cache: false

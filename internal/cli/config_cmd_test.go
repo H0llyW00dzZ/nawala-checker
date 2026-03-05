@@ -257,15 +257,16 @@ func TestRunConfig_MergeConfig_AllFields(t *testing.T) {
 	disableCache := true
 	skipVerify := true
 	cfg := &Config{
-		Timeout:       "15s",
-		MaxRetries:    &retries,
-		CacheTTL:      "20m",
-		DisableCache:  &disableCache,
-		Concurrency:   &concurrency,
-		EDNS0Size:     &edns,
-		Protocol:      "tcp",
-		TLSServerName: "dns.example.com",
-		TLSSkipVerify: &skipVerify,
+		Timeout:        "15s",
+		CommandTimeout: "2m",
+		MaxRetries:     &retries,
+		CacheTTL:       "20m",
+		DisableCache:   &disableCache,
+		Concurrency:    &concurrency,
+		EDNS0Size:      &edns,
+		Protocol:       "tcp",
+		TLSServerName:  "dns.example.com",
+		TLSSkipVerify:  &skipVerify,
 		Servers: []ServerDef{
 			{Address: "1.1.1.1", Keyword: "test", QueryType: "A"},
 		},
@@ -274,6 +275,9 @@ func TestRunConfig_MergeConfig_AllFields(t *testing.T) {
 
 	if merged.Timeout != "15s" {
 		t.Errorf("expected timeout=15s, got %q", merged.Timeout)
+	}
+	if merged.CommandTimeout != "2m" {
+		t.Errorf("expected command_timeout=2m, got %q", merged.CommandTimeout)
 	}
 	if merged.MaxRetries != 5 {
 		t.Errorf("expected max_retries=5, got %d", merged.MaxRetries)

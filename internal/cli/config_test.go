@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -206,7 +207,7 @@ func TestBuildChecker_DisableCacheNoCache(t *testing.T) {
 	configPath = path
 	defer func() { configPath = saved }()
 
-	checker, err := buildChecker()
+	checker, _, err := buildChecker()
 	require.NoError(t, err)
 	require.NotNil(t, checker)
 
@@ -259,4 +260,51 @@ func TestConfig_ToOptions_ParseTLSSkipVerify(t *testing.T) {
 	opts3, err := cfg3.toOptions()
 	require.NoError(t, err)
 	assert.Empty(t, opts3)
+}
+
+func TestConfig_ParseCommandTimeout_Valid(t *testing.T) {
+	cfg := &Config{CommandTimeout: "45s"}
+	d, err := cfg.parseCommandTimeout()
+	require.NoError(t, err)
+	assert.Equal(t, 45*time.Second, d)
+}
+
+func TestConfig_ParseCommandTimeout_Empty(t *testing.T) {
+	cfg := &Config{}
+	d, err := cfg.parseCommandTimeout()
+	require.NoError(t, err)
+	assert.Equal(t, time.Duration(0), d, "empty command_timeout should return zero")
+}
+
+func TestConfig_ParseCommandTimeout_Invalid(t *testing.T) {
+	cfg := &Config{CommandTimeout: "not-a-duration"}
+	_, err := cfg.parseCommandTimeout()
+	assert.Error(t, err, "expected error for invalid command_timeout")
+}
+
+func TestBuildChecker_CustomCommandTimeout(t *testing.T) {
+	content := `{"nawala":{"configuration":{"command_timeout":"2m"}}}`
+	path := filepath.Join(t.TempDir(), "cmd_timeout.json")
+	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
+
+	saved := configPath
+	configPath = path
+	defer func() { configPath = saved }()
+
+	_, cmdTimeout, err := buildChecker()
+	require.NoError(t, err)
+	assert.Equal(t, 2*time.Minute, cmdTimeout)
+}
+
+func TestBuildChecker_InvalidCommandTimeout(t *testing.T) {
+	content := `{"nawala":{"configuration":{"command_timeout":"bad"}}}`
+	path := filepath.Join(t.TempDir(), "bad_cmd_timeout.json")
+	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
+
+	saved := configPath
+	configPath = path
+	defer func() { configPath = saved }()
+
+	_, _, err := buildChecker()
+	assert.Error(t, err, "expected error for invalid command_timeout")
 }

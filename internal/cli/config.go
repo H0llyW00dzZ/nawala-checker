@@ -19,16 +19,17 @@ import (
 
 // Config holds the CLI configuration loaded from a JSON or YAML file.
 type Config struct {
-	Timeout       string      `json:"timeout"        yaml:"timeout"`
-	MaxRetries    *int        `json:"max_retries"    yaml:"max_retries"`
-	CacheTTL      string      `json:"cache_ttl"      yaml:"cache_ttl"`
-	DisableCache  *bool       `json:"disable_cache"  yaml:"disable_cache"`
-	Concurrency   *int        `json:"concurrency"    yaml:"concurrency"`
-	EDNS0Size     *uint16     `json:"edns0_size"     yaml:"edns0_size"`
-	Protocol      string      `json:"protocol"       yaml:"protocol"`
-	TLSServerName string      `json:"tls_server_name" yaml:"tls_server_name"`
-	TLSSkipVerify *bool       `json:"tls_skip_verify" yaml:"tls_skip_verify"`
-	Servers       []ServerDef `json:"servers"        yaml:"servers"`
+	Timeout        string      `json:"timeout"         yaml:"timeout"`
+	CommandTimeout string      `json:"command_timeout" yaml:"command_timeout"`
+	MaxRetries     *int        `json:"max_retries"     yaml:"max_retries"`
+	CacheTTL       string      `json:"cache_ttl"       yaml:"cache_ttl"`
+	DisableCache   *bool       `json:"disable_cache"   yaml:"disable_cache"`
+	Concurrency    *int        `json:"concurrency"     yaml:"concurrency"`
+	EDNS0Size      *uint16     `json:"edns0_size"      yaml:"edns0_size"`
+	Protocol       string      `json:"protocol"        yaml:"protocol"`
+	TLSServerName  string      `json:"tls_server_name" yaml:"tls_server_name"`
+	TLSSkipVerify  *bool       `json:"tls_skip_verify" yaml:"tls_skip_verify"`
+	Servers        []ServerDef `json:"servers"         yaml:"servers"`
 }
 
 // configFile is the top-level envelope that wraps Config in a JSON or YAML
@@ -201,6 +202,20 @@ func (c *Config) parseTLSSkipVerify() (nawala.Option, error) {
 		return nawala.WithTLSSkipVerify(), nil
 	}
 	return nil, nil
+}
+
+// parseCommandTimeout parses the command_timeout string into a time.Duration.
+// This is a CLI-level concern and is NOT converted into a nawala.Option.
+// Returns the zero duration when the field is not set.
+func (c *Config) parseCommandTimeout() (time.Duration, error) {
+	if c.CommandTimeout == "" {
+		return 0, nil
+	}
+	d, err := time.ParseDuration(c.CommandTimeout)
+	if err != nil {
+		return 0, fmt.Errorf("invalid command_timeout %q: %w", c.CommandTimeout, err)
+	}
+	return d, nil
 }
 
 // parseServers converts the config ServerDefs into nawala.DNSServer structs and returns a WithServers option.

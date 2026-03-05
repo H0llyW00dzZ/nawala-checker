@@ -7,10 +7,15 @@ package cli
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
 	"github.com/spf13/cobra"
 )
+
+// defaultCommandTimeout is the overall timeout for CLI commands
+// (check, status) when no command_timeout is specified in the config.
+const defaultCommandTimeout = 30 * time.Second
 
 // configPath holds the --config flag value.
 var configPath string
@@ -57,21 +62,31 @@ func init() {
 // Execute runs the root command and returns any error.
 func Execute() error { return rootCmd.Execute() }
 
-// buildChecker creates a nawala.Checker from the config file (if provided).
-func buildChecker() (*nawala.Checker, error) {
+// buildChecker creates a nawala.Checker from the config file (if provided)
+// and resolves the command timeout. The returned duration is the overall
+// timeout for the CLI command; it defaults to defaultCommandTimeout.
+func buildChecker() (*nawala.Checker, time.Duration, error) {
 	if configPath == "" {
-		return nawala.New(), nil
+		return nawala.New(), defaultCommandTimeout, nil
 	}
 
 	cfg, err := loadConfig(configPath)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	opts, err := cfg.toOptions()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return nawala.New(opts...), nil
+	cmdTimeout, err := cfg.parseCommandTimeout()
+	if err != nil {
+		return nil, 0, err
+	}
+	if cmdTimeout == 0 {
+		cmdTimeout = defaultCommandTimeout
+	}
+
+	return nawala.New(opts...), cmdTimeout, nil
 }

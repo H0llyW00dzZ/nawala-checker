@@ -8,7 +8,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -37,7 +36,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	checker, err := buildChecker()
+	checker, cmdTimeout, err := buildChecker()
 	if err != nil {
 		return err
 	}
@@ -50,7 +49,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 		_ = w.Close()
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
 
 	statuses, err := checker.DNSStatus(ctx)
