@@ -312,6 +312,11 @@ func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
 	// Try each server in order (primary with failover).
 	for _, srv := range servers {
 		qtype := parseQueryType(srv.QueryType)
+		// Cache key deliberately includes the server address; different
+		// servers may return different blocking verdicts for the same domain
+		// (e.g., only one resolver applies a block list). This trades a lower
+		// cache hit rate for correctness — a cached "not blocked" from server A
+		// must not short-circuit a probe against server B.
 		cacheKey := fmt.Sprintf("%s:%s:%s:%d", domain, srv.Address, srv.Keyword, qtype)
 
 		// Check cache first.

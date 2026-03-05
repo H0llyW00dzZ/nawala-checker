@@ -159,7 +159,15 @@ func checkDNSHealth(ctx context.Context, q dnsQuery) ServerStatus {
 		}
 	}
 
-	if resp == nil || resp.Rcode != dns.RcodeSuccess {
+	if resp == nil {
+		return ServerStatus{
+			Server: q.server,
+			Online: false,
+			Error:  fmt.Errorf("nil response from server"),
+		}
+	}
+
+	if resp.Rcode != dns.RcodeSuccess {
 		return ServerStatus{
 			Server: q.server,
 			Online: false,

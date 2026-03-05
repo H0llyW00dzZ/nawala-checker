@@ -7,18 +7,28 @@ package nawala
 
 // Result represents the outcome of checking a single domain
 // against a Nawala DNS server.
+//
+// Callers must always check [Result.Error] before reading [Result.Blocked].
+// When Error is non-nil the Blocked value is unspecified and must be
+// ignored — it may default to false even though the domain's actual
+// blocking status is unknown.
 type Result struct {
 	// Domain is the domain name that was checked.
 	Domain string
 
 	// Blocked indicates whether the domain is blocked by Nawala.
+	//
+	// This field is only meaningful when [Result.Error] is nil.
+	// If Error is non-nil, Blocked may be false regardless of the
+	// domain's actual status. Always check Error first.
 	Blocked bool
 
 	// Server is the DNS server IP that was used for the check.
 	Server string
 
-	// Error is non-nil if the check encountered an error.
-	// When set, the Blocked field should not be considered reliable.
+	// Error is non-nil if the check encountered an error
+	// (e.g., DNS timeout, invalid domain, NXDOMAIN).
+	// When set, the [Result.Blocked] field is unreliable and must be ignored.
 	Error error
 }
 
