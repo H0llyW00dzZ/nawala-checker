@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -55,11 +56,15 @@ func TestRunConfig_DefaultsJSON(t *testing.T) {
 	// Must be valid JSON.
 	var wrapper struct {
 		Nawala struct {
+			Version       string          `json:"version"`
 			Configuration effectiveConfig `json:"configuration"`
 		} `json:"nawala"`
 	}
 	if err := json.Unmarshal([]byte(out), &wrapper); err != nil {
 		t.Fatalf("JSON output is not valid JSON: %v\n%s", err, out)
+	}
+	if wrapper.Nawala.Version != nawala.Version {
+		t.Errorf("expected version=%q, got %q", nawala.Version, wrapper.Nawala.Version)
 	}
 	cfg := wrapper.Nawala.Configuration
 	if cfg.Timeout == "" {
@@ -97,11 +102,15 @@ func TestRunConfig_DefaultsYAML(t *testing.T) {
 	// Must be valid YAML that round-trips.
 	var wrapper struct {
 		Nawala struct {
+			Version       string          `yaml:"version"`
 			Configuration effectiveConfig `yaml:"configuration"`
 		} `yaml:"nawala"`
 	}
 	if err := yaml.Unmarshal([]byte(out), &wrapper); err != nil {
 		t.Fatalf("YAML output is not valid YAML: %v\n%s", err, out)
+	}
+	if wrapper.Nawala.Version != nawala.Version {
+		t.Errorf("expected version=%q, got %q", nawala.Version, wrapper.Nawala.Version)
 	}
 	if wrapper.Nawala.Configuration.Timeout == "" {
 		t.Error("expected non-empty timeout in YAML defaults")
@@ -129,11 +138,15 @@ func TestRunConfig_FromFileJSON(t *testing.T) {
 
 	var wrapper struct {
 		Nawala struct {
+			Version       string          `json:"version"`
 			Configuration effectiveConfig `json:"configuration"`
 		} `json:"nawala"`
 	}
 	if err := json.Unmarshal(buf.Bytes(), &wrapper); err != nil {
 		t.Fatalf("JSON output invalid: %v", err)
+	}
+	if wrapper.Nawala.Version != nawala.Version {
+		t.Errorf("expected version=%q, got %q", nawala.Version, wrapper.Nawala.Version)
 	}
 	cfg := wrapper.Nawala.Configuration
 	if cfg.Timeout != "30s" {

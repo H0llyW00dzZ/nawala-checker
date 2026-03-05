@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"text/tabwriter"
 
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
 	"github.com/stretchr/testify/assert"
@@ -25,9 +24,6 @@ func testWriter(format string) (*Writer, *bytes.Buffer) {
 	var buf bytes.Buffer
 	bw := bufio.NewWriter(&buf)
 	w := &Writer{w: bw, format: format}
-	if format == FormatText {
-		w.tw = tabwriter.NewWriter(bw, 0, 0, 4, ' ', 0)
-	}
 	return w, &buf
 }
 
@@ -73,6 +69,7 @@ func TestWriter_WriteResult_Text(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
+	assert.Contains(t, out, "Nawala Checker")
 	assert.Contains(t, out, "google.com")
 	assert.Contains(t, out, "NOT BLOCKED")
 	assert.Contains(t, out, "8.8.8.8")
@@ -116,10 +113,12 @@ func TestWriter_WriteResult_JSON(t *testing.T) {
 	out := flushAndRead(w, buf)
 	var wrapper struct {
 		Nawala struct {
-			Result []jsonResult `json:"result"`
+			Version string       `json:"version"`
+			Result  []jsonResult `json:"result"`
 		} `json:"nawala"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	assert.Equal(t, nawala.Version, wrapper.Nawala.Version)
 	require.Len(t, wrapper.Nawala.Result, 1)
 	jr := wrapper.Nawala.Result[0]
 
@@ -142,10 +141,12 @@ func TestWriter_WriteResult_JSONWithError(t *testing.T) {
 	out := flushAndRead(w, buf)
 	var wrapper struct {
 		Nawala struct {
-			Result []jsonResult `json:"result"`
+			Version string       `json:"version"`
+			Result  []jsonResult `json:"result"`
 		} `json:"nawala"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	assert.Equal(t, nawala.Version, wrapper.Nawala.Version)
 	require.Len(t, wrapper.Nawala.Result, 1)
 	jr := wrapper.Nawala.Result[0]
 
@@ -163,10 +164,12 @@ func TestWriter_WriteResult_JSON_MultipleResults(t *testing.T) {
 	out := flushAndRead(w, buf)
 	var wrapper struct {
 		Nawala struct {
-			Result []jsonResult `json:"result"`
+			Version string       `json:"version"`
+			Result  []jsonResult `json:"result"`
 		} `json:"nawala"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	assert.Equal(t, nawala.Version, wrapper.Nawala.Version)
 	require.Len(t, wrapper.Nawala.Result, 2)
 	assert.Equal(t, "google.com", wrapper.Nawala.Result[0].Domain)
 	assert.Equal(t, "reddit.com", wrapper.Nawala.Result[1].Domain)
@@ -185,6 +188,7 @@ func TestWriter_WriteStatus_Text_Online(t *testing.T) {
 	})
 
 	out := flushAndRead(w, buf)
+	assert.Contains(t, out, "Nawala Checker")
 	assert.Contains(t, out, "8.8.8.8")
 	assert.Contains(t, out, "ONLINE")
 	assert.Contains(t, out, "42ms")
@@ -228,10 +232,12 @@ func TestWriter_WriteStatus_JSON_Online(t *testing.T) {
 	out := flushAndRead(w, buf)
 	var wrapper struct {
 		Nawala struct {
-			Status []jsonStatus `json:"status"`
+			Version string       `json:"version"`
+			Status  []jsonStatus `json:"status"`
 		} `json:"nawala"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	assert.Equal(t, nawala.Version, wrapper.Nawala.Version)
 	require.Len(t, wrapper.Nawala.Status, 1)
 	js := wrapper.Nawala.Status[0]
 
@@ -252,10 +258,12 @@ func TestWriter_WriteStatus_JSON_Offline(t *testing.T) {
 	out := flushAndRead(w, buf)
 	var wrapper struct {
 		Nawala struct {
-			Status []jsonStatus `json:"status"`
+			Version string       `json:"version"`
+			Status  []jsonStatus `json:"status"`
 		} `json:"nawala"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	assert.Equal(t, nawala.Version, wrapper.Nawala.Version)
 	require.Len(t, wrapper.Nawala.Status, 1)
 	js := wrapper.Nawala.Status[0]
 
@@ -271,10 +279,12 @@ func TestWriter_WriteStatus_JSON_MultipleStatuses(t *testing.T) {
 	out := flushAndRead(w, buf)
 	var wrapper struct {
 		Nawala struct {
-			Status []jsonStatus `json:"status"`
+			Version string       `json:"version"`
+			Status  []jsonStatus `json:"status"`
 		} `json:"nawala"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper))
+	assert.Equal(t, nawala.Version, wrapper.Nawala.Version)
 	require.Len(t, wrapper.Nawala.Status, 2)
 	assert.Equal(t, "8.8.8.8", wrapper.Nawala.Status[0].Server)
 	assert.Equal(t, "1.1.1.1", wrapper.Nawala.Status[1].Server)
@@ -328,6 +338,7 @@ func TestWriter_WriteResult_HTML(t *testing.T) {
 	w.WriteResult(nawala.Result{Domain: "fail.com", Error: errors.New("timeout"), Server: "8.8.8.8"})
 
 	out := flushAndRead(w, buf)
+	assert.Contains(t, out, "Nawala Checker")
 	assert.Contains(t, out, "<table>")
 	assert.Contains(t, out, "google.com")
 	assert.Contains(t, out, "NOT BLOCKED")
@@ -347,6 +358,7 @@ func TestWriter_WriteStatus_HTML(t *testing.T) {
 	w.WriteStatus(nawala.ServerStatus{Server: "1.2.3.4", Online: false, Error: errors.New("refused")})
 
 	out := flushAndRead(w, buf)
+	assert.Contains(t, out, "Nawala Checker")
 	assert.Contains(t, out, "<table>")
 	assert.Contains(t, out, "8.8.8.8")
 	assert.Contains(t, out, "ONLINE")
@@ -523,11 +535,13 @@ func TestWriter_Close_JSON_EmptyResults(t *testing.T) {
 	out := buf.String()
 	var wrapper struct {
 		Nawala struct {
-			Result []jsonResult `json:"result"`
+			Version string       `json:"version"`
+			Result  []jsonResult `json:"result"`
 		} `json:"nawala"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper),
 		"expected valid JSON, got: %s", out)
+	assert.Equal(t, nawala.Version, wrapper.Nawala.Version)
 	assert.Empty(t, wrapper.Nawala.Result, "expected empty result array")
 }
 
@@ -544,21 +558,23 @@ func TestWriter_Close_JSON_EmptyStatuses(t *testing.T) {
 	out := buf.String()
 	var wrapper struct {
 		Nawala struct {
-			Status []jsonStatus `json:"status"`
+			Version string       `json:"version"`
+			Status  []jsonStatus `json:"status"`
 		} `json:"nawala"`
 	}
 	require.NoError(t, json.Unmarshal([]byte(out), &wrapper),
 		"expected valid JSON, got: %s", out)
+	assert.Equal(t, nawala.Version, wrapper.Nawala.Version)
 	assert.Empty(t, wrapper.Nawala.Status, "expected empty status array")
 }
 
 func TestXlsxColWidth(t *testing.T) {
-	// Normal content: width = charCount + 2 padding.
-	assert.Equal(t, float64(12), xlsxColWidth(10))
-	// Content so short it falls below the minimum floor of 8.
-	assert.Equal(t, float64(8), xlsxColWidth(1))
-	// Exactly at the floor boundary (6 + 2 = 8).
-	assert.Equal(t, float64(8), xlsxColWidth(6))
-	// Just above the floor (7 + 2 = 9).
-	assert.Equal(t, float64(9), xlsxColWidth(7))
+	// Normal content: width = charCount + 6 padding.
+	assert.Equal(t, float64(16), xlsxColWidth(10))
+	// Content so short it falls below the minimum floor of 10.
+	assert.Equal(t, float64(10), xlsxColWidth(1))
+	// Exactly at the floor boundary (4 + 6 = 10, hits min).
+	assert.Equal(t, float64(10), xlsxColWidth(4))
+	// Just above the floor (7 + 6 = 13).
+	assert.Equal(t, float64(13), xlsxColWidth(7))
 }
