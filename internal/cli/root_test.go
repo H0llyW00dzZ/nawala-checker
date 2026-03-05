@@ -222,6 +222,38 @@ func TestMagicEmbed_VarsNotEmpty(t *testing.T) {
 	}
 }
 
+// TestMagicEmbed_ExamplesTrimmed verifies that the init() in magic_embed.go
+// correctly strips trailing newlines from embedded example strings on the
+// Cobra command structs. This is important cross-platform: Git on Windows
+// may check out files with \r\n endings.
+func TestMagicEmbed_ExamplesTrimmed(t *testing.T) {
+	tests := []struct {
+		name    string
+		example string
+	}{
+		{"rootCmd", rootCmd.Example},
+		{"checkCmd", checkCmd.Example},
+		{"statusCmd", statusCmd.Example},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("%s.Example = %q", tt.name, tt.example)
+
+			if tt.example == "" {
+				t.Errorf("%s.Example is empty — embed or init failed", tt.name)
+				return
+			}
+			if strings.HasSuffix(tt.example, "\n") {
+				t.Errorf("%s.Example has trailing \\n — TrimRight did not apply", tt.name)
+			}
+			if strings.HasSuffix(tt.example, "\r") {
+				t.Errorf("%s.Example has trailing \\r — TrimRight did not apply", tt.name)
+			}
+		})
+	}
+}
+
 // newStatusCmd creates a fresh status command for isolated testing.
 func newStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
