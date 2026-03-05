@@ -507,8 +507,6 @@ func (w *Writer) writeTextStatuses() {
 }
 
 // Close flushes any buffered data, writes JSON caps, and closes the file.
-//
-// Note: the output is more creative now for excel, html, and text
 func (w *Writer) Close() error {
 	switch w.format {
 	case FormatJSON:
