@@ -28,6 +28,22 @@ type Config struct {
 	Servers      []ServerDef `json:"servers"       yaml:"servers"`
 }
 
+// configFile is the top-level envelope that wraps Config in a JSON or YAML
+// config file. The file format mirrors the JSON output envelope:
+//
+//	{"nawala":{"configuration":{...}}}
+//
+// Or in YAML:
+//
+//	nawala:
+//	  configuration:
+//	    timeout: 10s
+type configFile struct {
+	Nawala struct {
+		Configuration Config `json:"configuration" yaml:"configuration"`
+	} `json:"nawala" yaml:"nawala"`
+}
+
 // ServerDef defines a DNS server in the config file.
 type ServerDef struct {
 	Address   string `json:"address"    yaml:"address"`
@@ -36,28 +52,37 @@ type ServerDef struct {
 }
 
 // loadConfig reads and parses a JSON or YAML config file.
-// The format is detected by file extension (.json, .yaml, .yml).
+// The file must use the nawala envelope format:
+//
+//	{"nawala":{"configuration":{...}}}  (JSON)
+//
+//	nawala:                              (YAML)
+//	  configuration:
+//	    timeout: 10s
+//
+// The format is auto-detected by file extension (.json, .yaml, .yml).
 func loadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config: %w", err)
 	}
 
-	var cfg Config
+	var cf configFile
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
 	case ".json":
-		if err := json.Unmarshal(data, &cfg); err != nil {
+		if err := json.Unmarshal(data, &cf); err != nil {
 			return nil, fmt.Errorf("parsing JSON config: %w", err)
 		}
 	case ".yaml", ".yml":
-		if err := yaml.Unmarshal(data, &cfg); err != nil {
+		if err := yaml.Unmarshal(data, &cf); err != nil {
 			return nil, fmt.Errorf("parsing YAML config: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("unsupported config format %q (use .json, .yaml, or .yml)", ext)
 	}
 
+	cfg := cf.Nawala.Configuration
 	return &cfg, nil
 }
 

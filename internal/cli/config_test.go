@@ -16,15 +16,19 @@ import (
 
 func TestLoadConfig_JSON(t *testing.T) {
 	content := `{
-		"timeout": "10s",
-		"max_retries": 3,
-		"cache_ttl": "5m",
-		"disable_cache": true,
-		"concurrency": 50,
-		"edns0_size": 4096,
-		"servers": [
-			{"address": "8.8.8.8", "keyword": "blocked", "query_type": "A"}
-		]
+		"nawala": {
+			"configuration": {
+				"timeout": "10s",
+				"max_retries": 3,
+				"cache_ttl": "5m",
+				"disable_cache": true,
+				"concurrency": 50,
+				"edns0_size": 4096,
+				"servers": [
+					{"address": "8.8.8.8", "keyword": "blocked", "query_type": "A"}
+				]
+			}
+		}
 	}`
 
 	path := filepath.Join(t.TempDir(), "config.json")
@@ -53,16 +57,18 @@ func TestLoadConfig_JSON(t *testing.T) {
 
 func TestLoadConfig_YAML(t *testing.T) {
 	content := `
-timeout: 15s
-max_retries: 5
-cache_ttl: 10m
-disable_cache: false
-concurrency: 200
-edns0_size: 2048
-servers:
-  - address: "1.1.1.1"
-    keyword: "cloudflare"
-    query_type: "AAAA"
+nawala:
+  configuration:
+    timeout: 15s
+    max_retries: 5
+    cache_ttl: 10m
+    disable_cache: false
+    concurrency: 200
+    edns0_size: 2048
+    servers:
+      - address: "1.1.1.1"
+        keyword: "cloudflare"
+        query_type: "AAAA"
 `
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
@@ -82,7 +88,7 @@ servers:
 }
 
 func TestLoadConfig_YML(t *testing.T) {
-	content := `timeout: 5s`
+	content := "nawala:\n  configuration:\n    timeout: 5s\n"
 	path := filepath.Join(t.TempDir(), "config.yml")
 	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
 

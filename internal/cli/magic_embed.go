@@ -18,3 +18,6 @@ var checkLong string
 
 //go:embed usage/status_long.txt
 var statusLong string
+
+//go:embed usage/config_long.txt
+var configLong string

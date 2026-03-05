@@ -31,7 +31,7 @@ func TestBuildChecker_NoConfig(t *testing.T) {
 }
 
 func TestBuildChecker_WithConfig(t *testing.T) {
-	content := `{"timeout": "10s"}`
+	content := `{"nawala":{"configuration":{"timeout":"10s"}}}`
 	path := filepath.Join(t.TempDir(), "config.json")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func TestBuildChecker_InvalidConfig(t *testing.T) {
 }
 
 func TestBuildChecker_InvalidDuration(t *testing.T) {
-	content := `{"timeout": "not-a-duration"}`
+	content := `{"nawala":{"configuration":{"timeout":"not-a-duration"}}}`
 	path := filepath.Join(t.TempDir(), "bad_timeout.json")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		t.Fatal(err)
@@ -211,6 +211,9 @@ func TestMagicEmbed_VarsNotEmpty(t *testing.T) {
 	if statusLong == "" {
 		t.Error("statusLong is empty — embed failed")
 	}
+	if configLong == "" {
+		t.Error("configLong is empty — embed failed")
+	}
 }
 
 // newStatusCmd creates a fresh status command for isolated testing.
@@ -263,11 +266,7 @@ func TestRunStatus_DNSError(t *testing.T) {
 
 	// Config with unreachable server + tiny timeout to force DNS error.
 	badCfg := filepath.Join(t.TempDir(), "bad_server.json")
-	cfgContent := `{
-		"timeout": "1ms",
-		"max_retries": 0,
-		"servers": [{"address": "192.0.2.1", "keyword": "test", "query_type": "A"}]
-	}`
+	cfgContent := `{"nawala":{"configuration":{"timeout":"1ms","max_retries":0,"servers":[{"address":"192.0.2.1","keyword":"test","query_type":"A"}]}}}`
 	if err := os.WriteFile(badCfg, []byte(cfgContent), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -288,7 +287,7 @@ func TestRunStatus_NoServers(t *testing.T) {
 	// Config with empty servers array causes ErrNoDNSServers,
 	// triggering the "dns status check failed" error wrapping.
 	cfgPath := filepath.Join(t.TempDir(), "no_servers.json")
-	if err := os.WriteFile(cfgPath, []byte(`{"servers": []}`), 0644); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(`{"nawala":{"configuration":{"servers":[]}}}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -333,11 +332,7 @@ func TestRunRoot_Success_Delegation(t *testing.T) {
 	mockAddr, cleanup := createMockDNSServer(t)
 	defer cleanup()
 
-	cfgContent := fmt.Sprintf(`{
-		"timeout": "1s",
-		"max_retries": 0,
-		"servers": [{"address": "%s", "keyword": "test", "query_type": "A"}]
-	}`, mockAddr)
+	cfgContent := fmt.Sprintf(`{"nawala":{"configuration":{"timeout":"1s","max_retries":0,"servers":[{"address":"%s","keyword":"test","query_type":"A"}]}}}`, mockAddr)
 
 	cfgPath := filepath.Join(t.TempDir(), "success_root.json")
 	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {

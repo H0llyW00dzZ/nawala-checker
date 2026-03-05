@@ -21,8 +21,8 @@ var rootCmd = &cobra.Command{
 	Short: "Check domains against Indonesian ISP DNS filters",
 	Long:  rootLong,
 	// When bare args are provided (no subcommand), delegate to check.
-	Args:          cobra.ArbitraryArgs,
-	RunE:          runRoot,
+	Args: cobra.ArbitraryArgs,
+	RunE: runRoot,
 }
 
 // runRoot is the root command handler. It prints the version when
@@ -51,6 +51,7 @@ func init() {
 
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(configCmd)
 }
 
 // Execute runs the root command and returns any error.
