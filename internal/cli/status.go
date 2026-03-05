@@ -37,15 +37,15 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	// Past this point every error is a runtime error, so suppress
-	// Cobra's automatic usage and error output.
-	cmd.SilenceUsage = true
-	cmd.SilenceErrors = true
-
 	checker, cmdTimeout, err := buildChecker()
 	if err != nil {
 		return err
 	}
+
+	// Past this point every error is a runtime error, so suppress
+	// Cobra's automatic usage and error output.
+	cmd.SilenceUsage = true
+	cmd.SilenceErrors = true
 
 	w, err := NewWriter(outputPath, format)
 	if err != nil {
