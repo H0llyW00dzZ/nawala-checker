@@ -476,3 +476,26 @@ func TestQueryDNS_TcpTlsDefaultPort(t *testing.T) {
 		edns0Size: 1232,
 	})
 }
+
+func TestCheckDNSHealth_NilResponse(t *testing.T) {
+	// Exercise the defensive resp == nil guard in checkDNSHealth.
+	// queryDNS never returns (nil, nil) in practice, so we swap
+	// queryFunc to inject that condition.
+	original := queryFunc
+	queryFunc = func(_ context.Context, _ dnsQuery) (*dns.Msg, error) {
+		return nil, nil // simulate a nil response with no error
+	}
+	t.Cleanup(func() { queryFunc = original })
+
+	ctx := context.Background()
+	client := &dns.Client{Timeout: 5 * time.Second, Net: "udp"}
+	status := checkDNSHealth(ctx, dnsQuery{
+		client:    client,
+		server:    "127.0.0.1:53",
+		edns0Size: 1232,
+	})
+
+	assert.False(t, status.Online, "expected Online=false for nil response")
+	assert.Error(t, status.Error)
+	assert.Contains(t, status.Error.Error(), "nil response from server")
+}

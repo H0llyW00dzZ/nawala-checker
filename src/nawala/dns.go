@@ -139,6 +139,12 @@ func containsKeyword(msg *dns.Msg, keyword string) bool {
 	return false
 }
 
+// queryFunc is the function used by checkDNSHealth to perform DNS queries.
+// It defaults to [queryDNS] and exists solely as a test seam so that edge
+// cases unreachable through the real [queryDNS] (such as a nil response
+// with no error) can be exercised in tests.
+var queryFunc = queryDNS
+
 // checkDNSHealth performs a health check on a single DNS server by
 // resolving "google.com" and measuring the latency.
 func checkDNSHealth(ctx context.Context, q dnsQuery) ServerStatus {
@@ -148,7 +154,7 @@ func checkDNSHealth(ctx context.Context, q dnsQuery) ServerStatus {
 
 	start := time.Now()
 
-	resp, err := queryDNS(ctx, q)
+	resp, err := queryFunc(ctx, q)
 	latency := time.Since(start).Milliseconds()
 
 	if err != nil {
