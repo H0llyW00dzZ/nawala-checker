@@ -1077,7 +1077,6 @@ func TestDNSQueryPortLogic(t *testing.T) {
 	addr, cleanup := startTestDNSServer(t, handler)
 	defer cleanup()
 
-	customClient := &dns.Client{Timeout: 1 * time.Second}
 	ctx := context.Background()
 
 	// Extract port from the dummy server
@@ -1149,6 +1148,12 @@ func TestDNSQueryPortLogic(t *testing.T) {
 			wantAddr:   "[fe80::1%eth0]:" + port,
 			skipOS:     "windows",
 		},
+		{
+			// Explicitly tests that if protocol is tcp-tls, default port becomes 853.
+			name:       "Default port fallback for tcp-tls",
+			serverAddr: "127.0.0.1",
+			wantAddr:   "127.0.0.1:853",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1157,8 +1162,16 @@ func TestDNSQueryPortLogic(t *testing.T) {
 				t.Skipf("skipped on %s: IPv6 zone IDs use platform-specific interface names", tt.skipOS)
 			}
 
+			// If testing tcp-tls fallback, assign tcp-tls to the client specifically for this test case
+			clientNet := "udp"
+			if tt.name == "Default port fallback for tcp-tls" {
+				clientNet = "tcp-tls"
+			}
+
+			testClient := &dns.Client{Timeout: 1 * time.Second, Net: clientNet}
+
 			q := dnsQuery{
-				client:    customClient,
+				client:    testClient,
 				domain:    "example.com",
 				server:    tt.serverAddr,
 				qtype:     dns.TypeA,
