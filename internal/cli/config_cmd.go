@@ -132,10 +132,12 @@ func runConfig(cmd *cobra.Command, _ []string) error {
 	// Build the envelope.
 	type envelope struct {
 		Nawala struct {
+			Version       string          `json:"version"       yaml:"version"`
 			Configuration effectiveConfig `json:"configuration" yaml:"configuration"`
 		} `json:"nawala" yaml:"nawala"`
 	}
 	var env envelope
+	env.Nawala.Version = nawala.Version
 	env.Nawala.Configuration = eff
 
 	// Serialise.
