@@ -439,12 +439,12 @@ func textCenterPad(s string, w int) string {
 }
 
 // writeTextResults renders w.results with a centered status column.
-func (wr *Writer) writeTextResults() {
+func (w *Writer) writeTextResults() {
 	const pad = "    "
 	type row struct{ domain, status, server string }
-	rows := make([]row, len(wr.results))
+	rows := make([]row, len(w.results))
 	maxD, maxS := 0, 0
-	for i, r := range wr.results {
+	for i, r := range w.results {
 		var s string
 		switch {
 		case r.Error != nil:
@@ -463,20 +463,20 @@ func (wr *Writer) writeTextResults() {
 		}
 	}
 	totalW := maxD + len(pad) + maxS + len(pad) + len(rows[0].server)
-	_, _ = fmt.Fprintf(wr.w, "%s\n\n", textBanner(totalW))
+	_, _ = fmt.Fprintf(w.w, "%s\n\n", textBanner(totalW))
 	for _, r := range rows {
-		_, _ = fmt.Fprintf(wr.w, "%-*s%s%s%s%s\n",
+		_, _ = fmt.Fprintf(w.w, "%-*s%s%s%s%s\n",
 			maxD, r.domain, pad, textCenterPad(r.status, maxS), pad, r.server)
 	}
 }
 
-// writeTextStatuses renders wr.statuses with a centered status column.
-func (wr *Writer) writeTextStatuses() {
+// writeTextStatuses renders w.statuses with a centered status column.
+func (w *Writer) writeTextStatuses() {
 	const pad = "    "
 	type row struct{ server, status, info string }
-	rows := make([]row, len(wr.statuses))
+	rows := make([]row, len(w.statuses))
 	maxSv, maxSt, maxI := 0, 0, 0
-	for i, s := range wr.statuses {
+	for i, s := range w.statuses {
 		st := "ONLINE"
 		if !s.Online {
 			st = "OFFLINE"
@@ -499,9 +499,9 @@ func (wr *Writer) writeTextStatuses() {
 		}
 	}
 	totalW := maxSv + len(pad) + maxSt + len(pad) + maxI
-	_, _ = fmt.Fprintf(wr.w, "%s\n\n", textBanner(totalW))
+	_, _ = fmt.Fprintf(w.w, "%s\n\n", textBanner(totalW))
 	for _, r := range rows {
-		_, _ = fmt.Fprintf(wr.w, "%-*s%s%s%s%s\n",
+		_, _ = fmt.Fprintf(w.w, "%-*s%s%s%s%s\n",
 			maxSv, r.server, pad, textCenterPad(r.status, maxSt), pad, r.info)
 	}
 }
