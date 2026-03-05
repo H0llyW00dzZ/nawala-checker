@@ -50,6 +50,13 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no domains provided (use positional args or --file)")
 	}
 
+	// Past this point every error is a runtime error (not a flag/input
+	// error), so suppress Cobra's automatic usage and error output.
+	// Per-domain errors are already visible in the results; the non-zero
+	// exit code is still preserved for scripts.
+	cmd.SilenceUsage = true
+	cmd.SilenceErrors = true
+
 	// Build checker from config.
 	checker, cmdTimeout, err := buildChecker()
 	if err != nil {
