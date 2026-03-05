@@ -51,6 +51,9 @@
 //	      "cache_ttl": "10m",
 //	      "disable_cache": false,
 //	      "concurrency": 50,
+//	      "protocol": "udp",
+//	      "tls_server_name": "",
+//	      "tls_skip_verify": false,
 //	      "servers": [
 //	        {"address": "180.131.144.144", "keyword": "internetpositif", "query_type": "A"}
 //	      ]
@@ -67,12 +70,20 @@
 //	    cache_ttl: 10m
 //	    disable_cache: false
 //	    concurrency: 50
+//	    protocol: udp
+//	    tls_server_name: ""
+//	    tls_skip_verify: false
 //	    servers:
 //	      - address: "180.131.144.144"
 //	        keyword: "internetpositif"
 //	        query_type: "A"
 //
 // Use "nawala config" to generate a template with all SDK defaults filled in.
+//
+// The protocol field selects the DNS transport: "udp" (default), "tcp",
+// or "tcp-tls" (DNS over TLS / DoT).
+// For tcp-tls, set tls_server_name to override the SNI (useful when the server
+// address is an IP), and tls_skip_verify: true only for self-signed certs.
 //
 // # Exit Codes
 //

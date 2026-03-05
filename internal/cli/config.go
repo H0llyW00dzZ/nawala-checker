@@ -19,13 +19,16 @@ import (
 
 // Config holds the CLI configuration loaded from a JSON or YAML file.
 type Config struct {
-	Timeout      string      `json:"timeout"       yaml:"timeout"`
-	MaxRetries   *int        `json:"max_retries"   yaml:"max_retries"`
-	CacheTTL     string      `json:"cache_ttl"     yaml:"cache_ttl"`
-	DisableCache *bool       `json:"disable_cache" yaml:"disable_cache"`
-	Concurrency  *int        `json:"concurrency"   yaml:"concurrency"`
-	EDNS0Size    *uint16     `json:"edns0_size"    yaml:"edns0_size"`
-	Servers      []ServerDef `json:"servers"       yaml:"servers"`
+	Timeout       string      `json:"timeout"        yaml:"timeout"`
+	MaxRetries    *int        `json:"max_retries"    yaml:"max_retries"`
+	CacheTTL      string      `json:"cache_ttl"      yaml:"cache_ttl"`
+	DisableCache  *bool       `json:"disable_cache"  yaml:"disable_cache"`
+	Concurrency   *int        `json:"concurrency"    yaml:"concurrency"`
+	EDNS0Size     *uint16     `json:"edns0_size"     yaml:"edns0_size"`
+	Protocol      string      `json:"protocol"       yaml:"protocol"`
+	TLSServerName string      `json:"tls_server_name" yaml:"tls_server_name"`
+	TLSSkipVerify *bool       `json:"tls_skip_verify" yaml:"tls_skip_verify"`
+	Servers       []ServerDef `json:"servers"        yaml:"servers"`
 }
 
 // configFile is the top-level envelope that wraps Config in a JSON or YAML
@@ -96,6 +99,9 @@ func (c *Config) toOptions() ([]nawala.Option, error) {
 		c.parseDisableCache,
 		c.parseConcurrency,
 		c.parseEDNS0Size,
+		c.parseProtocol,
+		c.parseTLSServerName,
+		c.parseTLSSkipVerify,
 		c.parseServers,
 	}
 
@@ -168,6 +174,33 @@ func (c *Config) parseEDNS0Size() (nawala.Option, error) {
 		return nil, nil
 	}
 	return nawala.WithEDNS0Size(*c.EDNS0Size), nil
+}
+
+// parseProtocol returns a WithProtocol option if the Protocol field is set.
+// Valid values are "udp", "tcp", and "tcp-tls"; others are ignored by the SDK.
+func (c *Config) parseProtocol() (nawala.Option, error) {
+	if c.Protocol == "" {
+		return nil, nil
+	}
+	return nawala.WithProtocol(c.Protocol), nil
+}
+
+// parseTLSServerName returns a WithTLSServerName option if TLSServerName is set.
+// Only effective when protocol is "tcp-tls".
+func (c *Config) parseTLSServerName() (nawala.Option, error) {
+	if c.TLSServerName == "" {
+		return nil, nil
+	}
+	return nawala.WithTLSServerName(c.TLSServerName), nil
+}
+
+// parseTLSSkipVerify returns a WithTLSSkipVerify option if TLSSkipVerify is true.
+// Only effective when protocol is "tcp-tls".
+func (c *Config) parseTLSSkipVerify() (nawala.Option, error) {
+	if c.TLSSkipVerify != nil && *c.TLSSkipVerify {
+		return nawala.WithTLSSkipVerify(), nil
+	}
+	return nil, nil
 }
 
 // parseServers converts the config ServerDefs into nawala.DNSServer structs and returns a WithServers option.

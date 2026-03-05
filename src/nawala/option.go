@@ -192,6 +192,70 @@ func WithEDNS0Size(size uint16) Option {
 	}
 }
 
+// WithProtocol sets the DNS transport protocol used by the default DNS client.
+// The default is "udp".
+//
+// Valid values:
+//
+//   - "udp"     — standard DNS over UDP (default; [RFC 1035])
+//   - "tcp"     — DNS over TCP ([RFC 1035])
+//   - "tcp-tls" — DNS over TLS, also known as DoT ([RFC 7858])
+//
+// Invalid values are ignored and the default "udp" is kept.
+// This option has no effect if a custom DNS client is set via [WithDNSClient],
+// as the custom client's own Net configuration takes precedence.
+//
+// [RFC 1035]: https://www.rfc-editor.org/rfc/rfc1035.html
+// [RFC 7858]: https://www.rfc-editor.org/rfc/rfc7858.html
+func WithProtocol(net string) Option {
+	return func(c *Checker) {
+		switch net {
+		case "udp", "tcp", "tcp-tls":
+			c.dnsProtocol = net
+		}
+	}
+}
+
+// WithTLSServerName overrides the TLS server name (SNI) used when connecting
+// to a DoT (DNS-over-TLS) server.
+//
+// The server address (IP) and server name are independent. You connect to the IP
+// as the transport destination, while the server name declares the TLS identity
+// to verify the certificate against. The cert does not need to contain the IP.
+// This is identical to how HTTPS works: connect to a resolved IP, verify the
+// cert against the hostname.
+//
+// Example — IP address with a trusted CA cert:
+//
+//	c := nawala.New(
+//	    nawala.WithProtocol("tcp-tls"),
+//	    nawala.WithTLSServerName("dns.example.com"), // cert subject
+//	    // tls_skip_verify: false (default) — full cert verification
+//	)
+//
+// Only applies when [WithProtocol]("tcp-tls") is in use. Has no effect for
+// "udp" or "tcp" protocols, or when a custom client is set via [WithDNSClient].
+func WithTLSServerName(name string) Option {
+	return func(c *Checker) {
+		c.tlsServerName = name
+	}
+}
+
+// WithTLSSkipVerify disables TLS certificate verification when connecting to a
+// DoT (DNS-over-TLS) server.
+//
+// WARNING: this disables all TLS security guarantees. Only use this in
+// controlled environments (e.g. testing with a self-signed certificate).
+// Never use this in production against untrusted networks.
+//
+// Only applies when [WithProtocol]("tcp-tls") is in use. Has no effect for
+// "udp" or "tcp" protocols, or when a custom client is set via [WithDNSClient].
+func WithTLSSkipVerify() Option {
+	return func(c *Checker) {
+		c.tlsSkipVerify = true
+	}
+}
+
 // DeleteServers removes one or more servers from the checker's active
 // configuration at runtime. It is concurrency-safe and will safely remove
 // servers identified by their Address field.

@@ -5,10 +5,11 @@
 
 // Package cli implements the nawala command-line interface.
 //
-// It provides a Cobra-based CLI with two subcommands:
+// It provides a Cobra-based CLI with three subcommands:
 //
-//   - check — check whether domains are blocked by Indonesian ISP DNS filters
+//   - check  — check whether domains are blocked by Indonesian ISP DNS filters
 //   - status — display the health and latency of configured DNS servers
+//   - config — print the effective configuration (defaults or loaded file)
 //
 // The root command delegates to check when positional domain arguments are
 // provided, so "nawala google.com" is equivalent to "nawala check google.com".
@@ -18,21 +19,37 @@
 // A JSON or YAML configuration file can be passed via the --config (-c) flag.
 // The file format is auto-detected by extension (.json, .yaml, .yml). All
 // fields are optional; unset fields fall through to the nawala SDK defaults.
+// Use "nawala config" to generate a template with all defaults filled in.
 //
-// Example YAML:
+// Example YAML (nawala envelope format):
 //
-//	timeout: 10s
-//	max_retries: 3
-//	cache_ttl: 10m
-//	disable_cache: false
-//	concurrency: 50
-//	servers:
-//	  - address: "180.131.144.144"
-//	    keyword: "internetpositif"
-//	    query_type: "A"
+//	nawala:
+//	  configuration:
+//	    timeout: 10s
+//	    max_retries: 3
+//	    cache_ttl: 10m
+//	    disable_cache: false
+//	    concurrency: 50
+//	    protocol: udp
+//	    tls_server_name: ""
+//	    tls_skip_verify: false
+//	    servers:
+//	      - address: "180.131.144.144"
+//	        keyword: "internetpositif"
+//	        query_type: "A"
 //
 // Set disable_cache: true to disable the built-in in-memory cache entirely.
 // When set, the cache_ttl field has no effect.
+//
+// Set protocol to "udp" (default), "tcp", or "tcp-tls" (DNS over TLS / DoT)
+// to select the DNS transport without needing a custom WithDNSClient.
+// For tcp-tls, two optional TLS fields are available:
+//
+//   - tls_server_name: the TLS identity (cert hostname) to verify against. The server
+//     address (IP) and this name are independent — the IP is the transport destination,
+//     the server name is what TLS verifies the cert against (no IP SAN needed in the cert).
+//   - tls_skip_verify: disables TLS certificate verification entirely. Only for self-signed
+//     certs; never use in production.
 //
 // # Domain Input
 //

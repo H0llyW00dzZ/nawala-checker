@@ -34,13 +34,16 @@ func init() {
 // configuration. Values are expressed as strings (durations) or primitives
 // so the output is always a valid config file the user can reuse.
 type effectiveConfig struct {
-	Timeout      string      `json:"timeout"        yaml:"timeout"`
-	MaxRetries   int         `json:"max_retries"    yaml:"max_retries"`
-	CacheTTL     string      `json:"cache_ttl"      yaml:"cache_ttl"`
-	DisableCache bool        `json:"disable_cache"  yaml:"disable_cache"`
-	Concurrency  int         `json:"concurrency"    yaml:"concurrency"`
-	EDNS0Size    uint16      `json:"edns0_size"     yaml:"edns0_size"`
-	Servers      []ServerDef `json:"servers"        yaml:"servers"`
+	Timeout       string      `json:"timeout"         yaml:"timeout"`
+	MaxRetries    int         `json:"max_retries"     yaml:"max_retries"`
+	CacheTTL      string      `json:"cache_ttl"       yaml:"cache_ttl"`
+	DisableCache  bool        `json:"disable_cache"   yaml:"disable_cache"`
+	Concurrency   int         `json:"concurrency"     yaml:"concurrency"`
+	EDNS0Size     uint16      `json:"edns0_size"      yaml:"edns0_size"`
+	Protocol      string      `json:"protocol"        yaml:"protocol"`
+	TLSServerName string      `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty"`
+	TLSSkipVerify bool        `json:"tls_skip_verify" yaml:"tls_skip_verify"`
+	Servers       []ServerDef `json:"servers"         yaml:"servers"`
 }
 
 // coalesce returns *ptr if ptr is non-nil, otherwise def.
@@ -70,6 +73,7 @@ func resolveEffectiveConfig(cfg *Config) effectiveConfig {
 		DisableCache: false,
 		Concurrency:  100,
 		EDNS0Size:    1232,
+		Protocol:     "udp",
 		Servers:      defs,
 	}
 
@@ -82,6 +86,7 @@ func resolveEffectiveConfig(cfg *Config) effectiveConfig {
 	eff.DisableCache = coalesce(cfg.DisableCache, eff.DisableCache)
 	eff.Concurrency = coalesce(cfg.Concurrency, eff.Concurrency)
 	eff.EDNS0Size = coalesce(cfg.EDNS0Size, eff.EDNS0Size)
+	eff.TLSSkipVerify = coalesce(cfg.TLSSkipVerify, eff.TLSSkipVerify)
 
 	// String/slice fields: empty/nil means "not set".
 	if cfg.Timeout != "" {
@@ -89,6 +94,12 @@ func resolveEffectiveConfig(cfg *Config) effectiveConfig {
 	}
 	if cfg.CacheTTL != "" {
 		eff.CacheTTL = cfg.CacheTTL
+	}
+	if cfg.Protocol != "" {
+		eff.Protocol = cfg.Protocol
+	}
+	if cfg.TLSServerName != "" {
+		eff.TLSServerName = cfg.TLSServerName
 	}
 	if cfg.Servers != nil {
 		eff.Servers = cfg.Servers

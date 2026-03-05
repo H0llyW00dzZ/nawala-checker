@@ -112,11 +112,14 @@
 //	    // Limit concurrent checks to 50 goroutines.
 //	    nawala.WithConcurrency(50),
 //
-//	    // Use a custom DNS client (e.g., TCP or DNS-over-TLS).
+//	    // Use a custom DNS client (e.g., custom dialer or advanced TLS).
 //	    nawala.WithDNSClient(&dns.Client{
 //	        Timeout: 10 * time.Second,
 //	        Net:     "tcp-tls",
 //	    }),
+//
+//	    // Or simply switch protocol without replacing the client.
+//	    nawala.WithProtocol("tcp-tls"),
 //
 //	    // Set custom EDNS0 size (default is 1232 to prevent fragmentation).
 //	    nawala.WithEDNS0Size(4096),
@@ -130,7 +133,13 @@
 //   - [WithCache]             — Custom Cache implementation; pass nil to disable
 //   - [WithConcurrency]       — Max concurrent DNS checks, semaphore size (default: 100)
 //   - [WithEDNS0Size]         — EDNS0 UDP buffer size, prevents fragmentation (default: 1232)
-//   - [WithDNSClient]         — Custom client for TCP, TLS, or custom dialer
+//   - [WithProtocol]          — DNS transport: "udp" (default), "tcp", or "tcp-tls" (DoT)
+//   - [WithTLSServerName]     — SNI server name for tcp-tls; required when the server address is
+//     an IP and the cert is issued for a hostname (works with trusted CA certs; set
+//     tls_skip_verify: false for full verification)
+//   - [WithTLSSkipVerify]     — Disable TLS cert verification for tcp-tls (only for self-signed
+//     certs where no valid server name can be provided; never use in production)
+//   - [WithDNSClient]         — Custom client for full transport control (TCP, TLS, dialer)
 //   - [WithServer]            — (Deprecated: use [Checker.SetServers] for hot-reloading) Add or replace a single DNS server
 //   - [WithServers]           — Replace all DNS servers (default: Nawala servers)
 //   - [Checker.SetServers]    — Hot-reload: Add or replace servers at runtime safely
