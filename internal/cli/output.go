@@ -20,9 +20,9 @@ import (
 type Writer struct {
 	w           *bufio.Writer
 	tw          *tabwriter.Writer // tab-aligned text output (nil in JSON mode)
-	closer      io.Closer        // non-nil when writing to a file
-	json        bool             // output as JSON
-	jsonStarted bool             // tracks if we started the JSON array
+	closer      io.Closer         // non-nil when writing to a file
+	json        bool              // output as JSON
+	jsonStarted bool              // tracks if we started the JSON array
 }
 
 // NewWriter creates a Writer that writes to the given path.
