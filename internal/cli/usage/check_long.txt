@@ -6,13 +6,14 @@ Domains can be provided as positional arguments, loaded from a text file
 The text file format is one domain per line. Lines starting with '#' are
 treated as comments, and blank lines are ignored.
 
-By default, results are streamed to stdout as tab-separated text. Use
---json for NDJSON output (one JSON object per line), and --output (-o)
-to write results to a file instead of stdout.
+By default, results are streamed to stdout as tab-separated text.
+Other formats available are --json, --html, and --xlsx. Use the
+--output (-o) flag to write results to a file instead of stdout.
 
 Examples:
   nawala check google.com reddit.com github.com
   nawala check --file domains.txt
   nawala check --file domains.txt --json
-  nawala check --file domains.txt -o results.txt
+  nawala check --file domains.txt --html -o report.html
+  nawala check --file domains.txt --xlsx -o results.xlsx
   nawala check --config custom.yaml --file domains.txt --json -o out.json
