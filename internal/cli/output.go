@@ -239,8 +239,8 @@ func (w *Writer) closeHTML() error {
 // value. It adds a small padding so text never hugs the cell border, and
 // enforces a minimum so narrow columns (e.g. "Status") still look readable.
 func xlsxColWidth(charCount int) float64 {
-	const padding = 2
-	const minWidth = 8
+	const padding = 6
+	const minWidth = 10
 	return max(float64(charCount+padding), minWidth)
 }
 
