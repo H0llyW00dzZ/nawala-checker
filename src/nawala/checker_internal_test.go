@@ -1661,3 +1661,26 @@ func TestWithProtocol_TLSSkipVerifyAndServerName(t *testing.T) {
 	assert.True(t, c.dnsClient.TLSConfig.InsecureSkipVerify)
 	assert.Equal(t, "custom.dns", c.dnsClient.TLSConfig.ServerName)
 }
+
+// TestQueryDNS_CustomPort verifies that if a user provides a custom port in the server address,
+// the default port logic (53 or 853) does not override it.
+func TestQueryDNS_CustomPort(t *testing.T) {
+	// We don't need a real server, we just want to ensure it tries to dial the right port
+	// and fails with a connection error instead of changing the port.
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	q := dnsQuery{
+		client:    &dns.Client{Net: "tcp-tls"},
+		domain:    "example.com",
+		server:    "127.0.0.1:9853", // Custom port
+		qtype:     dns.TypeA,
+		edns0Size: 1232,
+	}
+
+	_, err := queryDNS(ctx, q)
+	require.Error(t, err)
+
+	// The error should mention the custom port 9853, proving it didn't get overwritten to 853.
+	assert.Contains(t, err.Error(), "127.0.0.1:9853", "Should attempt to dial the custom port")
+}
