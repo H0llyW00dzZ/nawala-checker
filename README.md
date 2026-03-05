@@ -225,7 +225,6 @@ c := nawala.New(
 | `Checker.HasServer(s)` | — | Hot-reload: Check if a server is configured at runtime safely |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Remove servers at runtime safely |
 
-
 ## API
 
 ### Core Methods
