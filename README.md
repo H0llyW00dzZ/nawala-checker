@@ -19,7 +19,7 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 > [!TIP]
 > When running on cloud infrastructure (e.g., VPS, microservices, [k8s](https://kubernetes.io)) that is not on an Indonesian network (e.g., a Singapore or US server), implement your own DNS server on an Indonesian network, then point this SDK at it using `WithServers`. Block indicator behavior depends on the DNS server in use; the default Nawala/Komdigi servers only return block indicators when queried from an Indonesian source IP.
 
-## Features
+## ✨ Features
 
 - **Concurrent domain checking** — check multiple domains in parallel with a single call
 - **DNS server failover** — automatic fallback to secondary servers when the primary fails
@@ -55,7 +55,7 @@ In practice the SDK is capable of checking **millions — or even billions — o
 > [!TIP]
 > For very large domain lists (millions to billions), combine a high `WithConcurrency` value with `WithCache` disabled (or a Redis-backed cache) and stream domains from a file via `--file` in the CLI.
 
-## Installation
+## 📦 Installation
 
 ```bash
 go get github.com/H0llyW00dzZ/nawala-checker
@@ -63,7 +63,7 @@ go get github.com/H0llyW00dzZ/nawala-checker
 
 Requires **Go 1.25.6** or later.
 
-### CLI
+### 💻 CLI
 
 Install the `nawala` command-line tool:
 
@@ -163,7 +163,7 @@ Configuration file example (`config.json`) — nawala envelope format:
 >   server name can be verified. Never use in production.
 
 
-## Quick Start
+## ⚡ Quick Start
 
 ```go
 package main
@@ -201,7 +201,7 @@ func main() {
 }
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 Use functional options to customize the checker:
 
@@ -257,7 +257,7 @@ c := nawala.New(
 )
 ```
 
-### Available Options
+### 🔧 Available Options
 
 | Option | Default | Description |
 |---|---|---|
@@ -278,9 +278,9 @@ c := nawala.New(
 | `Checker.HasServer(s)` | — | Hot-reload: Check if a server is configured at runtime safely |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Remove servers at runtime safely |
 
-## API
+## 🔌 API
 
-### Core Methods
+### 🛠️ Core Methods
 
 ```go
 // Check multiple domains concurrently.
@@ -314,7 +314,7 @@ if c.HasServer("203.0.113.1") {
 c.DeleteServers("203.0.113.1")
 ```
 
-### Validation
+### ✅ Validation
 
 ```go
 // Validate a domain name before checking.
@@ -322,7 +322,7 @@ ok := nawala.IsValidDomain("example.com") // true
 ok  = nawala.IsValidDomain("invalid")     // false (single label, no TLD)
 ```
 
-### Types
+### 📐 Types
 
 ```go
 // Result of checking a single domain.
@@ -349,7 +349,7 @@ type DNSServer struct {
 }
 ```
 
-### Errors
+### ⚠️ Errors
 
 ```go
 var (
@@ -363,7 +363,7 @@ var (
 )
 ```
 
-### Custom Cache
+### 🗄️ Custom Cache
 
 Implement the `Cache` interface to use a custom cache backend:
 
@@ -375,7 +375,7 @@ type Cache interface {
 }
 ```
 
-### Cache Key Format
+### 🔑 Cache Key Format
 
 All cache keys are namespaced with the prefix `nawala_checker:` to prevent collisions when multiple packages share the same backend (e.g., Redis). The default format is:
 
@@ -420,7 +420,7 @@ Use `WithDigests` when:
 - Internal server addresses must not appear in keys in plain text
 - A consistent, fixed-width key format (64-char hex) is required
 
-## Examples
+## 📁 Examples
 
 Runnable examples are available in the [`examples/`](examples/) directory:
 
@@ -439,7 +439,7 @@ cd nawala-checker
 go run ./examples/basic
 ```
 
-## Default DNS Servers
+## 🖥️ Default DNS Servers
 
 The checker comes pre-configured with known Nawala DNS servers:
 
@@ -450,11 +450,11 @@ The checker comes pre-configured with known Nawala DNS servers:
 
 Nawala blocks domains by returning CNAME redirects to known block pages (`internetpositif.id` or `internetsehatku.com`). Komdigi blocks domains by returning an A record with EDE 15 (Blocked) containing `trustpositif.komdigi.go.id`. The keyword is matched against the full DNS record string for broad detection.
 
-## How Blocking Works
+## 🔍 How Blocking Works
 
 Indonesian ISP DNS filters use two distinct blocking mechanisms:
 
-### Nawala — CNAME Redirect
+### 🔀 Nawala — CNAME Redirect
 
 Nawala intercepts DNS queries for blocked domains and returns a **CNAME redirect** to a landing page instead of the real IP address:
 
@@ -465,7 +465,7 @@ blocked.example.    3600    IN    CNAME    internetpositif.id.
 
 The checker detects this by scanning all DNS record sections (Answer, Authority, Additional) for the keyword `internetpositif` in any record's string representation.
 
-### Komdigi — EDE 15 (Blocked)
+### 🚫 Komdigi — EDE 15 (Blocked)
 
 Komdigi uses the newer **Extended DNS Errors** mechanism ([RFC 8914](https://datatracker.ietf.org/doc/rfc8914/)). The response returns an A record pointing to a block page IP, along with an EDE option code 15 (Blocked) in the OPT pseudo-section:
 
@@ -504,7 +504,7 @@ It became so ubiquitous in internet cafes (*warnet*) and early ISPs that circumv
 
 Today, while the original Nawala DNS filtering might be historical, its legacy lives on. The Indonesian government (Kominfo, now Komdigi) adopted and expanded upon these concepts, evolving from the early CNAME redirects (`internetpositif.id`) to modern, standards-compliant Extended DNS Errors (`trustpositif.komdigi.go.id`). This SDK honors that history while providing a robust tool to navigate the modern Indonesian internet filtering landscape.
 
-## Project Structure
+## 🗂️ Project Structure
 
 ```
 nawala-checker/
@@ -519,7 +519,7 @@ nawala-checker/
     └── nawala/         # Core SDK package (checker, cache, DNS, options, types)
 ```
 
-## Testing
+## 🧪 Testing
 
 Tests must be run from a cloned repository:
 
@@ -547,13 +547,13 @@ make test-short
 make build
 ```
 
-## Roadmap
+## 🗺️ Roadmap
 
 - [ ] Upgrade `github.com/miekg/dns` to v2 or use a modern alternative for improved networking performance and features, due to its implementation in Go and its high effectiveness for networking.
 - [x] Implement a CLI version (bundled in this repository) for checking domains directly from the terminal without writing Go code.
 - [ ] Implement an [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) ([Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro)) server version (bundled in this repository) for integrating nawala-checker directly with LLMs and AI agents.
 - [ ] Implement a pure [JSON-RPC 2.0](https://www.jsonrpc.org/specification) server version (bundled in this repository) for language-agnostic integration over stdio or TCP, similar in spirit to how MCP works but using the standard JSON-RPC wire protocol.
 
-## License
+## 📄 License
 
 [BSD 3-Clause License](LICENSE) — Copyright (c) 2026, H0llyW00dzZ
