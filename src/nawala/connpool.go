@@ -84,34 +84,36 @@ func (p *connPool) exchange(ctx context.Context, msg *dns.Msg) (*dns.Msg, time.D
 	}
 
 	r, rtt, err := p.client.ExchangeWithConnContext(ctx, msg, conn)
-	if err != nil {
-		// The connection may be broken (idle timeout, EOF, etc.).
-		// Close it and do not return it to the pool; the caller's
-		// retry / failover logic will handle the error.
-		_ = conn.Close()
+	if err == nil {
+		p.put(conn)
+		return r, rtt, nil
+	}
 
-		// Transparently redial once for the common "idle connection
-		// expired" case (e.g. server-side TCP keepalive timeout).
-		// If the fresh dial or exchange also fails we surface that error.
-		if isConnError(err) {
-			conn2, dialErr := p.client.DialContext(ctx, p.addr)
-			if dialErr != nil {
-				return nil, 0, err // return the original error
-			}
-			r2, rtt2, err2 := p.client.ExchangeWithConnContext(ctx, msg, conn2)
-			if err2 != nil {
-				_ = conn2.Close()
-				return nil, 0, err2
-			}
-			p.put(conn2)
-			return r2, rtt2, nil
-		}
+	// The connection may be broken (idle timeout, EOF, etc.).
+	// Close it and do not return it to the pool; the caller's
+	// retry / failover logic will handle the error.
+	_ = conn.Close()
 
+	// Transparently redial once for the common "idle connection
+	// expired" case (e.g. server-side TCP keepalive timeout).
+	// If the fresh dial or exchange also fails we surface that error.
+	if !isConnError(err) {
 		return nil, 0, err
 	}
 
-	p.put(conn)
-	return r, rtt, nil
+	conn2, dialErr := p.client.DialContext(ctx, p.addr)
+	if dialErr != nil {
+		return nil, 0, err // return the original error
+	}
+
+	r2, rtt2, err2 := p.client.ExchangeWithConnContext(ctx, msg, conn2)
+	if err2 != nil {
+		_ = conn2.Close()
+		return nil, 0, err2
+	}
+
+	p.put(conn2)
+	return r2, rtt2, nil
 }
 
 // close drains all idle connections from the pool and closes them.
