@@ -26,6 +26,8 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 - **Coba lagi dengan backoff eksponensial** — tangguh terhadap kesalahan jaringan sementara
 - **Caching bawaan** — cache dalam memori dengan TTL yang dapat dikonfigurasi untuk menghindari kueri berlebihan
 - **Backend cache kustom** — pasang Redis, memcached, atau backend apa pun melalui antarmuka `Cache`
+- **Namespace kunci cache** — semua kunci diberi awalan `nawala_checker:` untuk mencegah tabrakan saat berbagi backend cache antar paket
+- **Kunci cache berbasis digest** — opsi `WithDigests` untuk mengganti isi kunci dengan hash apa pun (misal hex SHA-256 atau double-SHA-256 gaya Bitcoin), menghasilkan `nawala_checker:<digest>`
 - **Pemeriksaan kesehatan server** — pantau status online/offline dan latensi server DNS
 - **Pemulihan panic** — goroutine dilindungi dari panic dengan pemulihan otomatis dan error yang diketik
 - **Opsi fungsional** — pola konfigurasi Go yang bersih dan [idiomatis](https://go.dev/doc/effective_go)
@@ -234,6 +236,21 @@ c := nawala.New(
 
     // Atur ukuran EDNS0 kustom (default adalah 1232 untuk mencegah fragmentasi).
     nawala.WithEDNS0Size(4096),
+
+    // Kunci cache berbasis digest: ganti isi kunci dengan hash sehingga
+    // nilai panjang atau sensitif tidak disimpan apa adanya di backend cache.
+    // Kunci akhir selalu: "nawala_checker:<digest>".
+    // SHA-256 (satu putaran) — standar, banyak digunakan.
+    nawala.WithDigests(func(data string) string {
+        sum := sha256.Sum256([]byte(data))
+        return hex.EncodeToString(sum[:])
+    }),
+    // Atau double-SHA-256 gaya Bitcoin: SHA256(SHA256(data)).
+    // nawala.WithDigests(func(data string) string {
+    //     first := sha256.Sum256([]byte(data))
+    //     second := sha256.Sum256(first[:])
+    //     return hex.EncodeToString(second[:])
+    // }),
 )
 ```
 
@@ -245,6 +262,7 @@ c := nawala.New(
 | `WithMaxRetries(n)` | `2` | Maksimum upaya percobaan balik per kueri (total = n+1) |
 | `WithCacheTTL(d)` | `5m` | TTL untuk cache dalam memori bawaan |
 | `WithCache(c)` | dalam-memori | Implementasi `Cache` kustom (pass `nil` untuk menonaktifkan) |
+| `WithDigests(fn)` | `nil` (nonaktif) | Hash kustom untuk kunci cache; format kunci: `nawala_checker:<digest>` (pass `nil` untuk nonaktifkan) |
 | `WithConcurrency(n)` | `100` | Maksimum pemeriksaan DNS serentak (ukuran semaphore) |
 | `WithEDNS0Size(n)` | `1232` | Ukuran buffer UDP EDNS0 (mencegah fragmentasi) |
 | `WithProtocol(s)` | `"udp"` | Transport DNS: `"udp"`, `"tcp"`, atau `"tcp-tls"` (DoT) |
@@ -353,6 +371,51 @@ type Cache interface {
     Flush()
 }
 ```
+
+### Format Kunci Cache
+
+Semua kunci cache diberi awalan `nawala_checker:` untuk mencegah tabrakan saat beberapa paket berbagi backend yang sama (misalnya Redis). Format default:
+
+```
+nawala_checker:<domain>:<server>:<keyword>:<qtype>
+```
+
+Ketika `WithDigests` dikonfigurasi, komponen mentah di-hash dan digest menjadi isi kunci:
+
+```
+nawala_checker:<digest>
+```
+
+Dua fungsi hash siap pakai:
+
+```go
+import (
+    "crypto/sha256"
+    "encoding/hex"
+)
+
+// SHA-256 standar (satu putaran)
+func digestSHA256(data string) string {
+    sum := sha256.Sum256([]byte(data))
+    return hex.EncodeToString(sum[:])
+}
+
+// Double-SHA-256 gaya Bitcoin: SHA256(SHA256(data))
+func digestDoubleSHA256(data string) string {
+    first := sha256.Sum256([]byte(data))
+    second := sha256.Sum256(first[:])
+    return hex.EncodeToString(second[:])
+}
+
+c := nawala.New(
+    nawala.WithDigests(digestSHA256),        // atau digestDoubleSHA256
+)
+```
+
+Gunakan `WithDigests` saat:
+- Backend cache membatasi panjang kunci
+- Alamat server internal tidak boleh muncul dalam plain text di kunci cache
+- Diperlukan format kunci lebar tetap yang konsisten (hex 64 karakter)
 
 ## Contoh
 

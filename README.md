@@ -26,6 +26,8 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 - **Retry with exponential backoff** — resilient against transient network errors
 - **Built-in caching** — in-memory cache with configurable TTL to avoid redundant queries
 - **Custom cache backends** — plug in Redis, memcached, or any backend via the `Cache` interface
+- **Cache key namespacing** — all keys are prefixed with `nawala_checker:` to prevent collisions when sharing a cache backend between packages
+- **Digest-based cache keys** — optional `WithDigests` option to replace the plain key body with any hash (e.g. hex SHA-256 or Bitcoin-style double-SHA-256), producing `nawala_checker:<digest>`
 - **Server health checks** — monitor online/offline status and latency of DNS servers
 - **Panic recovery** — goroutines are protected from panics with automatic recovery and typed errors
 - **Functional options** — clean, [idiomatic Go](https://go.dev/doc/effective_go) configuration pattern
@@ -237,6 +239,21 @@ c := nawala.New(
 
     // Set custom EDNS0 size (default is 1232 to prevent fragmentation).
     nawala.WithEDNS0Size(4096),
+
+    // Digest-based cache keys: replace the plain key body with a hash so that
+    // long or sensitive values are never stored verbatim in the cache backend.
+    // The final key is always: "nawala_checker:<digest>".
+    // SHA-256 (single-round) — standard, widely used.
+    nawala.WithDigests(func(data string) string {
+        sum := sha256.Sum256([]byte(data))
+        return hex.EncodeToString(sum[:])
+    }),
+    // Or Bitcoin-style double-SHA-256: SHA256(SHA256(data)).
+    // nawala.WithDigests(func(data string) string {
+    //     first := sha256.Sum256([]byte(data))
+    //     second := sha256.Sum256(first[:])
+    //     return hex.EncodeToString(second[:])
+    // }),
 )
 ```
 
@@ -248,6 +265,7 @@ c := nawala.New(
 | `WithMaxRetries(n)` | `2` | Max retry attempts per query (total = n+1) |
 | `WithCacheTTL(d)` | `5m` | TTL for the built-in in-memory cache |
 | `WithCache(c)` | in-memory | Custom `Cache` implementation (pass `nil` to disable) |
+| `WithDigests(fn)` | `nil` (off) | Custom hash for cache keys; key format: `nawala_checker:<digest>` (pass `nil` to disable) |
 | `WithConcurrency(n)` | `100` | Max concurrent DNS checks (semaphore size) |
 | `WithEDNS0Size(n)` | `1232` | EDNS0 UDP buffer size (prevents fragmentation) |
 | `WithProtocol(s)` | `"udp"` | DNS transport: `"udp"`, `"tcp"`, or `"tcp-tls"` (DoT) |
@@ -356,6 +374,51 @@ type Cache interface {
     Flush()
 }
 ```
+
+### Cache Key Format
+
+All cache keys are namespaced with the prefix `nawala_checker:` to prevent collisions when multiple packages share the same backend (e.g., Redis). The default format is:
+
+```
+nawala_checker:<domain>:<server>:<keyword>:<qtype>
+```
+
+When `WithDigests` is configured the raw components are hashed and the digest becomes the key body:
+
+```
+nawala_checker:<digest>
+```
+
+Two ready-to-use hash functions:
+
+```go
+import (
+    "crypto/sha256"
+    "encoding/hex"
+)
+
+// Standard SHA-256 (single-round)
+func digestSHA256(data string) string {
+    sum := sha256.Sum256([]byte(data))
+    return hex.EncodeToString(sum[:])
+}
+
+// Bitcoin-style double-SHA-256: SHA256(SHA256(data))
+func digestDoubleSHA256(data string) string {
+    first := sha256.Sum256([]byte(data))
+    second := sha256.Sum256(first[:])
+    return hex.EncodeToString(second[:])
+}
+
+c := nawala.New(
+    nawala.WithDigests(digestSHA256),        // or digestDoubleSHA256
+)
+```
+
+Use `WithDigests` when:
+- The cache backend enforces a maximum key length
+- Internal server addresses must not appear in keys in plain text
+- A consistent, fixed-width key format (64-char hex) is required
 
 ## Examples
 

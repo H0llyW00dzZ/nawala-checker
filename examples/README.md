@@ -18,7 +18,7 @@ DNS-based domain blocking checker for Indonesian ISP DNS filters
 | Example | Description |
 |---|---|
 | [`basic/`](basic/main.go) | Check multiple domains with default configuration |
-| [`custom/`](custom/main.go) | Advanced configuration: custom servers, timeouts, retries, caching |
+| [`custom/`](custom/main.go) | Advanced configuration: custom servers, timeouts, retries, caching, and digest-based cache keys |
 | [`status/`](status/main.go) | Monitor DNS server health and latency |
 | [`hotreload/`](hotreload/main.go) | Safely update DNS servers while concurrent checks are running |
 
@@ -166,6 +166,69 @@ Second check (cached):
   (`"8.8.8.8:5353"`), a hostname (`"dns.example.com"`), or a hostname with
   port (`"dns.example.com:5353"`). Port defaults to `53` for UDP/TCP and
   `853` for `tcp-tls` when omitted.
+
+### Digest-Based Cache Keys
+
+`WithDigests` replaces the plain cache key body with a hash digest. The
+final key is always `nawala_checker:<digest>` — the `nawala_checker:` prefix
+is always included to namespace SDK entries from other packages that may share
+the same backend.
+
+The example ships with two ready-to-use hash functions:
+
+```go
+import (
+    "crypto/sha256"
+    "encoding/hex"
+)
+
+// Standard SHA-256 (single-round) — 64-char hex.
+func digestSHA256(data string) string {
+    sum := sha256.Sum256([]byte(data))
+    return hex.EncodeToString(sum[:])
+}
+
+// Bitcoin-style double-SHA-256: SHA256(SHA256(data)) — same 64-char hex,
+// extra preimage resistance and length-extension attack protection.
+// Used by Bitcoin for block headers, txids, and Merkle tree nodes.
+func digestDoubleSHA256(data string) string {
+    first := sha256.Sum256([]byte(data))
+    second := sha256.Sum256(first[:])
+    return hex.EncodeToString(second[:])
+}
+```
+
+Usage:
+
+```go
+// SHA-256 keyed checker.
+cSHA256 := nawala.New(
+    nawala.WithCacheTTL(5 * time.Minute),
+    nawala.WithDigests(digestSHA256),
+)
+
+// Double-SHA-256 keyed checker (Bitcoin-style).
+cDSHA256 := nawala.New(
+    nawala.WithCacheTTL(5 * time.Minute),
+    nawala.WithDigests(digestDoubleSHA256),
+)
+```
+
+Expected output for the digest section:
+
+```
+=== Digest-Based Cache Keys ===
+  [SHA-256 key]               google.com: blocked=false (server: 180.131.144.144)
+  [SHA-256 cache hit]         google.com: blocked=false (took 1.8µs)
+
+  [double-SHA-256 key]        google.com: blocked=false (server: 180.131.144.144)
+  [double-SHA-256 cache hit]  google.com: blocked=false (took 1.2µs)
+```
+
+Use `WithDigests` when:
+- The cache backend enforces a maximum key length
+- Internal server addresses must not appear in keys in plain text
+- A consistent, fixed-width key format (64-char hex) is required
 
 ---
 

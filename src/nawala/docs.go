@@ -55,6 +55,11 @@
 //     redundant queries
 //   - Custom cache backends — plug in Redis, memcached, or any backend
 //     via the Cache interface
+//   - Cache key namespacing — all keys are prefixed with "nawala_checker:"
+//     to prevent collisions when a cache backend is shared between packages
+//   - Digest-based cache keys — optional [WithDigests] option to replace
+//     the plain cache key body with any hash function, producing keys of
+//     the form "nawala_checker:<digest>" (e.g. hex-encoded SHA-256)
 //   - Server health checks — monitor online/offline status and latency
 //     of DNS servers
 //   - Panic recovery — goroutines are protected from panics with
@@ -127,6 +132,14 @@
 //
 //	    // Set custom EDNS0 size (default is 1232 to prevent fragmentation).
 //	    nawala.WithEDNS0Size(4096),
+//
+//	    // Digest-based cache keys: replace the plain key body with a hash
+//	    // so that long or sensitive values are never stored verbatim.
+//	    // The final key is always: "nawala_checker:<digest>".
+//	    nawala.WithDigests(func(data string) string {
+//	        sum := sha256.Sum256([]byte(data))
+//	        return hex.EncodeToString(sum[:])
+//	    }),
 //	)
 //
 // Available options:
@@ -135,6 +148,8 @@
 //   - [WithMaxRetries]        — Max retry attempts per query, total = n+1 (default: 2)
 //   - [WithCacheTTL]          — TTL for the built-in in-memory cache (default: 5m)
 //   - [WithCache]             — Custom Cache implementation; pass nil to disable
+//   - [WithDigests]           — Digest-based cache keys via a custom hash function;
+//     key format: "nawala_checker:<digest>" (e.g. hex SHA-256); pass nil to disable
 //   - [WithConcurrency]       — Max concurrent DNS checks, semaphore size (default: 100)
 //   - [WithEDNS0Size]         — EDNS0 UDP buffer size, prevents fragmentation (default: 1232)
 //   - [WithProtocol]          — DNS transport: "udp" (default), "tcp", or "tcp-tls" (DoT)
@@ -217,6 +232,39 @@
 //	}
 //
 // Pass a nil value to WithCache to disable caching entirely.
+//
+// # Cache Key Format
+//
+// All cache keys produced by this SDK are namespaced with the prefix
+// "nawala_checker:" to prevent collisions when multiple packages share the
+// same cache backend (e.g., Redis). The default key format is:
+//
+//	nawala_checker:<domain>:<server>:<keyword>:<qtype>
+//
+// When [WithDigests] is configured, the raw components are passed to the
+// provided hash function and the returned string becomes the key body:
+//
+//	nawala_checker:<digest>
+//
+// Example — SHA-256 digested keys:
+//
+//	import (
+//	    "crypto/sha256"
+//	    "encoding/hex"
+//	)
+//
+//	c := nawala.New(
+//	    nawala.WithDigests(func(data string) string {
+//	        sum := sha256.Sum256([]byte(data))
+//	        return hex.EncodeToString(sum[:])
+//	    }),
+//	)
+//
+// Use [WithDigests] when:
+//
+//   - The cache backend enforces a maximum key length.
+//   - Internal server addresses must not appear in cache keys in plain text.
+//   - A consistent, fixed-width key format is required (e.g., 64-char hex).
 //
 // # How Blocking Works
 //
