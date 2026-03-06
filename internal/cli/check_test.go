@@ -169,6 +169,74 @@ func TestCollectDomains_ScannerError(t *testing.T) {
 	}
 }
 
+// TestToASCIIDomain covers all branches of the toASCIIDomain helper.
+func TestToASCIIDomain(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "empty string",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "pure ASCII - returned unchanged (idna no-op)",
+			input: "google.com",
+			want:  "google.com",
+		},
+		{
+			name:  "unicode IDN - converts to Punycode",
+			input: "例え.jp",
+			want:  "xn--r8jz45g.jp",
+		},
+		{
+			name: "invalid label - ToASCII fails, fallback to original",
+			// Leading-hyphen labels are rejected by idna.Lookup ("invalid label").
+			// The original string is returned so the SDK can reject it downstream.
+			input: "-bad.com",
+			want:  "-bad.com",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := toASCIIDomain(tt.input)
+			if got != tt.want {
+				t.Errorf("toASCIIDomain(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestCollectDomains_IDNAConversion verifies that Unicode IDN domains are
+// automatically converted to Punycode and that the Unicode and Punycode
+// forms of the same domain are deduplicated to a single entry.
+func TestCollectDomains_IDNAConversion(t *testing.T) {
+	t.Run("unicode converts to punycode", func(t *testing.T) {
+		domains, err := collectDomains([]string{"例え.jp"}, "")
+		if err != nil {
+			t.Fatalf("collectDomains error: %v", err)
+		}
+		if len(domains) != 1 {
+			t.Fatalf("len(domains) = %d, want 1", len(domains))
+		}
+		if domains[0] != "xn--r8jz45g.jp" {
+			t.Errorf("domains[0] = %q, want %q", domains[0], "xn--r8jz45g.jp")
+		}
+	})
+
+	t.Run("unicode and punycode forms deduplicated", func(t *testing.T) {
+		domains, err := collectDomains([]string{"例え.jp", "xn--r8jz45g.jp"}, "")
+		if err != nil {
+			t.Fatalf("collectDomains error: %v", err)
+		}
+		if len(domains) != 1 {
+			t.Errorf("len(domains) = %d, want 1 (unicode+punycode should be same domain)", len(domains))
+		}
+	})
+}
+
 // newCheckCmd creates a fresh check command for isolated testing.
 func newCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{

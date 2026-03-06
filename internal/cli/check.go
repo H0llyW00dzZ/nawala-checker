@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/net/idna"
 )
 
 // checkCmd is the "check" subcommand.
@@ -106,7 +107,7 @@ func collectDomains(args []string, filePath string) ([]string, error) {
 	var domains []string
 
 	addDomain := func(d string) {
-		d = strings.ToLower(strings.TrimSpace(d))
+		d = toASCIIDomain(strings.ToLower(strings.TrimSpace(d)))
 		if d == "" {
 			return
 		}
@@ -145,4 +146,19 @@ func collectDomains(args []string, filePath string) ([]string, error) {
 	}
 
 	return domains, nil
+}
+
+// toASCIIDomain converts a Unicode domain label to its ACE/Punycode form
+// using the IDNA Lookup profile (UTS #46, as used by browsers and resolvers).
+// Pure-ASCII input is returned unchanged by idna.Lookup as a no-op.
+// If conversion fails for any reason, the original string is returned so that
+// invalid domains can be rejected downstream by the SDK.
+func toASCIIDomain(d string) string {
+	if d == "" {
+		return d
+	}
+	if converted, err := idna.Lookup.ToASCII(d); err == nil {
+		return converted
+	}
+	return d
 }
