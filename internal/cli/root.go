@@ -7,6 +7,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
@@ -66,7 +67,9 @@ func Execute() error { return rootCmd.Execute() }
 // buildChecker creates a nawala.Checker from the config file (if provided)
 // and resolves the command timeout. The returned duration is the overall
 // timeout for the CLI command; it defaults to defaultCommandTimeout.
-func buildChecker() (*nawala.Checker, time.Duration, error) {
+// errw receives any diagnostic warnings (e.g. config version mismatch);
+// callers should pass cmd.ErrOrStderr() so output respects Cobra's writer.
+func buildChecker(errw io.Writer) (*nawala.Checker, time.Duration, error) {
 	if configPath == "" {
 		return nawala.New(), defaultCommandTimeout, nil
 	}
@@ -75,6 +78,8 @@ func buildChecker() (*nawala.Checker, time.Duration, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+
+	warnConfigVersion(errw, cfg)
 
 	opts, err := cfg.toOptions()
 	if err != nil {
@@ -90,4 +95,24 @@ func buildChecker() (*nawala.Checker, time.Duration, error) {
 	}
 
 	return nawala.New(opts...), cmdTimeout, nil
+}
+
+// warnConfigVersion prints a warning to errw when the version declared in
+// the config file does not match the running CLI version. The config is still
+// applied; this is purely informational so the user knows to regenerate it.
+//
+// The warning is silently skipped when the file omits the version field
+// (ConfigVersion is empty), preserving backwards compatibility with configs
+// that predate the versioned envelope format.
+func warnConfigVersion(errw io.Writer, cfg *Config) {
+	if cfg.ConfigVersion == "" || cfg.ConfigVersion == nawala.Version {
+		return
+	}
+	_, _ = fmt.Fprintf(
+		errw,
+		"nawala: warning: config version %q does not match CLI version %q — "+
+			"some settings may not work as expected; run \"nawala config\" to regenerate\n",
+		cfg.ConfigVersion,
+		nawala.Version,
+	)
 }
