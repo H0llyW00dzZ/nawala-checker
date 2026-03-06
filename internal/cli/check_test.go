@@ -36,6 +36,22 @@ func TestCollectDomains_Dedup(t *testing.T) {
 	}
 }
 
+// TestCollectDomains_CaseInsensitiveDedup verifies that mixed-case variants of
+// the same domain (e.g. "Google.com" and "google.com") are treated as one entry.
+// This matches the SDK's internal normalizeDomain behaviour (strings.ToLower).
+func TestCollectDomains_CaseInsensitiveDedup(t *testing.T) {
+	domains, err := collectDomains([]string{"Google.com", "google.com", "GOOGLE.COM"}, "")
+	if err != nil {
+		t.Fatalf("collectDomains error: %v", err)
+	}
+	if len(domains) != 1 {
+		t.Errorf("len(domains) = %d, want 1 (case-insensitive dedup)", len(domains))
+	}
+	if domains[0] != "google.com" {
+		t.Errorf("domains[0] = %q, want %q", domains[0], "google.com")
+	}
+}
+
 func TestCollectDomains_EmptyArgs(t *testing.T) {
 	domains, err := collectDomains([]string{}, "")
 	if err != nil {
