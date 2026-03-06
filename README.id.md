@@ -19,7 +19,7 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 > [!TIP]
 > Saat berjalan pada infrastruktur cloud (misalnya, VPS, microservice, [k8s](https://kubernetes.io)) yang tidak berada pada jaringan Indonesia (misalnya, server Singapura atau AS), implementasikan server DNS Anda sendiri di jaringan Indonesia, kemudian arahkan SDK ini ke sana menggunakan `WithServers`. Perilaku indikator pemblokiran bergantung pada server DNS yang digunakan; server Nawala/Komdigi default hanya mengembalikan indikator pemblokiran saat diquery dari IP sumber Indonesia.
 
-## Fitur
+## ✨ Fitur
 
 - **Pemeriksaan domain serentak** — periksa beberapa domain secara paralel dengan satu panggilan
 - **Failover server DNS** — fallback otomatis ke server sekunder ketika server utama gagal
@@ -55,7 +55,7 @@ Dalam praktiknya, SDK ini mampu memeriksa **jutaan — bahkan miliaran — domai
 > [!TIP]
 > Untuk daftar domain yang sangat besar (jutaan hingga miliaran), kombinasikan nilai `WithConcurrency` yang tinggi dengan `WithCache` dinonaktifkan (atau cache berbasis Redis) dan streaming domain dari file menggunakan `--file` di CLI.
 
-## Instalasi
+## 📦 Instalasi
 
 ```bash
 go get github.com/H0llyW00dzZ/nawala-checker
@@ -63,7 +63,7 @@ go get github.com/H0llyW00dzZ/nawala-checker
 
 Membutuhkan **Go 1.25.6** atau lebih baru.
 
-### CLI
+### 💻 CLI
 
 Instal alat baris perintah `nawala`:
 
@@ -160,7 +160,7 @@ Contoh file konfigurasi (`config.json`) — format nawala envelope:
 > - `tls_skip_verify` — menonaktifkan verifikasi sertifikat; hanya untuk sertifikat self-signed, jangan digunakan di production
 
 
-## Mulai Cepat
+## ⚡ Mulai Cepat
 
 ```go
 package main
@@ -198,7 +198,7 @@ func main() {
 }
 ```
 
-## Konfigurasi
+## ⚙️ Konfigurasi
 
 Gunakan opsi fungsional untuk menyesuaikan pemeriksa:
 
@@ -254,7 +254,7 @@ c := nawala.New(
 )
 ```
 
-### Pilihan Tersedia
+### 🔧 Pilihan Tersedia
 
 | Opsi | Default | Deskripsi |
 |---|---|---|
@@ -275,9 +275,9 @@ c := nawala.New(
 | `Checker.HasServer(s)` | — | Hot-reload: Periksa apakah server dikonfigurasi saat runtime (aman untuk konkurensi) |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Hapus server saat runtime (aman untuk konkurensi) |
 
-## API
+## 🔌 API
 
-### Metode Inti
+### 🛠️ Metode Inti
 
 ```go
 // Periksa beberapa domain secara serentak.
@@ -311,7 +311,7 @@ if c.HasServer("203.0.113.1") {
 c.DeleteServers("203.0.113.1")
 ```
 
-### Validasi
+### ✅ Validasi
 
 ```go
 // Validasi nama domain sebelum memeriksa.
@@ -319,7 +319,7 @@ ok := nawala.IsValidDomain("example.com") // true
 ok  = nawala.IsValidDomain("invalid")     // false (satu label, tidak ada TLD)
 ```
 
-### Tipe
+### 📐 Tipe
 
 ```go
 // Hasil pemeriksaan satu domain.
@@ -346,7 +346,7 @@ type DNSServer struct {
 }
 ```
 
-### Error
+### ⚠️ Error
 
 ```go
 var (
@@ -360,7 +360,7 @@ var (
 )
 ```
 
-### Cache Kustom
+### 🗄️ Cache Kustom
 
 Implementasikan antarmuka `Cache` untuk menggunakan backend cache kustom:
 
@@ -372,7 +372,7 @@ type Cache interface {
 }
 ```
 
-### Format Kunci Cache
+### 🔑 Format Kunci Cache
 
 Semua kunci cache diberi awalan `nawala_checker:` untuk mencegah tabrakan saat beberapa paket berbagi backend yang sama (misalnya Redis). Format default:
 
@@ -417,7 +417,7 @@ Gunakan `WithDigests` saat:
 - Alamat server internal tidak boleh muncul dalam plain text di kunci cache
 - Diperlukan format kunci lebar tetap yang konsisten (hex 64 karakter)
 
-## Contoh
+## 📁 Contoh
 
 Contoh yang dapat dijalankan tersedia di direktori [`examples/`](examples/):
 
@@ -436,7 +436,7 @@ cd nawala-checker
 go run ./examples/basic
 ```
 
-## Server DNS Default
+## 🖥️ Server DNS Default
 
 Pemeriksa datang dengan pra-konfigurasi server DNS Nawala yang dikenal:
 
@@ -447,11 +447,11 @@ Pemeriksa datang dengan pra-konfigurasi server DNS Nawala yang dikenal:
 
 Nawala memblokir domain dengan mengembalikan pengalihan CNAME ke halaman blokir yang dikenal (`internetpositif.id` atau `internetsehatku.com`). Komdigi memblokir domain dengan mengembalikan record A dengan EDE 15 (Blocked) yang berisi `trustpositif.komdigi.go.id`. Kata kunci dicocokkan dengan seluruh string record DNS untuk deteksi luas.
 
-## Bagaimana Pemblokiran Bekerja
+## 🔍 Bagaimana Pemblokiran Bekerja
 
 Filter DNS ISP Indonesia menggunakan dua mekanisme pemblokiran yang berbeda:
 
-### Nawala — Pengalihan CNAME
+### 🔀 Nawala — Pengalihan CNAME
 
 Nawala memotong kueri DNS untuk domain yang diblokir dan mengembalikan **pengalihan CNAME** ke halaman pendaratan alih-alih alamat IP asli:
 
@@ -462,7 +462,7 @@ blocked.example.    3600    IN    CNAME    internetpositif.id.
 
 Pemeriksa mendeteksi ini dengan memindai semua bagian record DNS (Answer, Authority, Additional) untuk kata kunci `internetpositif` dalam representasi string record apa pun.
 
-### Komdigi — EDE 15 (Blocked)
+### 🚫 Komdigi — EDE 15 (Blocked)
 
 Komdigi menggunakan mekanisme **Extended DNS Errors** yang lebih baru ([RFC 8914](https://datatracker.ietf.org/doc/rfc8914/)). Respons mengembalikan record A yang menunjuk ke IP halaman blokir, bersama dengan kode opsi EDE 15 (Blocked) di bagian pseudo OPT:
 
@@ -501,7 +501,7 @@ Sistem ini dulunya sangat umum ditemukan di warung internet (*warnet*) dan ISP a
 
 Hari ini, meskipun layanan DNS filtering Nawala yang asli mungkin sudah menjadi sejarah, warisannya tetap hidup. Pemerintah Indonesia (Kominfo, sekarang Komdigi) mengadopsi dan memperluas konsep-konsep tersebut, berkembang dari pengalihan CNAME awal (`internetpositif.id`) ke model *Extended DNS Errors* modern yang sesuai standar (`trustpositif.komdigi.go.id`). SDK ini menghormati sejarah tersebut sekaligus menyediakan alat yang kuat untuk menavigasi lanskap penyaringan internet Indonesia era modern.
 
-## Struktur Proyek
+## 🗂️ Struktur Proyek
 
 ```
 nawala-checker/
@@ -516,7 +516,7 @@ nawala-checker/
     └── nawala/         # Paket SDK inti (checker, cache, DNS, options, types)
 ```
 
-## Pengujian
+## 🧪 Pengujian
 
 Pengujian harus dijalankan dari repositori yang telah dikloning:
 
@@ -544,13 +544,13 @@ make test-short
 make build
 ```
 
-## Peta Jalan
+## 🗺️ Peta Jalan
 
 - [ ] Tingkatkan `github.com/miekg/dns` ke v2 atau gunakan alternatif modern untuk meningkatkan kinerja dan fitur jaringan, karena implementasinya di Go dan efektivitasnya yang tinggi untuk jaringan.
 - [x] Implementasikan versi CLI (dibundel dalam repositori ini) untuk memeriksa domain langsung dari terminal tanpa perlu menulis kode Go.
 - [ ] Implementasikan versi server [MCP](https://modelcontextprotocol.io/docs/getting-started/intro) ([Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro)) (dibundel dalam repositori ini) untuk mengintegrasikan nawala-checker secara langsung dengan agen AI dan LLM.
 - [ ] Implementasikan versi server [JSON-RPC 2.0](https://www.jsonrpc.org/specification) murni (dibundel dalam repositori ini) untuk integrasi lintas bahasa melalui stdio atau TCP, serupa cara kerja MCP namun menggunakan protokol kawat JSON-RPC standar.
 
-## Lisensi
+## 📄 Lisensi
 
 [BSD 3-Clause License](LICENSE) — Hak Cipta (c) 2026, H0llyW00dzZ
