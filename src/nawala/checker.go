@@ -61,6 +61,9 @@ type Checker struct {
 	tlsSkipVerify bool   // skip TLS certificate verification (tcp-tls only)
 	dnsClient     *dns.Client
 	digestHash    func(data string) string // optional; when set, cache keys are digested
+	keepAlive     bool                     // true when WithKeepAlive is configured
+	poolSize      int                      // max idle conns per server in the pool
+	connPools     map[string]*connPool     // keyed by server address; nil when keepAlive is false
 }
 
 // New creates a new [Checker] with the default Nawala DNS server
@@ -118,6 +121,19 @@ func New(opts ...Option) *Checker {
 		}
 
 		c.dnsClient = client
+	}
+
+	// Initialise connection pool for TCP / TCP-TLS when keep-alive is requested.
+	// UDP is stateless so pooling is intentionally skipped.
+	if c.keepAlive && (c.dnsProtocol == "tcp" || c.dnsProtocol == "tcp-tls") {
+		size := c.poolSize
+		if size <= 0 {
+			size = min(c.concurrency, 10)
+		}
+		c.connPools = make(map[string]*connPool, len(c.servers))
+		for _, srv := range c.servers {
+			c.connPools[srv.Address] = newConnPool(c.dnsClient, srv.Address, size)
+		}
 	}
 
 	return c
@@ -280,6 +296,19 @@ Loop:
 	return statuses, nil
 }
 
+// Close releases resources held by the checker — specifically it drains and
+// closes all idle connections in the keep-alive pool, if one was configured
+// via [WithKeepAlive].
+//
+// Callers using the default UDP protocol or without [WithKeepAlive] do not
+// need to call Close; it is a no-op in those cases.
+func (c *Checker) Close() error {
+	for _, p := range c.connPools {
+		p.close()
+	}
+	return nil
+}
+
 // FlushCache clears all cached DNS check results.
 func (c *Checker) FlushCache() {
 	if c.cache != nil {
@@ -407,6 +436,7 @@ func (c *Checker) queryWithRetries(ctx context.Context, domain string, srv DNSSe
 
 		resp, err := queryDNS(ctx, dnsQuery{
 			client:    c.dnsClient,
+			pool:      c.connPools[srv.Address],
 			domain:    domain,
 			server:    srv.Address,
 			qtype:     qtype,

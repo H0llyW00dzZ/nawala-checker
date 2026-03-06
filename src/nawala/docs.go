@@ -70,6 +70,8 @@
 //   - Domain validation — automatic normalization and validation of
 //     domain names
 //   - Typed errors — sentinel errors for [errors.Is] matching
+//   - Keep-alive connection pool — optional [WithKeepAlive] option for
+//     persistent TCP/TLS connections, avoiding per-query handshake overhead
 //
 // # Quick Start
 //
@@ -164,6 +166,8 @@
 //   - [Checker.SetServers]    — Hot-reload: Add or replace servers at runtime safely
 //   - [Checker.HasServer]     — Hot-reload: Check if a server is configured at runtime safely
 //   - [Checker.DeleteServers] — Hot-reload: Remove servers at runtime safely
+//   - [WithKeepAlive]         — Persistent TCP/TLS conn pool (idle conns per server);
+//     no-op for UDP; call [Checker.Close] when done
 //
 // # API
 //
@@ -200,6 +204,9 @@
 //	// The address must match exactly the value used in [DNSServer.Address]
 //	// (the same format: plain IP, IP:port, hostname, or hostname:port).
 //	c.DeleteServers("203.0.113.1")
+//
+//	// Release idle keep-alive connections (call when checker is no longer needed).
+//	defer c.Close()
 //
 // Domain validation:
 //

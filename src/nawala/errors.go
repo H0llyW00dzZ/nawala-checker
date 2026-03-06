@@ -5,7 +5,9 @@
 
 package nawala
 
-import "errors"
+import (
+	"errors"
+)
 
 // Sentinel errors for the nawala checker package.
 var (

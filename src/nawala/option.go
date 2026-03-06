@@ -286,6 +286,32 @@ func WithDigests(hash func(data string) string) Option {
 	}
 }
 
+// WithKeepAlive enables a persistent TCP connection pool for DNS queries,
+// reusing established connections across queries to avoid the per-query
+// overhead of TCP (or TLS) handshakes.
+//
+// poolSize is the maximum number of idle connections to maintain per
+// configured DNS server. Values ≤ 0 default to min(concurrency, 10).
+//
+// Keep-alive is only effective when the transport is "tcp" or "tcp-tls"
+// (see [WithProtocol]). For the default "udp" transport this option is
+// accepted but has no effect, since UDP is stateless and connectionless.
+//
+// When keep-alive is enabled, call [Checker.Close] when the checker is no
+// longer needed to release idle connections:
+//
+//	c := nawala.New(
+//	    nawala.WithProtocol("tcp-tls"),
+//	    nawala.WithKeepAlive(5),
+//	)
+//	defer c.Close()
+func WithKeepAlive(poolSize int) Option {
+	return func(c *Checker) {
+		c.keepAlive = true
+		c.poolSize = poolSize
+	}
+}
+
 // DeleteServers removes one or more servers from the checker's active
 // configuration at runtime. It is concurrency-safe and will safely remove
 // servers identified by their Address field.
