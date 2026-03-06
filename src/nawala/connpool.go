@@ -7,10 +7,6 @@ package nawala
 
 import (
 	"context"
-	"errors"
-	"io"
-	"net"
-	"strings"
 	"time"
 
 	"github.com/miekg/dns"
@@ -116,44 +112,6 @@ func (p *connPool) exchange(ctx context.Context, msg *dns.Msg) (*dns.Msg, time.D
 
 	p.put(conn)
 	return r, rtt, nil
-}
-
-// isConnError reports whether err indicates a broken or stale connection that
-// warrants a transparent redial. It returns false for application-level errors
-// (e.g. context cancellation, deadlines) so those are surfaced to the caller.
-//
-// Sources of stale-connection errors according to miekg/dns:
-//   - [dns.ErrConnEmpty]   — underlying net.Conn is nil (conn was closed and
-//     its internal Conn field set to nil).
-//   - [io.EOF] / [io.ErrUnexpectedEOF] — server closed the TCP connection.
-//   - *[net.OpError] wrapping an OS-level string such as
-//     "use of closed network connection" (internal/poll.ErrNetClosing) or
-//     "broken pipe" (syscall.EPIPE); both occur when writing to a locally
-//     closed socket.
-func isConnError(err error) bool {
-	if err == nil {
-		return false
-	}
-	// dns.ErrConnEmpty: the *dns.Conn had its net.Conn set to nil.
-	if errors.Is(err, dns.ErrConnEmpty) {
-		return true
-	}
-	// Raw EOF variants returned by ReadMsg on a server-closed connection.
-	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
-		return true
-	}
-	// *net.OpError wraps OS-level errors when the local end was closed or the
-	// remote peer reset the connection.
-	var opErr *net.OpError
-	if errors.As(err, &opErr) && opErr.Err != nil {
-		msg := opErr.Err.Error()
-		if strings.Contains(msg, "use of closed network connection") ||
-			strings.Contains(msg, "broken pipe") ||
-			strings.Contains(msg, "connection reset by peer") {
-			return true
-		}
-	}
-	return false
 }
 
 // close drains all idle connections from the pool and closes them.

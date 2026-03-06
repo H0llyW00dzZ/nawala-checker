@@ -396,4 +396,3 @@ func TestConfig_ToOptions_ParseKeepAlive(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, opts3, "nil KeepAlivePoolSize should produce no option")
 }
-

@@ -34,16 +34,16 @@ func init() {
 // configuration. Values are expressed as strings (durations) or primitives
 // so the output is always a valid config file the user can reuse.
 type effectiveConfig struct {
-	Timeout           string      `json:"timeout"              yaml:"timeout"`
-	CommandTimeout    string      `json:"command_timeout"      yaml:"command_timeout"`
-	MaxRetries        int         `json:"max_retries"          yaml:"max_retries"`
-	CacheTTL          string      `json:"cache_ttl"            yaml:"cache_ttl"`
-	DisableCache      bool        `json:"disable_cache"        yaml:"disable_cache"`
-	Concurrency       int         `json:"concurrency"          yaml:"concurrency"`
-	EDNS0Size         uint16      `json:"edns0_size"           yaml:"edns0_size"`
-	Protocol          string      `json:"protocol"             yaml:"protocol"`
-	TLSServerName     string      `json:"tls_server_name"      yaml:"tls_server_name"`
-	TLSSkipVerify     bool        `json:"tls_skip_verify"      yaml:"tls_skip_verify"`
+	Timeout        string `json:"timeout"              yaml:"timeout"`
+	CommandTimeout string `json:"command_timeout"      yaml:"command_timeout"`
+	MaxRetries     int    `json:"max_retries"          yaml:"max_retries"`
+	CacheTTL       string `json:"cache_ttl"            yaml:"cache_ttl"`
+	DisableCache   bool   `json:"disable_cache"        yaml:"disable_cache"`
+	Concurrency    int    `json:"concurrency"          yaml:"concurrency"`
+	EDNS0Size      uint16 `json:"edns0_size"           yaml:"edns0_size"`
+	Protocol       string `json:"protocol"             yaml:"protocol"`
+	TLSServerName  string `json:"tls_server_name"      yaml:"tls_server_name"`
+	TLSSkipVerify  bool   `json:"tls_skip_verify"      yaml:"tls_skip_verify"`
 	// KeepAlivePoolSize is 0 (disabled) by default. Set to a positive value
 	// together with protocol "tcp" or "tcp-tls" to enable connection reuse.
 	KeepAlivePoolSize int         `json:"keep_alive_pool_size" yaml:"keep_alive_pool_size"`

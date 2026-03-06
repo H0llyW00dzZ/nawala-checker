@@ -26,16 +26,16 @@ type Config struct {
 	// ConfigVersion is the "version" field from the file envelope, e.g. "0.6.5".
 	// It is empty when the file omits the field.
 	ConfigVersion  string
-	Timeout        string      `json:"timeout"         yaml:"timeout"`
-	CommandTimeout string      `json:"command_timeout" yaml:"command_timeout"`
-	MaxRetries     *int        `json:"max_retries"     yaml:"max_retries"`
-	CacheTTL       string      `json:"cache_ttl"       yaml:"cache_ttl"`
-	DisableCache   *bool       `json:"disable_cache"   yaml:"disable_cache"`
-	Concurrency    *int        `json:"concurrency"     yaml:"concurrency"`
-	EDNS0Size      *uint16     `json:"edns0_size"      yaml:"edns0_size"`
-	Protocol       string      `json:"protocol"        yaml:"protocol"`
-	TLSServerName  string      `json:"tls_server_name" yaml:"tls_server_name"`
-	TLSSkipVerify  *bool       `json:"tls_skip_verify" yaml:"tls_skip_verify"`
+	Timeout        string  `json:"timeout"         yaml:"timeout"`
+	CommandTimeout string  `json:"command_timeout" yaml:"command_timeout"`
+	MaxRetries     *int    `json:"max_retries"     yaml:"max_retries"`
+	CacheTTL       string  `json:"cache_ttl"       yaml:"cache_ttl"`
+	DisableCache   *bool   `json:"disable_cache"   yaml:"disable_cache"`
+	Concurrency    *int    `json:"concurrency"     yaml:"concurrency"`
+	EDNS0Size      *uint16 `json:"edns0_size"      yaml:"edns0_size"`
+	Protocol       string  `json:"protocol"        yaml:"protocol"`
+	TLSServerName  string  `json:"tls_server_name" yaml:"tls_server_name"`
+	TLSSkipVerify  *bool   `json:"tls_skip_verify" yaml:"tls_skip_verify"`
 	// KeepAlivePoolSize enables TCP/TLS keep-alive when non-nil and > 0.
 	// Only effective when Protocol is "tcp" or "tcp-tls" and the upstream
 	// DNS server supports RFC 7766 / RFC 7858 persistent connections.

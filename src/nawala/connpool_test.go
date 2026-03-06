@@ -526,4 +526,3 @@ func TestConnPoolExchange_RedialExchangeFails(t *testing.T) {
 	// The redial succeeded but the exchange on the fresh conn failed → err2 != nil.
 	assert.Error(t, err, "expected error when fresh redial exchange also fails")
 }
-
