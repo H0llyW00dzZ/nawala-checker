@@ -33,6 +33,26 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 - **Domain validation** — automatic normalization and validation of domain names
 - **Typed errors** — sentinel errors for `errors.Is` matching (see [Errors](#errors))
 
+## 🚀 Performance
+
+Because this SDK is written in Go and operates at the **DNS protocol level** (not over a REST API), it avoids the HTTP overhead of JSON serialization, TLS handshakes per request, and HTTP/2 multiplexing limits that affect API-based approaches. Every DNS query is a compact UDP or TCP packet — typically under 512 bytes — making the per-domain cost extremely low.
+
+Concurrency is managed by a **buffered channel semaphore** (`WithConcurrency`, default 100). Each domain is dispatched to its own goroutine, and the semaphore ensures the system never spawns unbounded goroutines. This model scales linearly: raise the limit and the SDK uses more cores automatically.
+
+| Approach | Protocol overhead | Serialization | Concurrency model |
+|---|---|---|---|
+| **This SDK** | DNS over UDP/TCP (~64 B query) | None — binary DNS wire format | Goroutine per domain, semaphore-bounded |
+| REST API checker | HTTP/HTTPS + JSON | JSON encode/decode per request | Typically request-pool limited |
+
+In practice the SDK is capable of checking **millions — or even billions — of domains** in a single run. The upper bound is the DNS server's response rate, not the SDK itself:
+
+- **Memory** — each goroutine carries a small stack (~2–8 KB base); 100 concurrent goroutines ≈ < 1 MB overhead
+- **`WithConcurrency(n)`** — raise `n` to match the server's capacity; lower it to be polite to shared resolvers
+- **No hard domain-count limit** — the SDK streams and dispatches domains on demand
+
+> [!TIP]
+> For very large domain lists (millions to billions), combine a high `WithConcurrency` value with `WithCache` disabled (or a Redis-backed cache) and stream domains from a file via `--file` in the CLI.
+
 ## Installation
 
 ```bash

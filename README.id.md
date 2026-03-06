@@ -33,6 +33,26 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 - **Validasi domain** — normalisasi dan validasi nama domain otomatis
 - **Error yang diketik** — error sentinel untuk pencocokan `errors.Is` (lihat [Error](#error))
 
+## 🚀 Performa
+
+Karena SDK ini ditulis dalam Go dan beroperasi di **level protokol DNS** (bukan melalui REST API), SDK ini menghindari overhead HTTP seperti serialisasi JSON, TLS handshake per-request, dan batas multipleksing HTTP/2 yang memengaruhi pendekatan berbasis API. Setiap kueri DNS adalah paket UDP atau TCP yang ringkas — biasanya di bawah 512 byte — sehingga biaya per-domain sangat rendah.
+
+Konkurensi dikelola oleh **semaphore channel buffer** (`WithConcurrency`, default 100). Setiap domain dikirim ke goroutine-nya sendiri, dan semaphore memastikan sistem tidak pernah membuat goroutine tak terbatas. Model ini berskala secara linear: naikkan batasnya dan SDK akan secara otomatis menggunakan lebih banyak core.
+
+| Pendekatan | Overhead protokol | Serialisasi | Model konkurensi |
+|---|---|---|---|
+| **SDK ini** | DNS over UDP/TCP (~64 B per kueri) | Tidak ada — format wire DNS biner | Goroutine per domain, dibatasi semaphore |
+| Checker REST API | HTTP/HTTPS + JSON | Encode/decode JSON per request | Umumnya dibatasi request-pool |
+
+Dalam praktiknya, SDK ini mampu memeriksa **jutaan — bahkan miliaran — domain** dalam satu kali eksekusi. Batas atas ditentukan oleh kecepatan respons server DNS, bukan SDK itu sendiri:
+
+- **Memori** — setiap goroutine membawa stack kecil (~2–8 KB dasar); 100 goroutine concurrent ≈ < 1 MB overhead
+- **`WithConcurrency(n)`** — naikkan `n` untuk menyesuaikan kapasitas server; turunkan untuk tidak membebani resolver bersama
+- **Tidak ada batas jumlah domain** — SDK mengirim dan memproses domain sesuai permintaan
+
+> [!TIP]
+> Untuk daftar domain yang sangat besar (jutaan hingga miliaran), kombinasikan nilai `WithConcurrency` yang tinggi dengan `WithCache` dinonaktifkan (atau cache berbasis Redis) dan streaming domain dari file menggunakan `--file` di CLI.
+
 ## Instalasi
 
 ```bash
