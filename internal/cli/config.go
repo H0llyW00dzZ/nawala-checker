@@ -36,7 +36,11 @@ type Config struct {
 	Protocol       string      `json:"protocol"        yaml:"protocol"`
 	TLSServerName  string      `json:"tls_server_name" yaml:"tls_server_name"`
 	TLSSkipVerify  *bool       `json:"tls_skip_verify" yaml:"tls_skip_verify"`
-	Servers        []ServerDef `json:"servers"         yaml:"servers"`
+	// KeepAlivePoolSize enables TCP/TLS keep-alive when non-nil and > 0.
+	// Only effective when Protocol is "tcp" or "tcp-tls" and the upstream
+	// DNS server supports RFC 7766 / RFC 7858 persistent connections.
+	KeepAlivePoolSize *int        `json:"keep_alive_pool_size" yaml:"keep_alive_pool_size"`
+	Servers           []ServerDef `json:"servers"              yaml:"servers"`
 }
 
 // configFile is the top-level envelope that wraps Config in a JSON or YAML
@@ -113,6 +117,7 @@ func (c *Config) toOptions() ([]nawala.Option, error) {
 		c.parseProtocol,
 		c.parseTLSServerName,
 		c.parseTLSSkipVerify,
+		c.parseKeepAlive,
 		c.parseServers,
 	}
 
@@ -212,6 +217,18 @@ func (c *Config) parseTLSSkipVerify() (nawala.Option, error) {
 		return nawala.WithTLSSkipVerify(), nil
 	}
 	return nil, nil
+}
+
+// parseKeepAlive returns a WithKeepAlive option when KeepAlivePoolSize is set.
+// A value of 0 is still passed to WithKeepAlive so the SDK can apply its own
+// default (min(concurrency, 10)). Nil means keep-alive is disabled entirely.
+// Only effective when protocol is "tcp" or "tcp-tls" and the DNS server
+// supports RFC 7766 / RFC 7858 persistent connections.
+func (c *Config) parseKeepAlive() (nawala.Option, error) {
+	if c.KeepAlivePoolSize == nil {
+		return nil, nil
+	}
+	return nawala.WithKeepAlive(*c.KeepAlivePoolSize), nil
 }
 
 // parseCommandTimeout parses the command_timeout string into a time.Duration.
