@@ -23,6 +23,11 @@ const (
 	defaultCacheTTL    = 5 * time.Minute
 	defaultConcurrency = 100
 	defaultEDNS0Size   = 1232 // Recommended size to prevent IP fragmentation
+
+	// cacheKeyPrefix is prepended to every cache key to namespace all entries
+	// produced by this SDK and avoid collisions with other packages that may
+	// share the same cache backend.
+	cacheKeyPrefix = "nawala_checker:"
 )
 
 // defaultServers are the pre-configured Nawala DNS servers
@@ -55,6 +60,7 @@ type Checker struct {
 	tlsServerName string // TLS SNI server name override (tcp-tls only)
 	tlsSkipVerify bool   // skip TLS certificate verification (tcp-tls only)
 	dnsClient     *dns.Client
+	digestHash    func(data string) string // optional; when set, cache keys are digested
 }
 
 // New creates a new [Checker] with the default Nawala DNS server
@@ -317,7 +323,18 @@ func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
 		// (e.g., only one resolver applies a block list). This trades a lower
 		// cache hit rate for correctness — a cached "not blocked" from server A
 		// must not short-circuit a probe against server B.
-		cacheKey := fmt.Sprintf("%s:%s:%s:%d", domain, srv.Address, srv.Keyword, qtype)
+		//
+		// All keys are prefixed with cacheKeyPrefix to namespace SDK entries
+		// from other packages that may share the same cache backend.
+		// When WithDigests is configured, the raw components are hashed first
+		// and the digest itself becomes the key body (e.g. nawala_checker:<digest>).
+		rawKey := fmt.Sprintf("%s:%s:%s:%d", domain, srv.Address, srv.Keyword, qtype)
+		var cacheKey string
+		if c.digestHash != nil {
+			cacheKey = cacheKeyPrefix + c.digestHash(rawKey)
+		} else {
+			cacheKey = cacheKeyPrefix + rawKey
+		}
 
 		// Check cache first.
 		if c.cache != nil {

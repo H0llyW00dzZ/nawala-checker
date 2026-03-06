@@ -252,6 +252,40 @@ func WithTLSSkipVerify() Option {
 	}
 }
 
+// WithDigests enables digest-based cache keys using the provided hash function.
+// When set, the raw cache key components (domain, server address, keyword, and
+// query type) are concatenated and passed to hash, and the returned string
+// (the digest) is used as the key body.  The final cache key is always
+// prefixed with the SDK namespace so it has the form:
+//
+//	nawala_checker:<digest>
+//
+// The hash function receives the raw key string and must return a
+// deterministic, collision-resistant representation of it, for example:
+//
+//	import "crypto/sha256"
+//	import "encoding/hex"
+//
+//	nawala.WithDigests(func(data string) string {
+//	    sum := sha256.Sum256([]byte(data))
+//	    return hex.EncodeToString(sum[:])
+//	})
+//
+// Passing nil is a no-op; the default prefixed-but-unhashed key is kept.
+//
+// This option is useful when:
+//   - The cache backend imposes a maximum key length.
+//   - Sensitive information (e.g. internal server addresses) must not appear
+//     in cache keys in plain text.
+//   - A consistent fixed-width key format is desired (e.g. hex SHA-256).
+func WithDigests(hash func(data string) string) Option {
+	return func(c *Checker) {
+		if hash != nil {
+			c.digestHash = hash
+		}
+	}
+}
+
 // DeleteServers removes one or more servers from the checker's active
 // configuration at runtime. It is concurrency-safe and will safely remove
 // servers identified by their Address field.
