@@ -87,18 +87,26 @@ nawala status
 nawala --version
 ```
 
+> [!NOTE]
+> Input domain bersifat **case-insensitive** — `Google.com` dan `google.com` dianggap sebagai
+> domain yang sama dan akan dideduplikasi sebelum diperiksa. Domain Unicode (IDN) secara
+> **otomatis dikonversi** ke Punycode (ACE) menggunakan profil IDNA Lookup (UTS\#46), sehingga
+> Anda dapat memasukkan `例え.jp` langsung dan akan diperiksa sebagai `xn--r8jz45g.jp`.
+
 Contoh file konfigurasi (`config.json`) — format nawala envelope:
 
 ```json
 {
   "nawala": {
+    "version": "0.6.5",
     "configuration": {
-      "timeout": "10s",
+      "timeout": "5s",
       "command_timeout": "30s",
-      "max_retries": 3,
-      "cache_ttl": "10m",
+      "max_retries": 2,
+      "cache_ttl": "5m",
       "disable_cache": false,
-      "concurrency": 50,
+      "concurrency": 100,
+      "edns0_size": 1232,
       "protocol": "udp",
       "tls_server_name": "",
       "tls_skip_verify": false,
@@ -112,8 +120,15 @@ Contoh file konfigurasi (`config.json`) — format nawala envelope:
 ```
 
 > [!NOTE]
+> Field `version` mencatat versi CLI yang menghasilkan konfigurasi. Jika tidak cocok dengan
+> CLI yang berjalan, peringatan akan dicetak ke stderr dan konfigurasi tetap diterapkan.
+> Buat ulang dengan `nawala config --json -o config.json` untuk memperbaruinya.
+>
 > Atur `disable_cache: true` untuk menonaktifkan cache dalam memori bawaan sepenuhnya.
 > Jika diaktifkan, nilai `cache_ttl` tidak berpengaruh.
+>
+> Atur `edns0_size` untuk mengontrol ukuran buffer UDP EDNS0 (default `1232`, atur ke `4096`
+> untuk resolver yang mendukung payload yang lebih besar).
 >
 > Atur `protocol` ke `"udp"` (default), `"tcp"`, atau `"tcp-tls"` (DNS over TLS / DoT)
 > untuk memilih transport DNS. Timeout dan ukuran EDNS0 tetap berlaku di semua protokol.
