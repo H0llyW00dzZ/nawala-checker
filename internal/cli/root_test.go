@@ -8,6 +8,7 @@ package cli
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,7 +22,7 @@ func TestBuildChecker_NoConfig(t *testing.T) {
 	configPath = ""
 	defer func() { configPath = saved }()
 
-	c, cmdTimeout, err := buildChecker()
+	c, cmdTimeout, err := buildChecker(io.Discard)
 	if err != nil {
 		t.Fatalf("buildChecker() error: %v", err)
 	}
@@ -44,7 +45,7 @@ func TestBuildChecker_WithConfig(t *testing.T) {
 	configPath = path
 	defer func() { configPath = saved }()
 
-	c, cmdTimeout, err := buildChecker()
+	c, cmdTimeout, err := buildChecker(io.Discard)
 	if err != nil {
 		t.Fatalf("buildChecker() error: %v", err)
 	}
@@ -66,7 +67,7 @@ func TestBuildChecker_InvalidConfig(t *testing.T) {
 	configPath = path
 	defer func() { configPath = saved }()
 
-	_, _, err := buildChecker()
+	_, _, err := buildChecker(io.Discard)
 	if err == nil {
 		t.Fatal("expected error for invalid config, got nil")
 	}
@@ -83,7 +84,7 @@ func TestBuildChecker_InvalidDuration(t *testing.T) {
 	configPath = path
 	defer func() { configPath = saved }()
 
-	_, _, err := buildChecker()
+	_, _, err := buildChecker(io.Discard)
 	if err == nil {
 		t.Fatal("expected error for invalid timeout, got nil")
 	}
@@ -94,7 +95,7 @@ func TestBuildChecker_MissingFile(t *testing.T) {
 	configPath = "/nonexistent/config.json"
 	defer func() { configPath = saved }()
 
-	_, _, err := buildChecker()
+	_, _, err := buildChecker(io.Discard)
 	if err == nil {
 		t.Fatal("expected error for missing config, got nil")
 	}

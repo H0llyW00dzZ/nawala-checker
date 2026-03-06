@@ -6,11 +6,14 @@
 package cli
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -207,7 +210,7 @@ func TestBuildChecker_DisableCacheNoCache(t *testing.T) {
 	configPath = path
 	defer func() { configPath = saved }()
 
-	checker, _, err := buildChecker()
+	checker, _, err := buildChecker(io.Discard)
 	require.NoError(t, err)
 	require.NotNil(t, checker)
 
@@ -291,7 +294,7 @@ func TestBuildChecker_CustomCommandTimeout(t *testing.T) {
 	configPath = path
 	defer func() { configPath = saved }()
 
-	_, cmdTimeout, err := buildChecker()
+	_, cmdTimeout, err := buildChecker(io.Discard)
 	require.NoError(t, err)
 	assert.Equal(t, 2*time.Minute, cmdTimeout)
 }
@@ -305,6 +308,66 @@ func TestBuildChecker_InvalidCommandTimeout(t *testing.T) {
 	configPath = path
 	defer func() { configPath = saved }()
 
-	_, _, err := buildChecker()
+	_, _, err := buildChecker(io.Discard)
 	assert.Error(t, err, "expected error for invalid command_timeout")
+}
+
+// TestLoadConfig_CapturesVersion verifies that loadConfig populates
+// Config.ConfigVersion from the nawala.version envelope field.
+func TestLoadConfig_CapturesVersion(t *testing.T) {
+	t.Run("JSON with version", func(t *testing.T) {
+		content := `{"nawala":{"version":"1.2.3","configuration":{"timeout":"5s"}}}`
+		path := filepath.Join(t.TempDir(), "config.json")
+		require.NoError(t, os.WriteFile(path, []byte(content), 0644))
+
+		cfg, err := loadConfig(path)
+		require.NoError(t, err)
+		assert.Equal(t, "1.2.3", cfg.ConfigVersion)
+		assert.Equal(t, "5s", cfg.Timeout)
+	})
+
+	t.Run("YAML with version", func(t *testing.T) {
+		content := "nawala:\n  version: \"2.0.0\"\n  configuration:\n    timeout: 10s\n"
+		path := filepath.Join(t.TempDir(), "config.yaml")
+		require.NoError(t, os.WriteFile(path, []byte(content), 0644))
+
+		cfg, err := loadConfig(path)
+		require.NoError(t, err)
+		assert.Equal(t, "2.0.0", cfg.ConfigVersion)
+	})
+
+	t.Run("no version field", func(t *testing.T) {
+		content := `{"nawala":{"configuration":{"timeout":"5s"}}}`
+		path := filepath.Join(t.TempDir(), "no_version.json")
+		require.NoError(t, os.WriteFile(path, []byte(content), 0644))
+
+		cfg, err := loadConfig(path)
+		require.NoError(t, err)
+		assert.Empty(t, cfg.ConfigVersion, "omitted version should leave ConfigVersion empty")
+	})
+}
+
+// TestWarnConfigVersion covers all three branches of warnConfigVersion:
+// empty (skip), matching (skip), and mismatched (print warning to writer).
+func TestWarnConfigVersion(t *testing.T) {
+	t.Run("empty version - no warning", func(t *testing.T) {
+		var buf bytes.Buffer
+		warnConfigVersion(&buf, &Config{ConfigVersion: ""})
+		assert.Empty(t, buf.String(), "empty ConfigVersion must not produce output")
+	})
+
+	t.Run("matching version - no warning", func(t *testing.T) {
+		var buf bytes.Buffer
+		warnConfigVersion(&buf, &Config{ConfigVersion: nawala.Version})
+		assert.Empty(t, buf.String(), "matching version must not produce output")
+	})
+
+	t.Run("mismatched version - prints warning", func(t *testing.T) {
+		var buf bytes.Buffer
+		warnConfigVersion(&buf, &Config{ConfigVersion: "0.0.1"})
+		out := buf.String()
+		assert.Contains(t, out, "warning")
+		assert.Contains(t, out, "0.0.1")
+		assert.Contains(t, out, "nawala config")
+	})
 }

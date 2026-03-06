@@ -52,7 +52,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build checker from config.
-	checker, cmdTimeout, err := buildChecker()
+	checker, cmdTimeout, err := buildChecker(cmd.ErrOrStderr())
 	if err != nil {
 		return err
 	}

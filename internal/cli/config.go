@@ -18,7 +18,14 @@ import (
 )
 
 // Config holds the CLI configuration loaded from a JSON or YAML file.
+// ConfigVersion records the version string declared in the file envelope
+// (nawala.version). It is populated by [loadConfig] and is not serialised
+// back to disk — it is a read-only metadata field used only for version
+// compatibility checks.
 type Config struct {
+	// ConfigVersion is the "version" field from the file envelope, e.g. "0.6.5".
+	// It is empty when the file omits the field.
+	ConfigVersion  string
 	Timeout        string      `json:"timeout"         yaml:"timeout"`
 	CommandTimeout string      `json:"command_timeout" yaml:"command_timeout"`
 	MaxRetries     *int        `json:"max_retries"     yaml:"max_retries"`
@@ -35,15 +42,17 @@ type Config struct {
 // configFile is the top-level envelope that wraps Config in a JSON or YAML
 // config file. The file format mirrors the JSON output envelope:
 //
-//	{"nawala":{"configuration":{...}}}
+//	{"nawala":{"version":"0.6.5","configuration":{...}}}
 //
 // Or in YAML:
 //
 //	nawala:
+//	  version: "0.6.5"
 //	  configuration:
-//	    timeout: 10s
+//	    timeout: 5s
 type configFile struct {
 	Nawala struct {
+		Version       string `json:"version"       yaml:"version"`
 		Configuration Config `json:"configuration" yaml:"configuration"`
 	} `json:"nawala" yaml:"nawala"`
 }
@@ -87,6 +96,7 @@ func loadConfig(path string) (*Config, error) {
 	}
 
 	cfg := cf.Nawala.Configuration
+	cfg.ConfigVersion = cf.Nawala.Version
 	return &cfg, nil
 }
 

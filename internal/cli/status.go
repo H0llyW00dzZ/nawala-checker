@@ -37,7 +37,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	checker, cmdTimeout, err := buildChecker()
+	checker, cmdTimeout, err := buildChecker(cmd.ErrOrStderr())
 	if err != nil {
 		return err
 	}
