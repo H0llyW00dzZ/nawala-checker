@@ -293,9 +293,37 @@ func WithDigests(hash func(data string) string) Option {
 // poolSize is the maximum number of idle connections to maintain per
 // configured DNS server. Values ≤ 0 default to min(concurrency, 10).
 //
-// Keep-alive is only effective when the transport is "tcp" or "tcp-tls"
+// # Protocol support
+//
+// Keep-alive is only activated when the transport is "tcp" or "tcp-tls"
 // (see [WithProtocol]). For the default "udp" transport this option is
 // accepted but has no effect, since UDP is stateless and connectionless.
+//
+// # Server compatibility
+//
+// Not all DNS servers support persistent (keep-alive) TCP connections.
+// The original RFC 1035 specified that DNS/TCP connections should be
+// closed after each query-response pair. RFC 7766 (2016) later introduced
+// persistent connections as a SHOULD-level requirement for modern
+// implementations, and RFC 7858 (DNS-over-TLS) requires connection reuse.
+//
+// In practice:
+//
+//   - DNS-over-TLS (tcp-tls) — strongly recommended; all major DoT
+//     providers (Cloudflare 1.1.1.1:853, Google 8.8.8.8:853, etc.) and
+//     modern resolvers fully support RFC 7858 reuse.
+//   - Custom / local resolvers (Unbound, BIND 9.x, Knot DNS, PowerDNS) —
+//     supported; these implement RFC 7766 persistent connections.
+//   - Legacy or ISP-managed DNS servers — may not support persistent
+//     connections and close TCP after each response. The pool handles this
+//     transparently (EOF → automatic redial), so queries never fail, but
+//     there is no connection-reuse benefit.
+//
+// The default Nawala/Komdigi ISP servers are optimised for high-volume UDP
+// traffic and are not expected to keep TCP connections open. WithKeepAlive
+// with those servers provides no performance benefit; it is designed for
+// custom deployments using a modern resolver that supports RFC 7766 or
+// RFC 7858.
 //
 // When keep-alive is enabled, call [Checker.Close] when the checker is no
 // longer needed to release idle connections:

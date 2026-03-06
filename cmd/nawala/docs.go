@@ -57,6 +57,7 @@
 //	      "protocol": "udp",
 //	      "tls_server_name": "",
 //	      "tls_skip_verify": false,
+//	      "keep_alive_pool_size": 0,
 //	      "servers": [
 //	        {"address": "180.131.144.144", "keyword": "internetpositif", "query_type": "A"}
 //	      ]
@@ -79,6 +80,7 @@
 //	    protocol: udp
 //	    tls_server_name: ""
 //	    tls_skip_verify: false
+//	    keep_alive_pool_size: 0
 //	    servers:
 //	      - address: "180.131.144.144"
 //	        keyword: "internetpositif"
@@ -90,6 +92,14 @@
 // or "tcp-tls" (DNS over TLS / DoT).
 // For tcp-tls, set tls_server_name to override the SNI (useful when the server
 // address is an IP), and tls_skip_verify: true only for self-signed certs.
+//
+// keep_alive_pool_size enables persistent TCP/TLS connection pooling.
+// A value of 0 (default) means disabled; set to a positive integer together
+// with protocol "tcp" or "tcp-tls" to reuse connections across queries.
+// Requires a server that supports RFC 7766 (tcp) or RFC 7858 (tcp-tls) —
+// best used with DoT providers (e.g. Cloudflare :853, Google :853) or modern
+// local resolvers. The default Nawala/ISP servers are UDP-optimised and do not
+// benefit from this option.
 //
 // # Exit Codes
 //

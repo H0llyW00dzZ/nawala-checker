@@ -167,7 +167,9 @@
 //   - [Checker.HasServer]     — Hot-reload: Check if a server is configured at runtime safely
 //   - [Checker.DeleteServers] — Hot-reload: Remove servers at runtime safely
 //   - [WithKeepAlive]         — Persistent TCP/TLS conn pool (idle conns per server);
-//     no-op for UDP; call [Checker.Close] when done
+//     no-op for UDP; requires RFC 7766 (tcp) or RFC 7858 (tcp-tls) server support —
+//     use with DoT providers or modern custom resolvers, NOT the default Nawala
+//     ISP servers (UDP-optimised, close TCP after each query); call [Checker.Close] when done
 //
 // # API
 //
