@@ -18,7 +18,7 @@ pemeriksa pemblokiran domain berbasis DNS untuk filter DNS ISP Indonesia
 | Contoh | Deskripsi |
 |---|---|
 | [`basic/`](basic/main.go) | Periksa beberapa domain dengan konfigurasi default |
-| [`custom/`](custom/main.go) | Konfigurasi lanjutan: server kustom, timeout, percobaan ulang, caching |
+| [`custom/`](custom/main.go) | Konfigurasi lanjutan: server kustom, timeout, percobaan ulang, caching, dan kunci cache berbasis digest |
 | [`status/`](status/main.go) | Pantau kesehatan dan latensi server DNS |
 | [`hotreload/`](hotreload/main.go) | Perbarui server DNS dengan aman secara konkurensi saat pemeriksaan berjalan |
 
@@ -165,6 +165,69 @@ Second check (cached):
   kedua selesai dalam milidetik karena hasilnya disajikan dari cache
 - `c.Servers()` mengembalikan daftar lengkap server DNS yang dikonfigurasi
   pada saat runtime
+
+### Kunci Cache Berbasis Digest
+
+`WithDigests` mengganti isi kunci cache dengan digest hash. Kunci akhir
+selalu `nawala_checker:<digest>` — awalan `nawala_checker:` selalu disertakan
+untuk memberi namespace entri SDK dari paket lain yang mungkin berbagi
+backend yang sama.
+
+Contoh ini menyertakan dua fungsi hash siap pakai:
+
+```go
+import (
+    "crypto/sha256"
+    "encoding/hex"
+)
+
+// SHA-256 standar (satu putaran) — hex 64 karakter.
+func digestSHA256(data string) string {
+    sum := sha256.Sum256([]byte(data))
+    return hex.EncodeToString(sum[:])
+}
+
+// Double-SHA-256 gaya Bitcoin: SHA256(SHA256(data)) — hex 64 karakter,
+// resistensi preimage lebih tinggi dan perlindungan terhadap serangan
+// length-extension. Digunakan Bitcoin untuk header blok, txid, dan Merkle.
+func digestDoubleSHA256(data string) string {
+    first := sha256.Sum256([]byte(data))
+    second := sha256.Sum256(first[:])
+    return hex.EncodeToString(second[:])
+}
+```
+
+Penggunaan:
+
+```go
+// Checker dengan kunci SHA-256.
+cSHA256 := nawala.New(
+    nawala.WithCacheTTL(5 * time.Minute),
+    nawala.WithDigests(digestSHA256),
+)
+
+// Checker dengan kunci double-SHA-256 (gaya Bitcoin).
+cDSHA256 := nawala.New(
+    nawala.WithCacheTTL(5 * time.Minute),
+    nawala.WithDigests(digestDoubleSHA256),
+)
+```
+
+Keluaran yang diharapkan untuk bagian digest:
+
+```
+=== Digest-Based Cache Keys ===
+  [SHA-256 key]               google.com: blocked=false (server: 180.131.144.144)
+  [SHA-256 cache hit]         google.com: blocked=false (took 1.8µs)
+
+  [double-SHA-256 key]        google.com: blocked=false (server: 180.131.144.144)
+  [double-SHA-256 cache hit]  google.com: blocked=false (took 1.2µs)
+```
+
+Gunakan `WithDigests` saat:
+- Backend cache membatasi panjang kunci
+- Alamat server internal tidak boleh muncul dalam plain text di kunci cache
+- Diperlukan format kunci lebar tetap yang konsisten (hex 64 karakter)
 
 ---
 
