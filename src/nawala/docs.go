@@ -104,9 +104,13 @@
 //	    nawala.WithCacheTTL(10 * time.Minute),
 //
 //	    // Replace all DNS servers with custom ones.
+//	    // Address accepts: plain IP, IP:port, hostname, or hostname:port.
+//	    // Port defaults to 53 (UDP/TCP) or 853 (tcp-tls) when omitted.
 //	    nawala.WithServers([]nawala.DNSServer{
-//	        {Address: "8.8.8.8", Keyword: "blocked", QueryType: "A"},
-//	        {Address: "8.8.4.4", Keyword: "blocked", QueryType: "A"},
+//	        {Address: "8.8.8.8",            Keyword: "blocked", QueryType: "A"},
+//	        {Address: "8.8.4.4:5353",        Keyword: "blocked", QueryType: "A"},
+//	        {Address: "dns.example.com",     Keyword: "blocked", QueryType: "A"},
+//	        {Address: "dns.example.com:853", Keyword: "blocked", QueryType: "A"},
 //	    }),
 //
 //	    // Limit concurrent checks to 50 goroutines.
@@ -177,7 +181,9 @@
 //	    fmt.Println("Server is active")
 //	}
 //
-//	// Hot-reload: Remove servers at runtime by IP address (concurrency-safe).
+//	// Hot-reload: Remove servers at runtime by address (concurrency-safe).
+//	// The address must match exactly the value used in [DNSServer.Address]
+//	// (the same format: plain IP, IP:port, hostname, or hostname:port).
 //	c.DeleteServers("203.0.113.1")
 //
 // Domain validation:

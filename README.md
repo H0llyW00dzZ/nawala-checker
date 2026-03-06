@@ -305,7 +305,7 @@ type ServerStatus struct {
 
 // DNS server configuration.
 type DNSServer struct {
-    Address   string  // IP address of the DNS server
+    Address   string  // DNS server to query: IP ("8.8.8.8"), IP:port ("8.8.8.8:5353"), hostname ("dns.example.com"), or hostname with port ("dns.example.com:5353"). Port defaults to 53 (or 853 for tcp-tls) when omitted.
     Keyword   string  // Blocking keyword to search for in responses
     QueryType string  // DNS record type: "A", "AAAA", "CNAME", "TXT", etc.
 }
