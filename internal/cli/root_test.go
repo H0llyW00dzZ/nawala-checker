@@ -15,6 +15,8 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildChecker_NoConfig(t *testing.T) {
@@ -409,4 +411,73 @@ func TestRunStatus_MultipleFormatFlags(t *testing.T) {
 	if !strings.Contains(err.Error(), "only one output format flag") {
 		t.Errorf("unexpected error: %v", err)
 	}
+}
+
+// TestVersionMismatchWarning_Check is an end-to-end test that verifies the
+// version mismatch warning is printed to Cobra's error writer (cmd.ErrOrStderr)
+// when the config file carries a version different from the running CLI.
+//
+// Run with -v to see the captured stderr via t.Log.
+func TestVersionMismatchWarning_Check(t *testing.T) {
+	mockAddr, cleanup := createMockDNSServer(t)
+	defer cleanup()
+
+	// Config stamped with an old version — guaranteed mismatch.
+	cfgContent := fmt.Sprintf(
+		`{"nawala":{"version":"0.0.1","configuration":{"timeout":"1s","max_retries":0,"servers":[{"address":%q,"keyword":"test","query_type":"A"}]}}}`,
+		mockAddr,
+	)
+	cfgPath := filepath.Join(t.TempDir(), "old_version.json")
+	require.NoError(t, os.WriteFile(cfgPath, []byte(cfgContent), 0644))
+
+	saved := configPath
+	configPath = cfgPath
+	defer func() { configPath = saved }()
+
+	var errBuf bytes.Buffer
+	cmd := newCheckCmd()
+	cmd.SetErr(&errBuf)
+	cmd.SetArgs([]string{"google.com"})
+
+	// Command should still succeed even with a mismatched version.
+	require.NoError(t, cmd.Execute(), "Execute() should not error on version mismatch")
+
+	stderr := errBuf.String()
+	t.Logf("=== captured cmd stderr ===\n%s=== end ===", stderr)
+
+	assert.Contains(t, stderr, "warning", "expected version mismatch warning in stderr")
+	assert.Contains(t, stderr, "0.0.1", "expected old version in warning")
+	assert.Contains(t, stderr, "nawala config", "expected regenerate hint in warning")
+}
+
+// TestVersionMismatchWarning_Status is the same end-to-end assertion for the
+// status subcommand path (which also calls buildChecker → warnConfigVersion).
+func TestVersionMismatchWarning_Status(t *testing.T) {
+	mockAddr, cleanup := createMockDNSServer(t)
+	defer cleanup()
+
+	cfgContent := fmt.Sprintf(
+		`{"nawala":{"version":"0.0.1","configuration":{"timeout":"1s","max_retries":0,"servers":[{"address":%q,"keyword":"test","query_type":"A"}]}}}`,
+		mockAddr,
+	)
+	cfgPath := filepath.Join(t.TempDir(), "old_version_status.json")
+	require.NoError(t, os.WriteFile(cfgPath, []byte(cfgContent), 0644))
+
+	saved := configPath
+	configPath = cfgPath
+	defer func() { configPath = saved }()
+
+	var errBuf bytes.Buffer
+	cmd := newStatusCmd()
+	cmd.SetErr(&errBuf)
+	cmd.SetArgs([]string{})
+
+	// Command should succeed (warning is non-fatal).
+	require.NoError(t, cmd.Execute(), "Execute() should not error on version mismatch")
+
+	stderr := errBuf.String()
+	t.Logf("=== captured cmd stderr ===\n%s=== end ===", stderr)
+
+	assert.Contains(t, stderr, "warning", "expected version mismatch warning in stderr")
+	assert.Contains(t, stderr, "0.0.1", "expected old version in warning")
 }

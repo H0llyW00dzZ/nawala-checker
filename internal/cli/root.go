@@ -111,7 +111,7 @@ func warnConfigVersion(errw io.Writer, cfg *Config) {
 	_, _ = fmt.Fprintf(
 		errw,
 		"nawala: warning: config version %q does not match CLI version %q — "+
-			"some settings may not work as expected; run \"nawala config\" to regenerate\n",
+			"some settings may not work as expected; run \"nawala config\" to regenerate\n\n",
 		cfg.ConfigVersion,
 		nawala.Version,
 	)
