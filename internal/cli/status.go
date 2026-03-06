@@ -41,6 +41,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+	defer func() { _ = checker.Close() }()
 
 	// Past this point every error is a runtime error, so suppress
 	// Cobra's automatic usage and error output.

@@ -371,3 +371,28 @@ func TestWarnConfigVersion(t *testing.T) {
 		assert.Contains(t, out, "nawala config")
 	})
 }
+
+// TestConfig_ToOptions_ParseKeepAlive verifies that parseKeepAlive returns a
+// WithKeepAlive option when KeepAlivePoolSize is set (including 0 to use
+// the SDK default), and returns nil when the field is absent.
+func TestConfig_ToOptions_ParseKeepAlive(t *testing.T) {
+	// Non-nil positive pool size → returns WithKeepAlive option.
+	n := 5
+	cfg := &Config{KeepAlivePoolSize: &n}
+	opts, err := cfg.toOptions()
+	require.NoError(t, err)
+	require.Len(t, opts, 1, "expected one option for KeepAlivePoolSize=5")
+
+	// Zero pool size → still returns WithKeepAlive; SDK will apply its own default.
+	z := 0
+	cfg2 := &Config{KeepAlivePoolSize: &z}
+	opts2, err := cfg2.toOptions()
+	require.NoError(t, err)
+	require.Len(t, opts2, 1, "expected one option for KeepAlivePoolSize=0 (SDK default)")
+
+	// Nil → no option (keep-alive disabled).
+	cfg3 := &Config{}
+	opts3, err := cfg3.toOptions()
+	require.NoError(t, err)
+	assert.Empty(t, opts3, "nil KeepAlivePoolSize should produce no option")
+}

@@ -46,6 +46,7 @@ func parseQueryType(qtype string) uint16 {
 // dnsQuery bundles the parameters for a single DNS query.
 type dnsQuery struct {
 	client    *dns.Client
+	pool      *connPool // optional; when non-nil, exchange is routed through the pool
 	domain    string
 	server    string
 	qtype     uint16
@@ -80,7 +81,15 @@ func queryDNS(ctx context.Context, q dnsQuery) (*dns.Msg, error) {
 		server = net.JoinHostPort(server, defaultPort)
 	}
 
-	resp, _, err := q.client.ExchangeContext(ctx, msg, server)
+	var (
+		resp *dns.Msg
+		err  error
+	)
+	if q.pool != nil {
+		resp, _, err = q.pool.exchange(ctx, msg)
+	} else {
+		resp, _, err = q.client.ExchangeContext(ctx, msg, server)
+	}
 	if err != nil {
 		// 1. Did the context specifically exceed its deadline (timeout)?
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {

@@ -57,6 +57,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	defer func() { _ = checker.Close() }()
 
 	// Past this point every error is a runtime error (not a flag/input
 	// error), so suppress Cobra's automatic usage and error output.

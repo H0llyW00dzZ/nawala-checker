@@ -34,6 +34,7 @@
 //	    protocol: udp
 //	    tls_server_name: ""
 //	    tls_skip_verify: false
+//	    keep_alive_pool_size: 0
 //	    servers:
 //	      - address: "180.131.144.144"
 //	        keyword: "internetpositif"
@@ -51,6 +52,13 @@
 //     the server name is what TLS verifies the cert against (no IP SAN needed in the cert).
 //   - tls_skip_verify: disables TLS certificate verification entirely. Only for self-signed
 //     certs; never use in production.
+//
+// keep_alive_pool_size enables persistent TCP/TLS connection reuse.
+// Set to a positive integer together with protocol "tcp" or "tcp-tls" to avoid
+// per-query handshake overhead. 0 (default) disables the pool entirely — absent
+// from the config file means nil, so existing tcp/tcp-tls usage is unaffected.
+// Requires RFC 7766 (tcp) or RFC 7858 (tcp-tls) server support; the default
+// Nawala ISP servers are UDP-optimised and will not benefit.
 //
 // # Domain Input
 //

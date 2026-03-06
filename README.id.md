@@ -132,6 +132,7 @@ Contoh file konfigurasi (`config.json`) — format nawala envelope:
       "protocol": "udp",
       "tls_server_name": "",
       "tls_skip_verify": false,
+      "keep_alive_pool_size": 0,
       "servers": [
         {"address": "180.131.144.144", "keyword": "internetpositif", "query_type": "A"},
         {"address": "103.155.26.28",  "keyword": "trustpositif",    "query_type": "A"}
@@ -158,6 +159,13 @@ Contoh file konfigurasi (`config.json`) — format nawala envelope:
 > Untuk `tcp-tls`, dua field TLS opsional tersedia:
 > - `tls_server_name` — mengganti nama SNI TLS (berguna saat alamat server berupa IP)
 > - `tls_skip_verify` — menonaktifkan verifikasi sertifikat; hanya untuk sertifikat self-signed, jangan digunakan di production
+>
+> `keep_alive_pool_size` — mengaktifkan pooling koneksi TCP/TLS persisten bila diisi dengan nilai positif
+> bersama `protocol: tcp` atau `protocol: tcp-tls`. Nilai `0` (default) menonaktifkan pool;
+> jika field tidak ada di config file, nilainya nil dan **tidak mempengaruhi** penggunaan tcp/tcp-tls yang sudah ada.
+> Memerlukan server yang mendukung RFC 7766 (tcp) atau RFC 7858 (tcp-tls) — gunakan dengan penyedia DoT
+> (contoh: Cloudflare `1.1.1.1:853`, Google `8.8.8.8:853`) atau resolver lokal modern.
+> Server ISP Nawala bawaan tidak mendapat manfaat dari fitur ini.
 
 
 ## ⚡ Mulai Cepat
@@ -274,6 +282,7 @@ c := nawala.New(
 | `Checker.SetServers(s)` | — | Hot-reload: Tambahkan atau ganti server saat runtime (aman untuk konkurensi) |
 | `Checker.HasServer(s)` | — | Hot-reload: Periksa apakah server dikonfigurasi saat runtime (aman untuk konkurensi) |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Hapus server saat runtime (aman untuk konkurensi) |
+| `WithKeepAlive(n)` | dinonaktifkan | Pool koneksi TCP/TLS persisten; `n` = maks koneksi idle per server (≤0 → `min(concurrency,10)`); **memerlukan dukungan server RFC 7766 (tcp) atau RFC 7858 (tcp-tls)** — gunakan dengan penyedia DoT atau resolver kustom modern, bukan server ISP Nawala bawaan; diabaikan untuk UDP |
 
 ## 🔌 API
 
@@ -309,6 +318,9 @@ if c.HasServer("203.0.113.1") {
 
 // Hot-reload: Hapus server melalui alamat IP saat runtime (aman untuk konkurensi).
 c.DeleteServers("203.0.113.1")
+
+// Bebaskan koneksi idle keep-alive saat checker tidak lagi dibutuhkan.
+c.Close()
 ```
 
 ### ✅ Validasi

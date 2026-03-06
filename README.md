@@ -132,6 +132,7 @@ Configuration file example (`config.json`) — nawala envelope format:
       "protocol": "udp",
       "tls_server_name": "",
       "tls_skip_verify": false,
+      "keep_alive_pool_size": 0,
       "servers": [
         {"address": "180.131.144.144", "keyword": "internetpositif", "query_type": "A"},
         {"address": "103.155.26.28",  "keyword": "trustpositif",    "query_type": "A"}
@@ -161,6 +162,13 @@ Configuration file example (`config.json`) — nawala envelope format:
 >   for full cert verification against a trusted CA.
 > - `tls_skip_verify` — disables cert verification. Only for self-signed certs where no valid
 >   server name can be verified. Never use in production.
+>
+> `keep_alive_pool_size` — enables persistent TCP/TLS connection pooling when set to a positive
+> integer alongside `protocol: tcp` or `protocol: tcp-tls`. `0` (default) disables the pool;
+> omitting the field entirely is equivalent to `0` and does **not** affect existing tcp/tcp-tls
+> usage. Requires a server supporting RFC 7766 (tcp) or RFC 7858 (tcp-tls) — use with DoT
+> providers (e.g. Cloudflare `1.1.1.1:853`, Google `8.8.8.8:853`) or modern local resolvers.
+> The default Nawala ISP servers do not benefit.
 
 
 ## ⚡ Quick Start
@@ -277,6 +285,7 @@ c := nawala.New(
 | `Checker.SetServers(s)` | — | Hot-reload: Add or replace servers at runtime safely |
 | `Checker.HasServer(s)` | — | Hot-reload: Check if a server is configured at runtime safely |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Remove servers at runtime safely |
+| `WithKeepAlive(n)` | disabled | Persistent TCP/TLS conn pool; `n` = max idle conns per server (≤0 → `min(concurrency,10)`); **requires RFC 7766 (tcp) or RFC 7858 (tcp-tls) server support** — use with DoT providers or modern custom resolvers, not the default Nawala ISP servers; no-op for UDP |
 
 ## 🔌 API
 
@@ -312,6 +321,9 @@ if c.HasServer("203.0.113.1") {
 
 // Hot-reload: Remove servers at runtime by IP address (concurrency-safe).
 c.DeleteServers("203.0.113.1")
+
+// Release idle keep-alive connections when the checker is no longer needed.
+c.Close()
 ```
 
 ### ✅ Validation
