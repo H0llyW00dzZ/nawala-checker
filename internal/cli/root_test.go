@@ -15,6 +15,8 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildChecker_NoConfig(t *testing.T) {
@@ -426,9 +428,7 @@ func TestVersionMismatchWarning_Check(t *testing.T) {
 		mockAddr,
 	)
 	cfgPath := filepath.Join(t.TempDir(), "old_version.json")
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(cfgPath, []byte(cfgContent), 0644))
 
 	saved := configPath
 	configPath = cfgPath
@@ -440,22 +440,14 @@ func TestVersionMismatchWarning_Check(t *testing.T) {
 	cmd.SetArgs([]string{"google.com"})
 
 	// Command should still succeed even with a mismatched version.
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("Execute() unexpected error: %v", err)
-	}
+	require.NoError(t, cmd.Execute(), "Execute() should not error on version mismatch")
 
 	stderr := errBuf.String()
 	t.Logf("=== captured cmd stderr ===\n%s=== end ===", stderr)
 
-	if !strings.Contains(stderr, "warning") {
-		t.Errorf("expected version mismatch warning in stderr, got: %q", stderr)
-	}
-	if !strings.Contains(stderr, "0.0.1") {
-		t.Errorf("expected old version (0.0.1) in warning, got: %q", stderr)
-	}
-	if !strings.Contains(stderr, "nawala config") {
-		t.Errorf("expected 'nawala config' hint in warning, got: %q", stderr)
-	}
+	assert.Contains(t, stderr, "warning", "expected version mismatch warning in stderr")
+	assert.Contains(t, stderr, "0.0.1", "expected old version in warning")
+	assert.Contains(t, stderr, "nawala config", "expected regenerate hint in warning")
 }
 
 // TestVersionMismatchWarning_Status is the same end-to-end assertion for the
@@ -469,9 +461,7 @@ func TestVersionMismatchWarning_Status(t *testing.T) {
 		mockAddr,
 	)
 	cfgPath := filepath.Join(t.TempDir(), "old_version_status.json")
-	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, os.WriteFile(cfgPath, []byte(cfgContent), 0644))
 
 	saved := configPath
 	configPath = cfgPath
@@ -483,17 +473,11 @@ func TestVersionMismatchWarning_Status(t *testing.T) {
 	cmd.SetArgs([]string{})
 
 	// Command should succeed (warning is non-fatal).
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("Execute() unexpected error: %v", err)
-	}
+	require.NoError(t, cmd.Execute(), "Execute() should not error on version mismatch")
 
 	stderr := errBuf.String()
 	t.Logf("=== captured cmd stderr ===\n%s=== end ===", stderr)
 
-	if !strings.Contains(stderr, "warning") {
-		t.Errorf("expected version mismatch warning in stderr, got: %q", stderr)
-	}
-	if !strings.Contains(stderr, "0.0.1") {
-		t.Errorf("expected old version (0.0.1) in warning, got: %q", stderr)
-	}
+	assert.Contains(t, stderr, "warning", "expected version mismatch warning in stderr")
+	assert.Contains(t, stderr, "0.0.1", "expected old version in warning")
 }
