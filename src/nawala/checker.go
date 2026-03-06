@@ -132,7 +132,9 @@ func New(opts ...Option) *Checker {
 		}
 		c.connPools = make(map[string]*connPool, len(c.servers))
 		for _, srv := range c.servers {
-			c.connPools[srv.Address] = newConnPool(c.dnsClient, srv.Address, size)
+			if _, exists := c.connPools[srv.Address]; !exists {
+				c.connPools[srv.Address] = newConnPool(c.dnsClient, srv.Address, size)
+			}
 		}
 	}
 
@@ -283,6 +285,7 @@ Loop:
 
 			statuses[idx] = checkDNSHealth(ctx, dnsQuery{
 				client:    c.dnsClient,
+				pool:      c.connPools[server.Address],
 				server:    server.Address,
 				edns0Size: c.edns0Size,
 			})
