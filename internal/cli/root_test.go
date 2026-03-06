@@ -410,3 +410,90 @@ func TestRunStatus_MultipleFormatFlags(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
+
+// TestVersionMismatchWarning_Check is an end-to-end test that verifies the
+// version mismatch warning is printed to Cobra's error writer (cmd.ErrOrStderr)
+// when the config file carries a version different from the running CLI.
+//
+// Run with -v to see the captured stderr via t.Log.
+func TestVersionMismatchWarning_Check(t *testing.T) {
+	mockAddr, cleanup := createMockDNSServer(t)
+	defer cleanup()
+
+	// Config stamped with an old version — guaranteed mismatch.
+	cfgContent := fmt.Sprintf(
+		`{"nawala":{"version":"0.0.1","configuration":{"timeout":"1s","max_retries":0,"servers":[{"address":%q,"keyword":"test","query_type":"A"}]}}}`,
+		mockAddr,
+	)
+	cfgPath := filepath.Join(t.TempDir(), "old_version.json")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	saved := configPath
+	configPath = cfgPath
+	defer func() { configPath = saved }()
+
+	var errBuf bytes.Buffer
+	cmd := newCheckCmd()
+	cmd.SetErr(&errBuf)
+	cmd.SetArgs([]string{"google.com"})
+
+	// Command should still succeed even with a mismatched version.
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() unexpected error: %v", err)
+	}
+
+	stderr := errBuf.String()
+	t.Logf("=== captured cmd stderr ===\n%s=== end ===", stderr)
+
+	if !strings.Contains(stderr, "warning") {
+		t.Errorf("expected version mismatch warning in stderr, got: %q", stderr)
+	}
+	if !strings.Contains(stderr, "0.0.1") {
+		t.Errorf("expected old version (0.0.1) in warning, got: %q", stderr)
+	}
+	if !strings.Contains(stderr, "nawala config") {
+		t.Errorf("expected 'nawala config' hint in warning, got: %q", stderr)
+	}
+}
+
+// TestVersionMismatchWarning_Status is the same end-to-end assertion for the
+// status subcommand path (which also calls buildChecker → warnConfigVersion).
+func TestVersionMismatchWarning_Status(t *testing.T) {
+	mockAddr, cleanup := createMockDNSServer(t)
+	defer cleanup()
+
+	cfgContent := fmt.Sprintf(
+		`{"nawala":{"version":"0.0.1","configuration":{"timeout":"1s","max_retries":0,"servers":[{"address":%q,"keyword":"test","query_type":"A"}]}}}`,
+		mockAddr,
+	)
+	cfgPath := filepath.Join(t.TempDir(), "old_version_status.json")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	saved := configPath
+	configPath = cfgPath
+	defer func() { configPath = saved }()
+
+	var errBuf bytes.Buffer
+	cmd := newStatusCmd()
+	cmd.SetErr(&errBuf)
+	cmd.SetArgs([]string{})
+
+	// Command should succeed (warning is non-fatal).
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() unexpected error: %v", err)
+	}
+
+	stderr := errBuf.String()
+	t.Logf("=== captured cmd stderr ===\n%s=== end ===", stderr)
+
+	if !strings.Contains(stderr, "warning") {
+		t.Errorf("expected version mismatch warning in stderr, got: %q", stderr)
+	}
+	if !strings.Contains(stderr, "0.0.1") {
+		t.Errorf("expected old version (0.0.1) in warning, got: %q", stderr)
+	}
+}
