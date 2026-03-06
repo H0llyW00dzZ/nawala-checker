@@ -106,7 +106,7 @@ func collectDomains(args []string, filePath string) ([]string, error) {
 	var domains []string
 
 	addDomain := func(d string) {
-		d = strings.TrimSpace(d)
+		d = strings.ToLower(strings.TrimSpace(d))
 		if d == "" {
 			return
 		}
