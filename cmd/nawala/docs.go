@@ -45,13 +45,15 @@
 //
 //	{
 //	  "nawala": {
+//	    "version": "0.6.5",
 //	    "configuration": {
-//	      "timeout": "10s",
+//	      "timeout": "5s",
 //	      "command_timeout": "30s",
-//	      "max_retries": 3,
-//	      "cache_ttl": "10m",
+//	      "max_retries": 2,
+//	      "cache_ttl": "5m",
 //	      "disable_cache": false,
-//	      "concurrency": 50,
+//	      "concurrency": 100,
+//	      "edns0_size": 1232,
 //	      "protocol": "udp",
 //	      "tls_server_name": "",
 //	      "tls_skip_verify": false,
@@ -65,13 +67,15 @@
 // Or in YAML:
 //
 //	nawala:
+//	  version: "0.6.5"
 //	  configuration:
-//	    timeout: 10s
+//	    timeout: 5s
 //	    command_timeout: 30s
-//	    max_retries: 3
-//	    cache_ttl: 10m
+//	    max_retries: 2
+//	    cache_ttl: 5m
 //	    disable_cache: false
-//	    concurrency: 50
+//	    concurrency: 100
+//	    edns0_size: 1232
 //	    protocol: udp
 //	    tls_server_name: ""
 //	    tls_skip_verify: false
