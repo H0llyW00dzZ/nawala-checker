@@ -157,11 +157,15 @@ Second check (cached):
   `c.SetServers()` to **replace** or append servers at runtime with
   concurrency safety)
 - `c.SetServers()` and `c.DeleteServers()` allow dynamic hot-reloading of DNS servers.
-- `c.HasServer()` verifies if a given DNS server IP is currently configured.
+- `c.HasServer()` verifies if a given DNS server address is currently configured.
 - `WithTimeout` and `WithMaxRetries` control per-query resilience
 - `WithCacheTTL` enables the in-memory TTL cache — the second `CheckOne`
   call returns in microseconds because the result is served from cache
 - `c.Servers()` returns the full list of configured DNS servers at runtime
+- `DNSServer.Address` accepts a plain IP (`"8.8.8.8"`), an IP with port
+  (`"8.8.8.8:5353"`), a hostname (`"dns.example.com"`), or a hostname with
+  port (`"dns.example.com:5353"`). Port defaults to `53` for UDP/TCP and
+  `853` for `tcp-tls` when omitted.
 
 ---
 
@@ -245,8 +249,10 @@ their keywords.
 - `c.SetServers(...)` acquires an exclusive lock internally to replace the
   server slices.
 - `c.DeleteServers(...)` acquires an exclusive lock internally to remove servers
-  by their IP addresses. If all servers are deleted, concurrent checks safely
-  short-circuit and return `ErrNoDNSServers`.
+  by their address string. The address must match exactly the value given in
+  `DNSServer.Address` (plain IP, IP:port, hostname, or hostname:port). If all
+  servers are deleted, concurrent checks safely short-circuit and return
+  `ErrNoDNSServers`.
 - `c.CheckOne()` acquires a fast read lock to copy down the current configuration,
   ensuring it never panics on race conditions.
 - You can completely overwrite an existing server's properties (like `Keyword`
