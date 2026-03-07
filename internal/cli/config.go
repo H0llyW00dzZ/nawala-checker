@@ -227,6 +227,9 @@ func (c *Config) parseTLSSkipVerify() (nawala.Option, error) {
 // default (min(concurrency, 10)). Nil means keep-alive is disabled entirely.
 // Only effective when protocol is "tcp" or "tcp-tls" and the DNS server
 // supports [RFC 7766] / [RFC 7858] persistent connections.
+//
+// [RFC 7766]: https://www.rfc-editor.org/rfc/rfc7766.html
+// [RFC 7858]: https://www.rfc-editor.org/rfc/rfc7858.html
 func (c *Config) parseKeepAlive() (nawala.Option, error) {
 	if c.KeepAlivePoolSize == nil {
 		return nil, nil
@@ -263,6 +266,3 @@ func (c *Config) parseServers() (nawala.Option, error) {
 	}
 	return nawala.WithServers(servers), nil
 }
-
-// [RFC 7766]: https://www.rfc-editor.org/rfc/rfc7766.html
-// [RFC 7858]: https://www.rfc-editor.org/rfc/rfc7858.html
