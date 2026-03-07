@@ -47,6 +47,9 @@
 //
 //   - Concurrent domain checking — check multiple domains in parallel
 //     with a single call
+//   - Streaming domain checking — process domains through a channel
+//     pipeline via [Checker.CheckStream], enabling constant-memory
+//     operation even with millions of domains
 //   - DNS server failover — automatic fallback to secondary servers when
 //     the primary fails
 //   - Retry with exponential backoff — resilient against transient
@@ -182,6 +185,17 @@
 //
 //	// Check a single domain.
 //	result, err := c.CheckOne(ctx, "example.com")
+//
+//	// Stream-check domains through a channel pipeline.
+//	// Domains are read from In and results are sent to Out as they complete.
+//	// Memory usage stays constant regardless of input size.
+//	in := make(chan string)
+//	out := make(chan nawala.Result, 100)
+//	go func() {
+//	    for _, d := range domains { in <- d }
+//	    close(in)
+//	}()
+//	err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
 //
 //	// Check DNS server health and latency.
 //	statuses, err := c.DNSStatus(ctx)

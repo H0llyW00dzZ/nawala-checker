@@ -22,6 +22,7 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 ## ✨ Features
 
 - **Concurrent domain checking** — check multiple domains in parallel with a single call
+- **Streaming domain checking** — process domains through a channel pipeline via `CheckStream`, enabling constant-memory operation even with millions of domains
 - **DNS server failover** — automatic fallback to secondary servers when the primary fails
 - **Retry with exponential backoff** — resilient against transient network errors
 - **Built-in caching** — in-memory cache with configurable TTL to avoid redundant queries
@@ -79,7 +80,7 @@ Usage:
 # Check domains (shorthand — delegates to "check")
 nawala google.com reddit.com
 
-# Check domains from a file
+# Check domains from a file (streamed line-by-line, constant memory)
 nawala check --file domains.txt
 
 # JSON output (NDJSON — one object per line)
@@ -299,6 +300,17 @@ results, err := c.Check(ctx, "example.com", "another.com")
 
 // Check a single domain.
 result, err := c.CheckOne(ctx, "example.com")
+
+// Stream-check domains through a channel pipeline.
+// Domains flow from In to Out as they complete — memory stays constant
+// regardless of input size.
+in := make(chan string)
+out := make(chan nawala.Result, 100)
+go func() {
+    for _, d := range domains { in <- d }
+    close(in)
+}()
+err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
 
 // Check DNS server health and latency.
 statuses, err := c.DNSStatus(ctx)

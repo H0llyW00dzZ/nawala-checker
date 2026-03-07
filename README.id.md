@@ -22,6 +22,7 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 ## ✨ Fitur
 
 - **Pemeriksaan domain serentak** — periksa beberapa domain secara paralel dengan satu panggilan
+- **Pemeriksaan domain streaming** — proses domain melalui pipeline channel via `CheckStream`, memungkinkan operasi memori konstan bahkan dengan jutaan domain
 - **Failover server DNS** — fallback otomatis ke server sekunder ketika server utama gagal
 - **Coba lagi dengan backoff eksponensial** — tangguh terhadap kesalahan jaringan sementara
 - **Caching bawaan** — cache dalam memori dengan TTL yang dapat dikonfigurasi untuk menghindari kueri berlebihan
@@ -79,7 +80,7 @@ Penggunaan:
 # Periksa domain (singkatan — mendelegasikan ke "check")
 nawala google.com reddit.com
 
-# Periksa domain dari file
+# Periksa domain dari file (streaming baris per baris, memori konstan)
 nawala check --file domains.txt
 
 # Output JSON (NDJSON — satu objek per baris)
@@ -296,6 +297,17 @@ results, err := c.Check(ctx, "example.com", "another.com")
 
 // Periksa satu domain.
 result, err := c.CheckOne(ctx, "example.com")
+
+// Streaming pemeriksaan domain melalui pipeline channel.
+// Domain mengalir dari In ke Out saat selesai — memori tetap konstan
+// berapa pun ukuran input.
+in := make(chan string)
+out := make(chan nawala.Result, 100)
+go func() {
+    for _, d := range domains { in <- d }
+    close(in)
+}()
+err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
 
 // Periksa kesehatan dan latensi server DNS.
 statuses, err := c.DNSStatus(ctx)

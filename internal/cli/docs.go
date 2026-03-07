@@ -67,6 +67,12 @@
 // lines starting with '#' are comments and blank lines are ignored.
 // Duplicates across both sources are removed automatically.
 //
+// Domains are streamed through a channel pipeline: the file is read
+// line-by-line (via [bufio.Scanner]) and each domain is sent to the
+// checker as it is read. This means memory usage stays constant
+// regardless of file size — even a file with millions of domains is
+// processed without loading them all into memory at once.
+//
 // # Output
 //
 // Results are written to stdout by default, or to a file with the

@@ -4,7 +4,9 @@ Domains can be provided as positional arguments, loaded from a text file
 (--file), or both. Duplicates are removed automatically.
 
 The text file format is one domain per line. Lines starting with '#' are
-treated as comments, and blank lines are ignored.
+treated as comments, and blank lines are ignored. Domains are streamed
+through a pipeline — the file is read line-by-line, so even very large
+files are processed with constant memory usage.
 
 By default, results are streamed to stdout as tab-separated text.
 Other formats available are json, html, and xlsx. Use the --format
