@@ -17,11 +17,12 @@ import (
 
 // configCmd is the "config" subcommand.
 var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Print the effective configuration",
-	Long:  configLong,
-	Args:  cobra.NoArgs,
-	RunE:  runConfig,
+	Use:          "config",
+	Short:        "Print the effective configuration",
+	Long:         configLong,
+	Args:         cobra.NoArgs,
+	RunE:         runConfig,
+	SilenceUsage: true,
 }
 
 func init() {
@@ -119,6 +120,10 @@ func resolveEffectiveConfig(cfg *Config) effectiveConfig {
 
 // runConfig resolves the effective configuration and writes it to stdout or a file.
 func runConfig(cmd *cobra.Command, _ []string) error {
+	// Suppress Cobra's automatic usage output for any error returned from RunE.
+	// Usage is only helpful for errors caught before RunE (e.g. unknown flags).
+	cmd.SilenceUsage = true
+
 	outputPath, _ := cmd.Flags().GetString("output")
 	jsonMode, _ := cmd.Flags().GetBool("json")
 

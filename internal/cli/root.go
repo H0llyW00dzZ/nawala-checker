@@ -30,6 +30,9 @@ var rootCmd = &cobra.Command{
 	// When bare args are provided (no subcommand), delegate to check.
 	Args: cobra.ArbitraryArgs,
 	RunE: runRoot,
+	// Suppress usage output for any error from RunE or unknown flags on root.
+	// Subcommands manage their own SilenceUsage independently.
+	SilenceUsage: true,
 }
 
 // runRoot is the root command handler. It prints the version when

@@ -14,12 +14,13 @@ import (
 
 // statusCmd is the "status" subcommand.
 var statusCmd = &cobra.Command{
-	Use:     "status",
-	Short:   "Show DNS server health status",
-	Long:    statusLong,
-	Example: statusExample,
-	Args:    cobra.NoArgs,
-	RunE:    runStatus,
+	Use:          "status",
+	Short:        "Show DNS server health status",
+	Long:         statusLong,
+	Example:      statusExample,
+	Args:         cobra.NoArgs,
+	RunE:         runStatus,
+	SilenceUsage: true,
 }
 
 func init() {
@@ -30,6 +31,10 @@ func init() {
 // runStatus queries all configured DNS servers for health and latency,
 // then writes the results to the configured output.
 func runStatus(cmd *cobra.Command, _ []string) error {
+	// Suppress Cobra's automatic usage output for any error returned from RunE.
+	// Usage is only helpful for errors caught before RunE (e.g. unknown flags).
+	cmd.SilenceUsage = true
+
 	outputPath, _ := cmd.Flags().GetString("output")
 
 	format, err := resolveFormat(cmd)
@@ -43,11 +48,6 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	}
 	defer func() { _ = checker.Close() }()
 
-	// Past this point every error is a runtime error, so suppress
-	// Cobra's automatic usage and error output.
-	cmd.SilenceUsage = true
-	cmd.SilenceErrors = true
-
 	w, err := NewWriter(outputPath, format)
 	if err != nil {
 		return err
@@ -60,8 +60,16 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	defer cancel()
 
 	statuses, err := checker.DNSStatus(ctx)
+
+	// Past this point every error is a runtime error.
+	// We print runtime errors to stderr ourselves so they are always visible.
+	// The non-zero exit code is still preserved for scripts.
+	cmd.SilenceErrors = true
+
 	if err != nil {
-		return fmt.Errorf("dns status check failed: %w", err)
+		err = fmt.Errorf("dns status check failed: %w", err)
+		fmt.Fprintln(cmd.ErrOrStderr(), "Error:", err)
+		return err
 	}
 	for _, s := range statuses {
 		w.WriteStatus(s)
