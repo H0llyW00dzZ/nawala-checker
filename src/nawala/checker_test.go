@@ -69,6 +69,18 @@ func TestNewDefaults(t *testing.T) {
 	}
 }
 
+func TestConcurrency(t *testing.T) {
+	t.Run("default", func(t *testing.T) {
+		c := nawala.New()
+		assert.Equal(t, 100, c.Concurrency(), "default concurrency should be 100")
+	})
+
+	t.Run("custom", func(t *testing.T) {
+		c := nawala.New(nawala.WithConcurrency(42))
+		assert.Equal(t, 42, c.Concurrency(), "custom concurrency should be 42")
+	})
+}
+
 func TestWithOptions(t *testing.T) {
 	customServers := []nawala.DNSServer{
 		{Address: "1.1.1.1", Keyword: "test", QueryType: "A"},

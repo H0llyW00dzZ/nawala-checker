@@ -73,7 +73,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	in := make(chan string)
-	out := make(chan nawala.Result, 100)
+	out := make(chan nawala.Result, checker.Concurrency())
 
 	// Start streaming domains
 	streamErrCh := make(chan error, 1)

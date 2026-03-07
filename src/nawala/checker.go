@@ -410,6 +410,11 @@ func (c *Checker) Servers() []DNSServer {
 	return servers
 }
 
+// Concurrency returns the configured concurrency limit (semaphore size).
+// This is useful for sizing output channel buffers to match the maximum
+// number of in-flight results.
+func (c *Checker) Concurrency() int { return c.concurrency }
+
 // checkSingle performs the DNS check for a single domain.
 // It handles normalization, validation, caching, and failover.
 func (c *Checker) checkSingle(ctx context.Context, domain string) Result {
