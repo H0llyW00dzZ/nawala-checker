@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/miekg/dns"
 	"github.com/spf13/cobra"
 )
 
@@ -507,50 +508,71 @@ func TestCollectDomains_ContextCancelledDuringFileScan(t *testing.T) {
 	}
 }
 
-// createSlowDNSServer starts a UDP DNS server that sleeps before responding,
-// used to guarantee context-deadline expiration during a DNS query.
+// createSlowDNSServer starts a proper miekg/dns server that delays before
+// responding, used to guarantee context-deadline expiration during a DNS query.
+// Uses dns.Server for cross-platform reliability (matching the SDK internal tests).
 func createSlowDNSServer(t *testing.T, delay time.Duration) (string, func()) {
 	t.Helper()
-	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
+
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		time.Sleep(delay)
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Answer = append(m.Answer, &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   r.Question[0].Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    60,
+			},
+			A: net.ParseIP("93.184.216.34"),
+		})
+		_ = w.WriteMsg(m)
+	})
+
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	done := make(chan struct{})
+
+	server := &dns.Server{
+		PacketConn: pc,
+		Handler:    handler,
+	}
+
+	started := make(chan error, 1)
 	go func() {
-		buf := make([]byte, 512)
-		for {
-			n, addr, err := conn.ReadFromUDP(buf)
-			if err != nil {
-				close(done)
-				return
-			}
-			time.Sleep(delay) // Delay before responding
-			if n >= 12 {
-				resp := append([]byte(nil), buf[:n]...)
-				resp[2] |= 0x80 // Set QR bit (Response)
-				_, _ = conn.WriteToUDP(resp, addr)
+		server.NotifyStartedFunc = func() { started <- nil }
+		if err := server.ActivateAndServe(); err != nil {
+			select {
+			case started <- err:
+			default:
 			}
 		}
 	}()
-	return conn.LocalAddr().String(), func() {
-		_ = conn.Close()
-		<-done
+
+	if err := <-started; err != nil {
+		t.Fatal(err)
 	}
+
+	return pc.LocalAddr().String(), func() { _ = server.Shutdown() }
 }
 
 // TestRunCheck_CheckerError covers the checkErrCh error-wrapping path
-// (check.go line 106-108). A slow mock DNS server ensures streamDomains
-// completes successfully while CheckStream blocks on the DNS query
-// until the command_timeout expires.
-//
-// Timing margins are generous (500ms timeout vs 5s server delay) so the
-// test is reliable on slow CI runners (e.g., ARM emulation).
+// (check.go line 106-108). The slow server ensures streamDomains sends
+// the domain before the context expires. The short DNS client timeout
+// (50ms) makes the query fail quickly regardless of platform. The retry
+// backoff (1s) keeps the checker busy so the command_timeout (200ms)
+// expires mid-backoff, causing CheckStream to return context.DeadlineExceeded.
 func TestRunCheck_CheckerError(t *testing.T) {
 	slowAddr, cleanup := createSlowDNSServer(t, 5*time.Second)
 	defer cleanup()
 
 	cfgPath := filepath.Join(t.TempDir(), "timeout.json")
-	cfgContent := fmt.Sprintf(`{"nawala":{"configuration":{"timeout":"5s","command_timeout":"500ms","max_retries":0,"servers":[{"address":"%s","keyword":"test","query_type":"A"}]}}}`, slowAddr)
+	// timeout: 50ms     → DNS client times out quickly (platform-independent)
+	// max_retries: 5    → triggers 1s backoff on first retry
+	// command_timeout: 200ms → context expires during the backoff sleep
+	cfgContent := fmt.Sprintf(`{"nawala":{"configuration":{"timeout":"50ms","command_timeout":"200ms","max_retries":5,"servers":[{"address":"%s","keyword":"test","query_type":"A"}]}}}`, slowAddr)
 	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
 		t.Fatal(err)
 	}
