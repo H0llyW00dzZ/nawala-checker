@@ -105,7 +105,7 @@ func buildChecker(errw io.Writer) (*nawala.Checker, time.Duration, error) {
 // (ConfigVersion is empty), preserving backwards compatibility with configs
 // that predate the versioned envelope format.
 //
-// TODO: This will be useful in the future, but currently it does nothing.
+// TODO: This will be useful in the future, so for now it does nothing.
 func warnConfigVersion(errw io.Writer, cfg *Config) {
 	if cfg.ConfigVersion == "" || cfg.ConfigVersion == nawala.Version {
 		return
