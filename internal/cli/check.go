@@ -20,12 +20,13 @@ import (
 
 // checkCmd is the "check" subcommand.
 var checkCmd = &cobra.Command{
-	Use:     "check [domains...]",
-	Short:   "Check domains for DNS blocking",
-	Long:    checkLong,
-	Example: checkExample,
-	Args:    cobra.ArbitraryArgs,
-	RunE:    runCheck,
+	Use:          "check [domains...]",
+	Short:        "Check domains for DNS blocking",
+	Long:         checkLong,
+	Example:      checkExample,
+	Args:         cobra.ArbitraryArgs,
+	RunE:         runCheck,
+	SilenceUsage: true,
 }
 
 func init() {
@@ -37,6 +38,10 @@ func init() {
 // runCheck is the shared implementation for both the root default action
 // and the explicit "check" subcommand.
 func runCheck(cmd *cobra.Command, args []string) error {
+	// Suppress Cobra's automatic usage output for any error returned from RunE.
+	// Usage is only helpful for errors caught before RunE (e.g. unknown flags).
+	cmd.SilenceUsage = true
+
 	filePath, _ := cmd.Flags().GetString("file")
 	outputPath, _ := cmd.Flags().GetString("output")
 
@@ -51,13 +56,6 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer func() { _ = checker.Close() }()
-
-	// Past this point every error is a runtime error (not a flag/input
-	// error), so suppress Cobra's automatic usage and error output.
-	// Per-domain errors are already visible in the results; the non-zero
-	// exit code is still preserved for scripts.
-	cmd.SilenceUsage = true
-	cmd.SilenceErrors = true
 
 	// Create output writer.
 	w, err := NewWriter(outputPath, format)
@@ -97,14 +95,24 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Past this point every error is a runtime error.
+	// We print runtime errors to stderr ourselves so they are always visible.
+	// The non-zero exit code is still preserved for scripts.
+	cmd.SilenceErrors = true
+
 	// Check for streaming errors (e.g., file not found, no domains)
 	if err := <-streamErrCh; err != nil {
+		w.Cancel()
+		fmt.Fprintln(cmd.ErrOrStderr(), "Error:", err)
 		return err
 	}
 
 	// Check for checker errors
 	if err := <-checkErrCh; err != nil {
-		return fmt.Errorf("check failed: %w", err)
+		w.Cancel()
+		err = fmt.Errorf("check failed: %w", err)
+		fmt.Fprintln(cmd.ErrOrStderr(), "Error:", err)
+		return err
 	}
 
 	if hasErrors {
