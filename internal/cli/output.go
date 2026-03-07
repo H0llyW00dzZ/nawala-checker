@@ -41,6 +41,7 @@ type Writer struct {
 	jsonStarted bool   // tracks if we started the JSON array
 	jsonKey     string // "result" or "status" — set by the first JSON write
 	outputPath  string // original path (needed by XLSX SaveAs)
+	cancelled   bool   // when true, Close() skips all output
 
 	// Buffered results/statuses for text, HTML and XLSX (rendered at Close time).
 	results  []nawala.Result
@@ -506,8 +507,20 @@ func (w *Writer) writeTextStatuses() {
 	}
 }
 
+// Cancel marks the writer as aborted. A subsequent Close call will skip
+// flushing any output and only release resources (e.g. close the file).
+// Call this before returning an error to prevent partial or empty output
+// from being written to stdout or the output file.
+func (w *Writer) Cancel() { w.cancelled = true }
+
 // Close flushes any buffered data, writes JSON caps, and closes the file.
 func (w *Writer) Close() error {
+	if w.cancelled {
+		if w.closer != nil {
+			return w.closer.Close()
+		}
+		return nil
+	}
 	switch w.format {
 	case FormatJSON:
 		if w.jsonStarted {

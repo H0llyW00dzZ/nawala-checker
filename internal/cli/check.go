@@ -102,12 +102,14 @@ func runCheck(cmd *cobra.Command, args []string) error {
 
 	// Check for streaming errors (e.g., file not found, no domains)
 	if err := <-streamErrCh; err != nil {
+		w.Cancel()
 		fmt.Fprintln(cmd.ErrOrStderr(), "Error:", err)
 		return err
 	}
 
 	// Check for checker errors
 	if err := <-checkErrCh; err != nil {
+		w.Cancel()
 		err = fmt.Errorf("check failed: %w", err)
 		fmt.Fprintln(cmd.ErrOrStderr(), "Error:", err)
 		return err

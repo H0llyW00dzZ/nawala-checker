@@ -67,6 +67,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceErrors = true
 
 	if err != nil {
+		w.Cancel()
 		err = fmt.Errorf("dns status check failed: %w", err)
 		fmt.Fprintln(cmd.ErrOrStderr(), "Error:", err)
 		return err
