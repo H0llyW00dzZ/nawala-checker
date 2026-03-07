@@ -163,7 +163,7 @@ Contoh file konfigurasi (`config.json`) — format nawala envelope:
 > `keep_alive_pool_size` — mengaktifkan pooling koneksi TCP/TLS persisten bila diisi dengan nilai positif
 > bersama `protocol: tcp` atau `protocol: tcp-tls`. Nilai `0` (default) menonaktifkan pool;
 > jika field tidak ada di config file, nilainya nil dan **tidak mempengaruhi** penggunaan tcp/tcp-tls yang sudah ada.
-> Memerlukan server yang mendukung RFC 7766 (tcp) atau RFC 7858 (tcp-tls) — gunakan dengan penyedia DoT
+> Memerlukan server yang mendukung [RFC 7766](https://www.rfc-editor.org/rfc/rfc7766.html) (tcp) atau [RFC 7858](https://www.rfc-editor.org/rfc/rfc7858.html) (tcp-tls) — gunakan dengan penyedia DoT
 > (contoh: Cloudflare `1.1.1.1:853`, Google `8.8.8.8:853`) atau resolver lokal modern.
 > Server ISP Nawala bawaan tidak mendapat manfaat dari fitur ini.
 
@@ -282,7 +282,7 @@ c := nawala.New(
 | `Checker.SetServers(s)` | — | Hot-reload: Tambahkan atau ganti server saat runtime (aman untuk konkurensi) |
 | `Checker.HasServer(s)` | — | Hot-reload: Periksa apakah server dikonfigurasi saat runtime (aman untuk konkurensi) |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Hapus server saat runtime (aman untuk konkurensi) |
-| `WithKeepAlive(n)` | dinonaktifkan | Pool koneksi TCP/TLS persisten; `n` = maks koneksi idle per server (≤0 → `min(concurrency,10)`); **memerlukan dukungan server RFC 7766 (tcp) atau RFC 7858 (tcp-tls)** — gunakan dengan penyedia DoT atau resolver kustom modern, bukan server ISP Nawala bawaan; diabaikan untuk UDP |
+| `WithKeepAlive(n)` | dinonaktifkan | Pool koneksi TCP/TLS persisten; `n` = maks koneksi idle per server (≤0 → `min(concurrency,10)`); **memerlukan dukungan server [RFC 7766](https://www.rfc-editor.org/rfc/rfc7766.html) (tcp) atau [RFC 7858](https://www.rfc-editor.org/rfc/rfc7858.html) (tcp-tls)** — gunakan dengan penyedia DoT atau resolver kustom modern, bukan server ISP Nawala bawaan; diabaikan untuk UDP |
 
 ## 🔌 API
 

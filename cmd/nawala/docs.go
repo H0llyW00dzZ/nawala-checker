@@ -96,7 +96,7 @@
 // keep_alive_pool_size enables persistent TCP/TLS connection pooling.
 // A value of 0 (default) means disabled; set to a positive integer together
 // with protocol "tcp" or "tcp-tls" to reuse connections across queries.
-// Requires a server that supports RFC 7766 (tcp) or RFC 7858 (tcp-tls) —
+// Requires a server that supports [RFC 7766] (tcp) or [RFC 7858] (tcp-tls) —
 // best used with DoT providers (e.g. Cloudflare :853, Google :853) or modern
 // local resolvers. The default Nawala/ISP servers are UDP-optimised and do not
 // benefit from this option.
@@ -106,4 +106,7 @@
 //	0   all checks completed successfully
 //	1   one or more checks encountered errors
 //	2   fatal error (invalid config, missing domains, etc.)
+//
+// [RFC 7766]: https://www.rfc-editor.org/rfc/rfc7766.html
+// [RFC 7858]: https://www.rfc-editor.org/rfc/rfc7858.html
 package main

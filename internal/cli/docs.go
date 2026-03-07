@@ -57,7 +57,7 @@
 // Set to a positive integer together with protocol "tcp" or "tcp-tls" to avoid
 // per-query handshake overhead. 0 (default) disables the pool entirely — absent
 // from the config file means nil, so existing tcp/tcp-tls usage is unaffected.
-// Requires RFC 7766 (tcp) or RFC 7858 (tcp-tls) server support; the default
+// Requires [RFC 7766] (tcp) or [RFC 7858] (tcp-tls) server support; the default
 // Nawala ISP servers are UDP-optimised and will not benefit.
 //
 // # Domain Input
@@ -85,4 +85,6 @@
 // See [magic_embed.go] for the embed directives.
 //
 // [magic_embed.go]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/internal/cli/magic_embed.go
+// [RFC 7766]: https://www.rfc-editor.org/rfc/rfc7766.html
+// [RFC 7858]: https://www.rfc-editor.org/rfc/rfc7858.html
 package cli
