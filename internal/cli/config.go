@@ -38,7 +38,10 @@ type Config struct {
 	TLSSkipVerify  *bool   `json:"tls_skip_verify" yaml:"tls_skip_verify"`
 	// KeepAlivePoolSize enables TCP/TLS keep-alive when non-nil and > 0.
 	// Only effective when Protocol is "tcp" or "tcp-tls" and the upstream
-	// DNS server supports RFC 7766 / RFC 7858 persistent connections.
+	// DNS server supports [RFC 7766] / [RFC 7858] persistent connections.
+	//
+	// [RFC 7766]: https://www.rfc-editor.org/rfc/rfc7766.html
+	// [RFC 7858]: https://www.rfc-editor.org/rfc/rfc7858.html
 	KeepAlivePoolSize *int        `json:"keep_alive_pool_size" yaml:"keep_alive_pool_size"`
 	Servers           []ServerDef `json:"servers"              yaml:"servers"`
 }
@@ -223,7 +226,10 @@ func (c *Config) parseTLSSkipVerify() (nawala.Option, error) {
 // A value of 0 is still passed to WithKeepAlive so the SDK can apply its own
 // default (min(concurrency, 10)). Nil means keep-alive is disabled entirely.
 // Only effective when protocol is "tcp" or "tcp-tls" and the DNS server
-// supports RFC 7766 / RFC 7858 persistent connections.
+// supports [RFC 7766] / [RFC 7858] persistent connections.
+//
+// [RFC 7766]: https://www.rfc-editor.org/rfc/rfc7766.html
+// [RFC 7858]: https://www.rfc-editor.org/rfc/rfc7858.html
 func (c *Config) parseKeepAlive() (nawala.Option, error) {
 	if c.KeepAlivePoolSize == nil {
 		return nil, nil

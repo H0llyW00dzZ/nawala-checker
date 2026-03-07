@@ -72,6 +72,8 @@
 //   - Typed errors — sentinel errors for [errors.Is] matching
 //   - Keep-alive connection pool — optional [WithKeepAlive] option for
 //     persistent TCP/TLS connections, avoiding per-query handshake overhead
+//   - Runtime hot-reload — safely add, replace, or remove DNS servers
+//     concurrently without restarting
 //
 // # Quick Start
 //
@@ -167,7 +169,7 @@
 //   - [Checker.HasServer]     — Hot-reload: Check if a server is configured at runtime safely
 //   - [Checker.DeleteServers] — Hot-reload: Remove servers at runtime safely
 //   - [WithKeepAlive]         — Persistent TCP/TLS conn pool (idle conns per server);
-//     no-op for UDP; requires RFC 7766 (tcp) or RFC 7858 (tcp-tls) server support —
+//     no-op for UDP; requires [RFC 7766] (tcp) or [RFC 7858] (tcp-tls) server support —
 //     use with DoT providers or modern custom resolvers, NOT the default Nawala
 //     ISP servers (UDP-optimised, close TCP after each query); call [Checker.Close] when done
 //
@@ -352,4 +354,6 @@
 // [examples/]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples
 // [k8s]: https://kubernetes.io
 // [idiomatic Go]: https://go.dev/doc/effective_go
+// [RFC 7766]: https://www.rfc-editor.org/rfc/rfc7766.html
+// [RFC 7858]: https://www.rfc-editor.org/rfc/rfc7858.html
 package nawala

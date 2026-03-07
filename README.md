@@ -34,6 +34,8 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 - **Context-aware** — full support for timeouts and cancellation via `context.Context`
 - **Domain validation** — automatic normalization and validation of domain names
 - **Typed errors** — sentinel errors for `errors.Is` matching (see [Errors](#errors))
+- **Connection pooling** — reuse established TCP/TLS connections via `WithKeepAlive` to eliminate handshake overhead
+- **Runtime hot-reload** — safely add, replace, or remove DNS servers concurrently without restarting
 
 ## 🚀 Performance
 
@@ -166,7 +168,7 @@ Configuration file example (`config.json`) — nawala envelope format:
 > `keep_alive_pool_size` — enables persistent TCP/TLS connection pooling when set to a positive
 > integer alongside `protocol: tcp` or `protocol: tcp-tls`. `0` (default) disables the pool;
 > omitting the field entirely is equivalent to `0` and does **not** affect existing tcp/tcp-tls
-> usage. Requires a server supporting RFC 7766 (tcp) or RFC 7858 (tcp-tls) — use with DoT
+> usage. Requires a server supporting [RFC 7766](https://www.rfc-editor.org/rfc/rfc7766.html) (tcp) or [RFC 7858](https://www.rfc-editor.org/rfc/rfc7858.html) (tcp-tls) — use with DoT
 > providers (e.g. Cloudflare `1.1.1.1:853`, Google `8.8.8.8:853`) or modern local resolvers.
 > The default Nawala ISP servers do not benefit.
 
@@ -285,7 +287,7 @@ c := nawala.New(
 | `Checker.SetServers(s)` | — | Hot-reload: Add or replace servers at runtime safely |
 | `Checker.HasServer(s)` | — | Hot-reload: Check if a server is configured at runtime safely |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Remove servers at runtime safely |
-| `WithKeepAlive(n)` | disabled | Persistent TCP/TLS conn pool; `n` = max idle conns per server (≤0 → `min(concurrency,10)`); **requires RFC 7766 (tcp) or RFC 7858 (tcp-tls) server support** — use with DoT providers or modern custom resolvers, not the default Nawala ISP servers; no-op for UDP |
+| `WithKeepAlive(n)` | disabled | Persistent TCP/TLS conn pool; `n` = max idle conns per server (≤0 → `min(concurrency,10)`); **requires [RFC 7766](https://www.rfc-editor.org/rfc/rfc7766.html) (tcp) or [RFC 7858](https://www.rfc-editor.org/rfc/rfc7858.html) (tcp-tls) server support** — use with DoT providers or modern custom resolvers, not the default Nawala ISP servers; no-op for UDP |
 
 ## 🔌 API
 
