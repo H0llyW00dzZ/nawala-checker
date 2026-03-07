@@ -171,8 +171,9 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 
 Loop:
 	for i, domain := range domains {
-		// Acquire semaphore before spawning goroutine to limit
-		// the number of active goroutines, while respecting context cancellation.
+		// Priority check: if context is already done, handle it immediately.
+		// This prevents the race where select randomly picks the semaphore
+		// branch when both ctx.Done() and sem are ready simultaneously.
 		select {
 		case <-ctx.Done():
 			// Fill remaining results with context error
@@ -184,6 +185,20 @@ Loop:
 			}
 			// Do not return immediately! We must wait for active goroutines.
 			// Break the loop to stop spawning new ones.
+			break Loop
+		default:
+		}
+
+		// Acquire semaphore before spawning goroutine to limit
+		// the number of active goroutines, while respecting context cancellation.
+		select {
+		case <-ctx.Done():
+			for j := i; j < len(domains); j++ {
+				results[j] = Result{
+					Domain: domains[j],
+					Error:  ctx.Err(),
+				}
+			}
 			break Loop
 		case sem <- struct{}{}:
 		}
@@ -270,6 +285,13 @@ Loop:
 				break Loop
 			}
 
+			// Priority check: if context is already done, stop immediately.
+			select {
+			case <-ctx.Done():
+				break Loop
+			default:
+			}
+
 			// Acquire semaphore before spawning goroutine to limit
 			// the number of active goroutines, while respecting context cancellation.
 			select {
@@ -335,11 +357,24 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 
 Loop:
 	for i, srv := range servers {
+		// Priority check: if context is already done, handle it immediately.
+		select {
+		case <-ctx.Done():
+			// Fill remaining results with context error
+			for j := i; j < len(servers); j++ {
+				statuses[j] = ServerStatus{
+					Server: servers[j].Address,
+					Error:  ctx.Err(),
+				}
+			}
+			break Loop
+		default:
+		}
+
 		// Acquire semaphore before spawning goroutine,
 		// while respecting context cancellation.
 		select {
 		case <-ctx.Done():
-			// Fill remaining results with context error
 			for j := i; j < len(servers); j++ {
 				statuses[j] = ServerStatus{
 					Server: servers[j].Address,
