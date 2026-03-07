@@ -541,13 +541,16 @@ func createSlowDNSServer(t *testing.T, delay time.Duration) (string, func()) {
 // TestRunCheck_CheckerError covers the checkErrCh error-wrapping path
 // (check.go line 106-108). A slow mock DNS server ensures streamDomains
 // completes successfully while CheckStream blocks on the DNS query
-// until the short command_timeout expires.
+// until the command_timeout expires.
+//
+// Timing margins are generous (500ms timeout vs 5s server delay) so the
+// test is reliable on slow CI runners (e.g., ARM emulation).
 func TestRunCheck_CheckerError(t *testing.T) {
-	slowAddr, cleanup := createSlowDNSServer(t, 500*time.Millisecond)
+	slowAddr, cleanup := createSlowDNSServer(t, 5*time.Second)
 	defer cleanup()
 
 	cfgPath := filepath.Join(t.TempDir(), "timeout.json")
-	cfgContent := fmt.Sprintf(`{"nawala":{"configuration":{"timeout":"5s","command_timeout":"200ms","max_retries":0,"servers":[{"address":"%s","keyword":"test","query_type":"A"}]}}}`, slowAddr)
+	cfgContent := fmt.Sprintf(`{"nawala":{"configuration":{"timeout":"5s","command_timeout":"500ms","max_retries":0,"servers":[{"address":"%s","keyword":"test","query_type":"A"}]}}}`, slowAddr)
 	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
 		t.Fatal(err)
 	}
