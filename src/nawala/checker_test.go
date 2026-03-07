@@ -353,3 +353,76 @@ func TestLiveDNSCheck(t *testing.T) {
 
 	t.Logf("google.com: blocked=%v (server=%s)", result.Blocked, result.Server)
 }
+
+func TestChecker_CheckStream(t *testing.T) {
+	c := nawala.New(
+		nawala.WithTimeout(1*time.Second),
+		nawala.WithMaxRetries(0),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	in := make(chan string)
+	out := make(chan nawala.Result, 100)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+	}()
+
+	domains := []string{"stream1.com", "stream2.com", "stream3.com", "stream4.com", "stream5.com"}
+	for _, d := range domains {
+		in <- d
+	}
+	close(in)
+
+	err := <-errCh
+	require.NoError(t, err, "CheckStream should return no error on successful completion")
+
+	close(out)
+	var results []nawala.Result
+	for r := range out {
+		results = append(results, r)
+	}
+
+	assert.Len(t, results, 5, "expected exactly 5 results")
+
+	seen := make(map[string]bool)
+	for _, r := range results {
+		seen[r.Domain] = true
+	}
+
+	for _, d := range domains {
+		assert.True(t, seen[d], "missing result for domain %s", d)
+	}
+}
+
+func TestChecker_CheckStream_ContextCancel(t *testing.T) {
+	c := nawala.New(
+		nawala.WithServers([]nawala.DNSServer{{
+			Address:   "192.0.2.1:53",
+			Keyword:   "blocked",
+			QueryType: "A",
+		}}),
+		nawala.WithConcurrency(2),
+		nawala.WithTimeout(10*time.Second),
+		nawala.WithMaxRetries(0),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	in := make(chan string)
+	out := make(chan nawala.Result, 10)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+	}()
+
+	in <- "cancel.com"
+	cancel()
+	close(in)
+
+	err := <-errCh
+	assert.ErrorIs(t, err, context.Canceled)
+}
