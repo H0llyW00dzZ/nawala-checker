@@ -53,7 +53,7 @@
 //   - tls_skip_verify: disables TLS certificate verification entirely. Only for self-signed
 //     certs; never use in production.
 //
-// keep_alive_pool_size enables persistent TCP/TLS connection reuse.
+// The keep_alive_pool_size field enables persistent TCP/TLS connection reuse.
 // Set to a positive integer together with protocol "tcp" or "tcp-tls" to avoid
 // per-query handshake overhead. 0 (default) disables the pool entirely — absent
 // from the config file means nil, so existing tcp/tcp-tls usage is unaffected.
