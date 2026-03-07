@@ -34,6 +34,8 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 - **Sadar konteks** — dukungan penuh untuk timeout dan pembatalan melalui `context.Context`
 - **Validasi domain** — normalisasi dan validasi nama domain otomatis
 - **Error yang diketik** — error sentinel untuk pencocokan `errors.Is` (lihat [Error](#error))
+- **Pooling koneksi** — gunakan kembali koneksi TCP/TLS yang sudah terbentuk via `WithKeepAlive` untuk menghilangkan overhead handshake
+- **Hot-reload runtime** — tambah, ganti, atau hapus server DNS dengan aman secara serentak tanpa perlu diulang (restart)
 
 ## 🚀 Performa
 
