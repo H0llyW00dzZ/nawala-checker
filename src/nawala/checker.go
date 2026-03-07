@@ -171,7 +171,8 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 
 Loop:
 	for i, domain := range domains {
-		// Check context before starting new work
+		// Acquire semaphore before spawning goroutine to limit
+		// the number of active goroutines, while respecting context cancellation.
 		select {
 		case <-ctx.Done():
 			// Fill remaining results with context error
@@ -184,14 +185,10 @@ Loop:
 			// Do not return immediately! We must wait for active goroutines.
 			// Break the loop to stop spawning new ones.
 			break Loop
-		default:
+		case sem <- struct{}{}:
 		}
 
 		wg.Add(1)
-
-		// Acquire semaphore before spawning goroutine to limit
-		// the number of active goroutines.
-		sem <- struct{}{}
 
 		go func(idx int, d string) {
 			defer wg.Done()
@@ -273,11 +270,15 @@ Loop:
 				break Loop
 			}
 
-			wg.Add(1)
-
 			// Acquire semaphore before spawning goroutine to limit
-			// the number of active goroutines.
-			sem <- struct{}{}
+			// the number of active goroutines, while respecting context cancellation.
+			select {
+			case <-ctx.Done():
+				break Loop
+			case sem <- struct{}{}:
+			}
+
+			wg.Add(1)
 
 			go func(d string) {
 				defer wg.Done()
@@ -334,7 +335,8 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 
 Loop:
 	for i, srv := range servers {
-		// Check context before starting new work
+		// Acquire semaphore before spawning goroutine,
+		// while respecting context cancellation.
 		select {
 		case <-ctx.Done():
 			// Fill remaining results with context error
@@ -345,13 +347,10 @@ Loop:
 				}
 			}
 			break Loop
-		default:
+		case sem <- struct{}{}:
 		}
 
 		wg.Add(1)
-
-		// Acquire semaphore before spawning goroutine.
-		sem <- struct{}{}
 
 		go func(idx int, server DNSServer) {
 			defer wg.Done()
