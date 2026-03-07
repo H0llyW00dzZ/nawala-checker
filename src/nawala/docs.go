@@ -72,6 +72,8 @@
 //   - Typed errors — sentinel errors for [errors.Is] matching
 //   - Keep-alive connection pool — optional [WithKeepAlive] option for
 //     persistent TCP/TLS connections, avoiding per-query handshake overhead
+//   - Runtime hot-reload — safely add, replace, or remove DNS servers
+//     concurrently without restarting
 //
 // # Quick Start
 //
