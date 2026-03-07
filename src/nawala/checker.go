@@ -167,7 +167,7 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 	// Semaphore to limit concurrency.
 	// We use a buffered channel to limit the number
 	// of concurrent goroutines.
-	sem := make(chan struct{}, c.concurrency)
+	sem := make(chan struct{}, c.Concurrency())
 
 Loop:
 	for i, domain := range domains {
@@ -261,7 +261,7 @@ func (c *Checker) CheckStream(ctx context.Context, stream Stream) error {
 	// Semaphore to limit concurrency.
 	// We use a buffered channel to limit the number
 	// of concurrent goroutines.
-	sem := make(chan struct{}, c.concurrency)
+	sem := make(chan struct{}, c.Concurrency())
 
 Loop:
 	for {
@@ -330,7 +330,7 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	// Semaphore to limit concurrency.
 	// We use a buffered channel to limit the number
 	// of concurrent goroutines.
-	sem := make(chan struct{}, c.concurrency)
+	sem := make(chan struct{}, c.Concurrency())
 
 Loop:
 	for i, srv := range servers {
