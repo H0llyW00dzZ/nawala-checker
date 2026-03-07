@@ -288,6 +288,7 @@ c := nawala.New(
 | `Checker.SetServers(s)` | — | Hot-reload: Add or replace servers at runtime safely |
 | `Checker.HasServer(s)` | — | Hot-reload: Check if a server is configured at runtime safely |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Remove servers at runtime safely |
+| `Checker.Concurrency()` | — | Returns the configured concurrency limit (semaphore size); useful for sizing output channel buffers to match in-flight capacity |
 | `WithKeepAlive(n)` | disabled | Persistent TCP/TLS conn pool; `n` = max idle conns per server (≤0 → `min(concurrency,10)`); **requires [RFC 7766](https://www.rfc-editor.org/rfc/rfc7766.html) (tcp) or [RFC 7858](https://www.rfc-editor.org/rfc/rfc7858.html) (tcp-tls) server support** — use with DoT providers or modern custom resolvers, not the default Nawala ISP servers; no-op for UDP |
 
 ## 🔌 API
@@ -305,12 +306,16 @@ result, err := c.CheckOne(ctx, "example.com")
 // Domains flow from In to Out as they complete — memory stays constant
 // regardless of input size.
 in := make(chan string)
-out := make(chan nawala.Result, 100)
+out := make(chan nawala.Result, c.Concurrency())
 go func() {
     for _, d := range domains { in <- d }
     close(in)
 }()
 err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+
+// Read the configured concurrency (semaphore size).
+// Useful for sizing buffers to match the checker's in-flight capacity.
+n := c.Concurrency()
 
 // Check DNS server health and latency.
 statuses, err := c.DNSStatus(ctx)

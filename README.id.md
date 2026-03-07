@@ -285,6 +285,7 @@ c := nawala.New(
 | `Checker.SetServers(s)` | — | Hot-reload: Tambahkan atau ganti server saat runtime (aman untuk konkurensi) |
 | `Checker.HasServer(s)` | — | Hot-reload: Periksa apakah server dikonfigurasi saat runtime (aman untuk konkurensi) |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Hapus server saat runtime (aman untuk konkurensi) |
+| `Checker.Concurrency()` | — | Mengembalikan batas konkurensi yang dikonfigurasi (ukuran semaphore); berguna untuk menyesuaikan ukuran buffer channel output agar sesuai dengan kapasitas in-flight |
 | `WithKeepAlive(n)` | dinonaktifkan | Pool koneksi TCP/TLS persisten; `n` = maks koneksi idle per server (≤0 → `min(concurrency,10)`); **memerlukan dukungan server [RFC 7766](https://www.rfc-editor.org/rfc/rfc7766.html) (tcp) atau [RFC 7858](https://www.rfc-editor.org/rfc/rfc7858.html) (tcp-tls)** — gunakan dengan penyedia DoT atau resolver kustom modern, bukan server ISP Nawala bawaan; diabaikan untuk UDP |
 
 ## 🔌 API
@@ -302,12 +303,16 @@ result, err := c.CheckOne(ctx, "example.com")
 // Domain mengalir dari In ke Out saat selesai — memori tetap konstan
 // berapa pun ukuran input.
 in := make(chan string)
-out := make(chan nawala.Result, 100)
+out := make(chan nawala.Result, c.Concurrency())
 go func() {
     for _, d := range domains { in <- d }
     close(in)
 }()
 err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+
+// Baca konkurensi yang dikonfigurasi (ukuran semaphore).
+// Berguna untuk menyesuaikan ukuran buffer agar sesuai kapasitas in-flight checker.
+n := c.Concurrency()
 
 // Periksa kesehatan dan latensi server DNS.
 statuses, err := c.DNSStatus(ctx)
