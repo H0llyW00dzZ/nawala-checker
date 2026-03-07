@@ -22,6 +22,7 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 ## ✨ Fitur
 
 - **Pemeriksaan domain serentak** — periksa beberapa domain secara paralel dengan satu panggilan
+- **Pemeriksaan domain streaming** — proses domain melalui pipeline channel via `CheckStream`, memungkinkan operasi memori konstan bahkan dengan jutaan domain
 - **Failover server DNS** — fallback otomatis ke server sekunder ketika server utama gagal
 - **Coba lagi dengan backoff eksponensial** — tangguh terhadap kesalahan jaringan sementara
 - **Caching bawaan** — cache dalam memori dengan TTL yang dapat dikonfigurasi untuk menghindari kueri berlebihan
@@ -79,7 +80,7 @@ Penggunaan:
 # Periksa domain (singkatan — mendelegasikan ke "check")
 nawala google.com reddit.com
 
-# Periksa domain dari file
+# Periksa domain dari file (streaming baris per baris, memori konstan)
 nawala check --file domains.txt
 
 # Output JSON (NDJSON — satu objek per baris)
@@ -284,6 +285,7 @@ c := nawala.New(
 | `Checker.SetServers(s)` | — | Hot-reload: Tambahkan atau ganti server saat runtime (aman untuk konkurensi) |
 | `Checker.HasServer(s)` | — | Hot-reload: Periksa apakah server dikonfigurasi saat runtime (aman untuk konkurensi) |
 | `Checker.DeleteServers(s)` | — | Hot-reload: Hapus server saat runtime (aman untuk konkurensi) |
+| `Checker.Concurrency()` | — | Mengembalikan batas konkurensi yang dikonfigurasi (ukuran semaphore); berguna untuk menyesuaikan ukuran buffer channel output agar sesuai dengan kapasitas in-flight |
 | `WithKeepAlive(n)` | dinonaktifkan | Pool koneksi TCP/TLS persisten; `n` = maks koneksi idle per server (≤0 → `min(concurrency,10)`); **memerlukan dukungan server [RFC 7766](https://www.rfc-editor.org/rfc/rfc7766.html) (tcp) atau [RFC 7858](https://www.rfc-editor.org/rfc/rfc7858.html) (tcp-tls)** — gunakan dengan penyedia DoT atau resolver kustom modern, bukan server ISP Nawala bawaan; diabaikan untuk UDP |
 
 ## 🔌 API
@@ -296,6 +298,21 @@ results, err := c.Check(ctx, "example.com", "another.com")
 
 // Periksa satu domain.
 result, err := c.CheckOne(ctx, "example.com")
+
+// Streaming pemeriksaan domain melalui pipeline channel.
+// Domain mengalir dari In ke Out saat selesai — memori tetap konstan
+// berapa pun ukuran input.
+in := make(chan string)
+out := make(chan nawala.Result, c.Concurrency())
+go func() {
+    for _, d := range domains { in <- d }
+    close(in)
+}()
+err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+
+// Baca konkurensi yang dikonfigurasi (ukuran semaphore).
+// Berguna untuk menyesuaikan ukuran buffer agar sesuai kapasitas in-flight checker.
+n := c.Concurrency()
 
 // Periksa kesehatan dan latensi server DNS.
 statuses, err := c.DNSStatus(ctx)

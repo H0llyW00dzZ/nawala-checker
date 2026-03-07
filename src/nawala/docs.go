@@ -47,6 +47,9 @@
 //
 //   - Concurrent domain checking — check multiple domains in parallel
 //     with a single call
+//   - Streaming domain checking — process domains through a channel
+//     pipeline via [Checker.CheckStream], enabling constant-memory
+//     operation even with millions of domains
 //   - DNS server failover — automatic fallback to secondary servers when
 //     the primary fails
 //   - Retry with exponential backoff — resilient against transient
@@ -168,6 +171,8 @@
 //   - [Checker.SetServers]    — Hot-reload: Add or replace servers at runtime safely
 //   - [Checker.HasServer]     — Hot-reload: Check if a server is configured at runtime safely
 //   - [Checker.DeleteServers] — Hot-reload: Remove servers at runtime safely
+//   - [Checker.Concurrency]   — Returns the configured concurrency limit (semaphore size);
+//     useful for sizing output channel buffers to match in-flight capacity
 //   - [WithKeepAlive]         — Persistent TCP/TLS conn pool (idle conns per server);
 //     no-op for UDP; requires [RFC 7766] (tcp) or [RFC 7858] (tcp-tls) server support —
 //     use with DoT providers or modern custom resolvers, NOT the default Nawala
@@ -182,6 +187,20 @@
 //
 //	// Check a single domain.
 //	result, err := c.CheckOne(ctx, "example.com")
+//
+//	// Stream-check domains through a channel pipeline.
+//	// Domains are read from In and results are sent to Out as they complete.
+//	// Memory usage stays constant regardless of input size.
+//	in := make(chan string)
+//	out := make(chan nawala.Result, c.Concurrency())
+//	go func() {
+//	    for _, d := range domains { in <- d }
+//	    close(in)
+//	}()
+//	err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+//
+//	// Read the configured concurrency (semaphore size).
+//	n := c.Concurrency()
 //
 //	// Check DNS server health and latency.
 //	statuses, err := c.DNSStatus(ctx)

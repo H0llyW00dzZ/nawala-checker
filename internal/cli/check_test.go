@@ -6,15 +6,36 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/miekg/dns"
 	"github.com/spf13/cobra"
 )
+
+// collectDomains is a helper wrapper for tests to consume streamDomains into a slice.
+func collectDomains(args []string, filePath string) ([]string, error) {
+	ctx := context.Background()
+	in := make(chan string)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- streamDomains(ctx, args, filePath, in)
+	}()
+
+	var domains []string
+	for d := range in {
+		domains = append(domains, d)
+	}
+
+	return domains, <-errCh
+}
 
 func TestCollectDomains_ArgsOnly(t *testing.T) {
 	domains, err := collectDomains([]string{"a.com", "b.com"}, "")
@@ -53,12 +74,12 @@ func TestCollectDomains_CaseInsensitiveDedup(t *testing.T) {
 }
 
 func TestCollectDomains_EmptyArgs(t *testing.T) {
-	domains, err := collectDomains([]string{}, "")
-	if err != nil {
-		t.Fatalf("collectDomains error: %v", err)
+	_, err := collectDomains([]string{}, "")
+	if err == nil {
+		t.Fatal("expected error for empty args, got nil")
 	}
-	if len(domains) != 0 {
-		t.Errorf("len(domains) = %d, want 0", len(domains))
+	if !strings.Contains(err.Error(), "no domains provided") {
+		t.Errorf("error should contain 'no domains provided': %v", err)
 	}
 }
 
@@ -126,12 +147,12 @@ func TestCollectDomains_FileEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	domains, err := collectDomains(nil, path)
-	if err != nil {
-		t.Fatalf("collectDomains error: %v", err)
+	_, err := collectDomains(nil, path)
+	if err == nil {
+		t.Fatal("expected error for empty file, got nil")
 	}
-	if len(domains) != 0 {
-		t.Errorf("len(domains) = %d, want 0", len(domains))
+	if !strings.Contains(err.Error(), "no domains provided") {
+		t.Errorf("error should contain 'no domains provided': %v", err)
 	}
 }
 
@@ -142,12 +163,12 @@ func TestCollectDomains_FileCommentsOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	domains, err := collectDomains(nil, path)
-	if err != nil {
-		t.Fatalf("collectDomains error: %v", err)
+	_, err := collectDomains(nil, path)
+	if err == nil {
+		t.Fatal("expected error for comments-only file, got nil")
 	}
-	if len(domains) != 0 {
-		t.Errorf("len(domains) = %d, want 0", len(domains))
+	if !strings.Contains(err.Error(), "no domains provided") {
+		t.Errorf("error should contain 'no domains provided': %v", err)
 	}
 }
 
@@ -334,10 +355,11 @@ func TestRunCheck_PartialFailure(t *testing.T) {
 }
 
 func TestRunCheck_NoServers(t *testing.T) {
-	// Config with empty servers array causes ErrNoDNSServers,
-	// triggering the "check failed" error wrapping path.
+	// Config with empty servers array causes ErrNoDNSServers.
+	// A short command_timeout prevents the 30s default from blocking
+	// streamDomains on the unbuffered 'in' channel.
 	cfgPath := filepath.Join(t.TempDir(), "no_servers.json")
-	if err := os.WriteFile(cfgPath, []byte(`{"nawala":{"configuration":{"servers":[]}}}`), 0644); err != nil {
+	if err := os.WriteFile(cfgPath, []byte(`{"nawala":{"configuration":{"command_timeout":"200ms","servers":[]}}}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -429,5 +451,145 @@ func TestRunCheck_MultipleFormatFlags(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "only one output format flag") {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+// collectDomainsCtx is like collectDomains but accepts a context,
+// enabling tests for context-cancellation paths.
+func collectDomainsCtx(ctx context.Context, args []string, filePath string) ([]string, error) {
+	in := make(chan string)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- streamDomains(ctx, args, filePath, in)
+	}()
+
+	var domains []string
+	for d := range in {
+		domains = append(domains, d)
+	}
+
+	return domains, <-errCh
+}
+
+// TestCollectDomains_ContextCancelledDuringArgs covers the ctx.Err() check
+// inside the positional-args loop of streamDomains (check.go line 140-142).
+func TestCollectDomains_ContextCancelledDuringArgs(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	_, err := collectDomainsCtx(ctx, []string{"a.com", "b.com"}, "")
+	if err == nil {
+		t.Fatal("expected context error, got nil")
+	}
+	if err != context.Canceled {
+		t.Errorf("expected context.Canceled, got: %v", err)
+	}
+}
+
+// TestCollectDomains_ContextCancelledDuringFileScan covers the ctx.Err()
+// check inside the file-scanning loop (check.go line 158-160).
+func TestCollectDomains_ContextCancelledDuringFileScan(t *testing.T) {
+	content := "a.com\nb.com\nc.com\n"
+	path := filepath.Join(t.TempDir(), "domains.txt")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	_, err := collectDomainsCtx(ctx, nil, path)
+	if err == nil {
+		t.Fatal("expected context error, got nil")
+	}
+	if err != context.Canceled {
+		t.Errorf("expected context.Canceled, got: %v", err)
+	}
+}
+
+// createSlowDNSServer starts a proper miekg/dns server that delays before
+// responding, used to guarantee context-deadline expiration during a DNS query.
+// Uses dns.Server for cross-platform reliability (matching the SDK internal tests).
+func createSlowDNSServer(t *testing.T, delay time.Duration) (string, func()) {
+	t.Helper()
+
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		time.Sleep(delay)
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Answer = append(m.Answer, &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   r.Question[0].Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    60,
+			},
+			A: net.ParseIP("93.184.216.34"),
+		})
+		_ = w.WriteMsg(m)
+	})
+
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	server := &dns.Server{
+		PacketConn: pc,
+		Handler:    handler,
+	}
+
+	started := make(chan error, 1)
+	go func() {
+		server.NotifyStartedFunc = func() { started <- nil }
+		if err := server.ActivateAndServe(); err != nil {
+			select {
+			case started <- err:
+			default:
+			}
+		}
+	}()
+
+	if err := <-started; err != nil {
+		t.Fatal(err)
+	}
+
+	return pc.LocalAddr().String(), func() { _ = server.Shutdown() }
+}
+
+// TestRunCheck_CheckerError covers the checkErrCh error-wrapping path
+// (check.go line 106-108). The slow server ensures streamDomains sends
+// the domain before the context expires. The short DNS client timeout
+// (50ms) makes the query fail quickly regardless of platform. The retry
+// backoff (1s) keeps the checker busy so the command_timeout (200ms)
+// expires mid-backoff, causing CheckStream to return context.DeadlineExceeded.
+func TestRunCheck_CheckerError(t *testing.T) {
+	slowAddr, cleanup := createSlowDNSServer(t, 5*time.Second)
+	defer cleanup()
+
+	cfgPath := filepath.Join(t.TempDir(), "timeout.json")
+	// timeout: 50ms     → DNS client times out quickly (platform-independent)
+	// max_retries: 5    → triggers 1s backoff on first retry
+	// command_timeout: 200ms → context expires during the backoff sleep
+	cfgContent := fmt.Sprintf(`{"nawala":{"configuration":{"timeout":"50ms","command_timeout":"200ms","max_retries":5,"servers":[{"address":"%s","keyword":"test","query_type":"A"}]}}}`, slowAddr)
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	saved := configPath
+	configPath = cfgPath
+	defer func() { configPath = saved }()
+
+	outPath := filepath.Join(t.TempDir(), "out.txt")
+	cmd := newCheckCmd()
+	cmd.SetArgs([]string{"--output", outPath, "google.com"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "check failed") {
+		t.Errorf("expected 'check failed' wrapping, got: %v", err)
 	}
 }

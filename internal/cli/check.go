@@ -14,6 +14,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"golang.org/x/net/idna"
+
+	"github.com/H0llyW00dzZ/nawala-checker/src/nawala"
 )
 
 // checkCmd is the "check" subcommand.
@@ -43,15 +45,6 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Collect domains from args and/or file.
-	domains, err := collectDomains(args, filePath)
-	if err != nil {
-		return err
-	}
-	if len(domains) == 0 {
-		return fmt.Errorf("no domains provided (use positional args or --file)")
-	}
-
 	// Build checker from config.
 	checker, cmdTimeout, err := buildChecker(cmd.ErrOrStderr())
 	if err != nil {
@@ -79,20 +72,39 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
 
-	results, err := checker.Check(ctx, domains...)
-	if err != nil {
-		return fmt.Errorf("check failed: %w", err)
-	}
+	in := make(chan string)
+	out := make(chan nawala.Result, checker.Concurrency())
 
-	// Write results. All checks have completed at this point;
-	// text and JSON are flushed per-result, HTML and XLSX buffer
-	// until Close().
+	// Start streaming domains
+	streamErrCh := make(chan error, 1)
+	go func() {
+		streamErrCh <- streamDomains(ctx, args, filePath, in)
+	}()
+
+	// Start checking
+	checkErrCh := make(chan error, 1)
+	go func() {
+		checkErrCh <- checker.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+		close(out)
+	}()
+
+	// Write results as they arrive
 	hasErrors := false
-	for _, r := range results {
+	for r := range out {
 		w.WriteResult(r)
 		if r.Error != nil {
 			hasErrors = true
 		}
+	}
+
+	// Check for streaming errors (e.g., file not found, no domains)
+	if err := <-streamErrCh; err != nil {
+		return err
+	}
+
+	// Check for checker errors
+	if err := <-checkErrCh; err != nil {
+		return fmt.Errorf("check failed: %w", err)
 	}
 
 	if hasErrors {
@@ -101,11 +113,12 @@ func runCheck(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// collectDomains gathers domains from positional args and an optional file,
-// deduplicates them, and returns the unique list.
-func collectDomains(args []string, filePath string) ([]string, error) {
+// streamDomains gathers domains from positional args and an optional file,
+// deduplicates them, and streams the unique list to the 'in' channel.
+func streamDomains(ctx context.Context, args []string, filePath string, in chan<- string) error {
+	defer close(in)
 	seen := make(map[string]struct{})
-	var domains []string
+	var count int
 
 	addDomain := func(d string) {
 		d = toASCIIDomain(strings.ToLower(strings.TrimSpace(d)))
@@ -114,12 +127,19 @@ func collectDomains(args []string, filePath string) ([]string, error) {
 		}
 		if _, ok := seen[d]; !ok {
 			seen[d] = struct{}{}
-			domains = append(domains, d)
+			select {
+			case <-ctx.Done():
+			case in <- d:
+				count++
+			}
 		}
 	}
 
 	// Positional args.
 	for _, d := range args {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		addDomain(d)
 	}
 
@@ -127,7 +147,7 @@ func collectDomains(args []string, filePath string) ([]string, error) {
 	if filePath != "" {
 		f, err := os.Open(filePath)
 		if err != nil {
-			return nil, fmt.Errorf("opening domain file: %w", err)
+			return fmt.Errorf("opening domain file: %w", err)
 		}
 		defer func() {
 			_ = f.Close()
@@ -135,6 +155,9 @@ func collectDomains(args []string, filePath string) ([]string, error) {
 
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			line := strings.TrimSpace(scanner.Text())
 			if line == "" || strings.HasPrefix(line, "#") {
 				continue
@@ -142,11 +165,15 @@ func collectDomains(args []string, filePath string) ([]string, error) {
 			addDomain(line)
 		}
 		if err := scanner.Err(); err != nil {
-			return nil, fmt.Errorf("reading domain file: %w", err)
+			return fmt.Errorf("reading domain file: %w", err)
 		}
 	}
 
-	return domains, nil
+	if count == 0 {
+		return fmt.Errorf("no domains provided (use positional args or --file)")
+	}
+
+	return nil
 }
 
 // toASCIIDomain converts a Unicode domain label to its ACE/Punycode form

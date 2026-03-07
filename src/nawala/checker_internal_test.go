@@ -1703,3 +1703,52 @@ func TestQueryDNS_CustomPort(t *testing.T) {
 	// The error should mention the custom port 9853, proving it didn't get overwritten to 853.
 	assert.Contains(t, err.Error(), "127.0.0.1:9853", "Should attempt to dial the custom port")
 }
+
+// TestCheckStreamNoServers covers the early ErrNoDNSServers return
+// in CheckStream (checker.go line 255-257).
+func TestCheckStreamNoServers(t *testing.T) {
+	c := New(WithServers(nil))
+
+	in := make(chan string)
+	out := make(chan Result, 10)
+	close(in)
+
+	err := c.CheckStream(context.Background(), Stream{In: in, Out: out})
+	assert.ErrorIs(t, err, ErrNoDNSServers)
+}
+
+// TestCheckStreamPanicRecovery covers the deferred recover() inside the
+// CheckStream goroutine (checker.go line 288-296). We inject a panicCache
+// so that the first cache lookup (inside checkSingle) panics, and then
+// verify the result contains ErrInternalPanic.
+func TestCheckStreamPanicRecovery(t *testing.T) {
+	addr, cleanup := startNormalDNSServer(t)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithCache(&panicCache{}), // triggers panic inside checkSingle → cache.Get
+	)
+
+	ctx := context.Background()
+	in := make(chan string, 1)
+	out := make(chan Result, 1)
+
+	in <- "example.com"
+	close(in)
+
+	err := c.CheckStream(ctx, Stream{In: in, Out: out})
+	require.NoError(t, err, "CheckStream should not return an error on panic recovery")
+
+	close(out)
+	var results []Result
+	for r := range out {
+		results = append(results, r)
+	}
+
+	require.Len(t, results, 1, "expected 1 result from recovered panic")
+	assert.ErrorIs(t, results[0].Error, ErrInternalPanic,
+		"expected ErrInternalPanic from recovered goroutine, got: %v", results[0].Error)
+}

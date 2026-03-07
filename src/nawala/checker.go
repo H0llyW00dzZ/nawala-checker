@@ -167,7 +167,7 @@ func (c *Checker) Check(ctx context.Context, domains ...string) ([]Result, error
 	// Semaphore to limit concurrency.
 	// We use a buffered channel to limit the number
 	// of concurrent goroutines.
-	sem := make(chan struct{}, c.concurrency)
+	sem := make(chan struct{}, c.Concurrency())
 
 Loop:
 	for i, domain := range domains {
@@ -230,6 +230,88 @@ func (c *Checker) CheckOne(ctx context.Context, domain string) (Result, error) {
 	return c.checkSingle(ctx, domain), nil
 }
 
+// Stream represents a bidirectional stream of domains and their check results.
+type Stream struct {
+	In  <-chan string
+	Out chan<- Result
+}
+
+// CheckStream checks a stream of domains concurrently against the configured
+// Nawala DNS servers. It reads domains from the [Stream.In] channel and sends
+// the corresponding [Result] to the [Stream.Out] channel.
+//
+// The checker limits concurrency based on the configured concurrency limit.
+// The function blocks until the 'In' channel is closed and all checks
+// are complete. It does not close the 'Out' channel, giving callers
+// the flexibility to multiplex multiple streams into a single output channel.
+//
+// If the context is canceled, it returns the context error immediately without
+// processing remaining domains in the channel.
+func (c *Checker) CheckStream(ctx context.Context, stream Stream) error {
+	c.mu.RLock()
+	n := len(c.servers)
+	c.mu.RUnlock()
+
+	if n == 0 {
+		return ErrNoDNSServers
+	}
+
+	var wg sync.WaitGroup
+
+	// Semaphore to limit concurrency.
+	// We use a buffered channel to limit the number
+	// of concurrent goroutines.
+	sem := make(chan struct{}, c.Concurrency())
+
+Loop:
+	for {
+		select {
+		case <-ctx.Done():
+			break Loop
+		case domain, ok := <-stream.In:
+			if !ok {
+				break Loop
+			}
+
+			wg.Add(1)
+
+			// Acquire semaphore before spawning goroutine to limit
+			// the number of active goroutines.
+			sem <- struct{}{}
+
+			go func(d string) {
+				defer wg.Done()
+				defer func() { <-sem }() // Release semaphore
+
+				var res Result
+				defer func() {
+					if r := recover(); r != nil {
+						res = Result{
+							Domain: d,
+							Error:  fmt.Errorf("%w: %v", ErrInternalPanic, r),
+						}
+						// Send panic result, respecting context cancellation
+						select {
+						case <-ctx.Done():
+						case stream.Out <- res:
+						}
+					}
+				}()
+
+				res = c.checkSingle(ctx, d)
+				// Send result, respecting context cancellation
+				select {
+				case <-ctx.Done():
+				case stream.Out <- res:
+				}
+			}(domain)
+		}
+	}
+
+	wg.Wait()
+	return ctx.Err()
+}
+
 // DNSStatus checks the health of all configured DNS servers.
 // It returns the online/offline status and latency for each server.
 func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
@@ -248,7 +330,7 @@ func (c *Checker) DNSStatus(ctx context.Context) ([]ServerStatus, error) {
 	// Semaphore to limit concurrency.
 	// We use a buffered channel to limit the number
 	// of concurrent goroutines.
-	sem := make(chan struct{}, c.concurrency)
+	sem := make(chan struct{}, c.Concurrency())
 
 Loop:
 	for i, srv := range servers {
@@ -327,6 +409,11 @@ func (c *Checker) Servers() []DNSServer {
 	copy(servers, c.servers)
 	return servers
 }
+
+// Concurrency returns the configured concurrency limit (semaphore size).
+// This is useful for sizing output channel buffers to match the maximum
+// number of in-flight results.
+func (c *Checker) Concurrency() int { return c.concurrency }
 
 // checkSingle performs the DNS check for a single domain.
 // It handles normalization, validation, caching, and failover.
