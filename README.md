@@ -414,11 +414,13 @@ All cache keys are namespaced with the prefix `nawala_checker:` to prevent colli
 nawala_checker:<domain>:<server>:<keyword>:<qtype>
 ```
 
-When `WithDigests` is configured the raw components are hashed and the digest becomes the key body:
+When `WithDigests` is configured, the raw components are hashed and the digest (which may include sub-namespaces for hierarchical caching) becomes the key body:
 
 ```
 nawala_checker:<digest>
 ```
+
+Where `<digest>` may include sub-namespaces like `environment:<hash>` or `version:v1:<hash>`.
 
 Two ready-to-use hash functions:
 
@@ -441,8 +443,15 @@ func digestDoubleSHA256(data string) string {
     return hex.EncodeToString(second[:])
 }
 
+// Or with sub-namespace for hierarchical caching:
+func digestWithSubNamespace(data string) string {
+    sum := sha256.Sum256([]byte(data))
+    return "environment:" + hex.EncodeToString(sum[:])
+}
+
 c := nawala.New(
-    nawala.WithDigests(digestSHA256),        // or digestDoubleSHA256
+    nawala.WithDigests(digestSHA256),          // or digestDoubleSHA256
+    // nawala.WithDigests(digestWithSubNamespace), // for hierarchical keys
 )
 ```
 
@@ -450,6 +459,7 @@ Use `WithDigests` when:
 - The cache backend enforces a maximum key length
 - Internal server addresses must not appear in keys in plain text
 - A consistent, fixed-width key format (64-char hex) is required
+- Cache backends require hierarchical key structures or sub-namespacing
 
 ## 📁 Examples
 
@@ -461,6 +471,8 @@ Runnable examples are available in the [`examples/`](examples/) directory:
 | [`custom`](examples/custom) | Advanced configuration with custom servers, timeouts, retries, and caching |
 | [`status`](examples/status) | Monitor DNS server health and latency |
 | [`hotreload`](examples/hotreload) | Hot-reload DNS servers at runtime |
+| [`streaming`](examples/streaming) | Stream domains through a channel pipeline for constant-memory operation |
+| [`pooling`](examples/pooling) | Connection pooling for TCP/TLS to eliminate handshake overhead |
 
 Run an example (requires cloning the repository):
 
