@@ -31,6 +31,5 @@ tmp/
 # Project build
 bin
 changelog.md
-coverage.txt
-coverage.out
+coverage.*
 e2e_test_*
