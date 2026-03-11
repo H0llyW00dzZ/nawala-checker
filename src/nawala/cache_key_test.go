@@ -68,27 +68,6 @@ func (ck *capturedKeyCache) snapshot() []string {
 	return out
 }
 
-// startSimpleDNSServer is a thin helper that starts a local DNS server
-// responding with a plain A record (1.2.3.4) for any query.
-func startSimpleDNSServer(t *testing.T) (addr string, cleanup func()) {
-	t.Helper()
-	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
-		m := new(dns.Msg)
-		m.SetReply(r)
-		m.Answer = append(m.Answer, &dns.A{
-			Hdr: dns.RR_Header{
-				Name:   r.Question[0].Name,
-				Rrtype: dns.TypeA,
-				Class:  dns.ClassINET,
-				Ttl:    60,
-			},
-			A: net.ParseIP("1.2.3.4"),
-		})
-		_ = w.WriteMsg(m)
-	})
-	return startTestDNSServer(t, handler)
-}
-
 // newCapturedCache returns a [cacheWrapper] backed by an in-memory cache that
 // records every key passed to Set. The returned *capturedKeyCache can be
 // snapshotted at any time to inspect the recorded keys.
@@ -144,7 +123,7 @@ func assertKeyFormat(t *testing.T, keys []string, hashFn func(string) string) {
 // (e.g., Redis, memcached), their keys cannot collide with keys generated
 // by this SDK.
 func TestCacheKeyPrefix(t *testing.T) {
-	addr, cleanup := startSimpleDNSServer(t)
+	addr, cleanup := startNormalDNSServer(t)
 	defer cleanup()
 
 	wrapped, captured := newCapturedCache(5 * time.Minute)
@@ -174,7 +153,7 @@ func TestCacheKeyPrefix(t *testing.T) {
 //
 //	nawala_checker:<hex-sha256>
 func TestWithDigestsSHA256(t *testing.T) {
-	addr, cleanup := startSimpleDNSServer(t)
+	addr, cleanup := startNormalDNSServer(t)
 	defer cleanup()
 
 	wrapped, captured := newCapturedCache(5 * time.Minute)
@@ -210,7 +189,7 @@ func TestWithDigestsSHA256(t *testing.T) {
 //
 //	nawala_checker:<hex-sha256d>
 func TestWithDigestsDoubleSHA256(t *testing.T) {
-	addr, cleanup := startSimpleDNSServer(t)
+	addr, cleanup := startNormalDNSServer(t)
 	defer cleanup()
 
 	wrapped, captured := newCapturedCache(5 * time.Minute)
@@ -375,7 +354,7 @@ func TestWithDigestsCacheHitDoubleSHA256(t *testing.T) {
 // a raw hex digest. This provides flexibility for advanced caching strategies
 // while maintaining the SDK's namespace prefix.
 func TestWithDigestsSubKey(t *testing.T) {
-	addr, cleanup := startSimpleDNSServer(t)
+	addr, cleanup := startNormalDNSServer(t)
 	defer cleanup()
 
 	// Digest function that adds a sub-key prefix.
