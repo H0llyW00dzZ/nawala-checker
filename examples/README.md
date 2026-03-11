@@ -385,6 +385,7 @@ Streaming check completed successfully!
 - Memory usage remains constant regardless of domain count — suitable for millions of domains
 - Results arrive asynchronously as checks complete, enabling real-time processing
 - Input channel closure signals end of domain stream
+- Output channel is closed after processing completes and results are collected and sorted for consistent display
 - Output channel buffering prevents blocking with `c.Concurrency()` as buffer size
 
 ---

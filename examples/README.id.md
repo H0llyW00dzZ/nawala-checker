@@ -383,6 +383,7 @@ Streaming check completed successfully!
 - Penggunaan memori tetap konstan terlepas dari jumlah domain — cocok untuk jutaan domain
 - Hasil tiba secara asinkron saat pemeriksaan selesai, memungkinkan pemrosesan real-time
 - Penutupan kanal input menandakan akhir stream domain
+- Kanal output ditutup setelah pemrosesan selesai dan hasil dikumpulkan dan diurutkan untuk tampilan yang konsisten
 - Buffering kanal output mencegah blocking dengan `c.Concurrency()` sebagai ukuran buffer
 
 ---
