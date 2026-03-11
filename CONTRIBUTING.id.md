@@ -70,8 +70,81 @@ git checkout -b feature/nama-fitur-anda
 
 **Dokumentasi (Sinkronisasi Multibahasa & Kode)**:
 *   `nawala-checker` mengelola dokumentasi dalam bahasa Inggris ([`README.md`](README.md)) dan bahasa Indonesia ([`README.id.md`](README.id.md)), serta dokumentasi level-paket (GoDoc) di [`src/nawala/docs.go`](src/nawala/docs.go) dan [`internal/cli/docs.go`](internal/cli/docs.go).
-*   Jika Pull Request Anda menambahkan fitur baru, mengubah API publik, atau memodifikasi perilaku yang ada, Anda **wajib memperbarui [`README.md`](README.md), [`README.id.md`](README.id.md), [`src/nawala/docs.go`](src/nawala/docs.go), serta kode terkait di direktori [`examples/`](examples/)** untuk memastikan keakuratan teknis dan konsistensi di seluruh sumber dokumentasi.
-*   Perubahan khusus CLI juga harus memperbarui teks penggunaan (usage text) yang di-embed di [`internal/cli/usage/`](internal/cli/usage/) dan [`internal/cli/docs.go`](internal/cli/docs.go).
+*   Jika Pull Request Anda menambahkan fitur baru, mengubah API publik, atau memodifikasi perilaku yang ada, Anda **wajib menyinkronkan semua sumber dokumentasi** untuk memastikan keakuratan teknis dan konsistensi di seluruh sumber dokumentasi.
+
+### Menyinkronkan Dokumentasi
+
+> [!NOTE]
+> Proses ini hanya berlaku ketika pengguna manusia menggunakan opencode.ai. Jika tidak, ikuti langkah-langkah manual di bawah ini.
+
+Ketika membuat perubahan yang memengaruhi dokumentasi, jalankan perintah `sync-docs` melalui opencode.ai untuk memastikan konsistensi di seluruh dokumentasi multibahasa, GoDoc, contoh, dan teks penggunaan CLI.
+
+#### Sumber Dokumentasi yang Akan Disinkronkan
+
+1. **File Dokumentasi Utama**
+   - `README.md` - Dokumentasi bahasa Inggris (utama)
+   - `README.id.md` - Dokumentasi bahasa Indonesia (terjemahan)
+
+2. **GoDoc Level-Paket**
+   - `src/nawala/docs.go` - Dokumentasi paket SDK inti
+   - `internal/cli/docs.go` - Dokumentasi paket CLI
+
+3. **Contoh Kode**
+   - direktori `examples/` - Contoh kode yang dapat dijalankan yang mendemonstrasikan penggunaan
+
+4. **Teks Penggunaan CLI**
+   - direktori `internal/cli/usage/` - Teks bantuan CLI yang di-embed
+
+5. **Panduan Berkontribusi**
+   - `CONTRIBUTING.md` - Panduan berkontribusi bahasa Inggris
+   - `CONTRIBUTING.id.md` - Panduan berkontribusi bahasa Indonesia (terjemahan)
+
+#### Proses Sinkronisasi
+
+1. **Identifikasi Perubahan**: Tinjau perubahan kode Anda untuk menentukan dokumentasi apa yang perlu diperbarui (opsi konfigurasi baru, tanda tangan fungsi yang berubah, perintah atau flag CLI baru, perilaku atau kondisi error yang dimodifikasi).
+
+2. **Perbarui File README**: Perbarui kedua versi bahasa (`README.md` dan `README.id.md`).
+
+3. **Perbarui GoDoc**: Pastikan dokumentasi paket mencerminkan API baru/yang berubah di `src/nawala/docs.go` dan `internal/cli/docs.go`.
+
+4. **Perbarui Contoh**: Tambah atau modifikasi contoh di direktori `examples/` untuk mendemonstrasikan fitur baru.
+
+5. **Perbarui Penggunaan CLI**: Untuk perubahan CLI, perbarui teks penggunaan yang di-embed di `internal/cli/usage/`.
+
+6. **Verifikasi Konsistensi**: Jalankan pengujian untuk memastikan semua sumber dokumentasi akurat secara teknis:
+   ```bash
+   make test-verbose
+   ```
+
+#### Persyaratan Multibahasa
+
+Karena proyek ini mempertahankan dokumentasi dalam bahasa Inggris dan Indonesia:
+- Jaga keakuratan teknis konsisten di antara bahasa
+- Perbarui kedua file README secara simultan
+- Pertahankan struktur dan contoh yang sama di kedua bahasa
+
+#### Pesan Commit
+
+Gunakan format commit konvensional:
+```
+docs: sinkronkan dokumentasi untuk [deskripsi]
+
+- [+] Perbarui README.md dengan perubahan
+- [+] Perbarui CONTRIBUTING.md dan CONTRIBUTING.id.md
+- [+] Perbarui GoDoc di docs.go
+- [+] Tambah/modifikasi contoh jika diperlukan
+- [+] Perbarui teks penggunaan CLI
+```
+
+#### Daftar Periksa Verifikasi
+
+- [ ] README.md diperbarui dengan fitur/perubahan baru
+- [ ] README.id.md diperbarui (bahasa Indonesia)
+- [ ] CONTRIBUTING.md diperbarui
+- [ ] CONTRIBUTING.id.md diperbarui (bahasa Indonesia)
+- [ ] GoDoc di file docs.go diperbarui
+- [ ] Direktori examples diperbarui jika diperlukan
+- [ ] Teks penggunaan CLI diperbarui untuk perubahan CLI
 
 ### 3. Melakukan Commit dan Pemformatan
 Sebelum melakukan komit, pastikan kode Anda diformat dengan benar:

@@ -1,78 +1,74 @@
+---
+description: Synchronize all documentation sources
+---
+
 # sync-docs
 
-Synchronize all documentation sources when making changes to the nawala-checker codebase. This command ensures consistency across multilingual documentation, GoDoc, examples, and CLI usage text.
+## Context for AI
+This command is used exclusively by opencode.ai to keep documentation consistent after changes to the nawala-checker codebase. When a human runs `/sync-docs`, you (the AI) must proactively analyze changes and update every documentation source while maintaining perfect bilingual consistency.
 
 ## When to Run
 
-Run this command when your changes involve:
+Invoke this process whenever changes involve:
 - New features or API changes
-- Modified existing behavior
+- Modified behavior
 - Public interface updates
-- CLI command additions/modifications
+- CLI command additions or modifications
 
 ## Documentation Sources to Sync
 
 ### 1. Primary Documentation Files
-- `README.md` - English documentation (primary)
-- `README.id.md` - Indonesian documentation (localized)
+- `README.md` (English – source of truth)
+- `README.id.md` (Indonesian – must stay semantically identical)
 
 ### 2. Package-Level GoDoc
-- `src/nawala/docs.go` - Core SDK package documentation
-- `internal/cli/docs.go` - CLI package documentation
+- `src/nawala/docs.go` (SDK package)
+- `internal/cli/docs.go` (CLI package)
 
 ### 3. Code Examples
-- `examples/` directory - Executable examples that demonstrate usage
+- `examples/` directory (must remain executable)
 
 ### 4. CLI Usage Text
-- `internal/cli/usage/` directory - Embedded CLI help text
+- `internal/cli/usage/` directory (embedded help text)
 
 ### 5. Contributing Guides
-- `CONTRIBUTING.md` - English contributing guidelines
-- `CONTRIBUTING.id.md` - Indonesian contributing guidelines (localized)
+- `CONTRIBUTING.md` (English)
+- `CONTRIBUTING.id.md` (Indonesian)
 
-## Sync Process
+## Your Sync Workflow (follow exactly)
 
-### Step 1: Identify Changes
-Review your code changes to determine what documentation needs updating:
-- New configuration options?
-- Changed function signatures?
-- New CLI commands or flags?
-- Modified behavior or error conditions?
+### Step 0: Analyze Changes
 
-### Step 2: Update README Files
-Update both language versions:
-```bash
-# Edit README.md (English)
-# Edit README.id.md (Indonesian - maintain consistency)
-```
+First, examine the git diff / recent code changes to identify every impacted area (new config options, function signatures, CLI flags, error messages, etc.).
 
-### Step 3: Update GoDoc
-Ensure package documentation reflects new/changed APIs:
-```bash
-# Edit src/nawala/docs.go for SDK changes
-# Edit internal/cli/docs.go for CLI changes
-```
+### Step 1: Update README Files
 
-### Step 4: Update Examples
-Add or modify examples in `examples/` directory to demonstrate new features.
+Generate complete updated versions of **both** `README.md` and `README.id.md` simultaneously. Keep structure, examples, and technical details identical. Output the diff for human review.
 
-### Step 5: Update CLI Usage
-For CLI changes, update embedded usage text in `internal/cli/usage/`.
+### Step 2: Update GoDoc
 
-### Step 6: Verify Consistency
-Run tests to ensure all documentation sources are technically accurate:
-```bash
-make test-verbose
-```
+Revise `src/nawala/docs.go` and `internal/cli/docs.go` following official Go documentation conventions. Make sure every public API change is documented.
+
+### Step 3: Update Examples
+
+Add or modify files in `examples/` so they demonstrate new behavior. Ensure every example remains fully executable.
+
+### Step 4: Update CLI Usage Text
+
+Update all files in `internal/cli/usage/` to reflect any CLI changes.
+
+### Step 5: Verify Consistency & Correctness
+
+- Run `make test-verbose` (or equivalent) to confirm examples and CLI help still work.
+- Double-check that English and Indonesian versions are semantically identical.
 
 ## Multilingual Requirements
 
-Since this project maintains both English and Indonesian documentation:
-- Keep technical accuracy consistent between languages
-- Update both README files simultaneously
-- Maintain the same structure and examples in both languages
+- Both language versions must remain 100% consistent in meaning, structure, and examples.
+- Update both files together — never update only one.
+- Preserve technical accuracy in Indonesian while keeping natural language flow.
 
-## Commit Message
+## Commit Message (use exactly this format)
 
 Use conventional commit format:
 ```
@@ -85,12 +81,15 @@ docs: sync documentation for [description]
 - [+] Update CLI usage text
 ```
 
-## Verification Checklist
+> [!NOTE]
+> When question tools are enabled, always ask the human whether the commit should be created by the AI or left for them.
 
-- [ ] README.md updated with new features/changes
-- [ ] README.id.md updated (Indonesian)
-- [ ] CONTRIBUTING.md updated
-- [ ] CONTRIBUTING.id.md updated (Indonesian)
-- [ ] GoDoc in docs.go files updated
-- [ ] Examples directory updated if needed
-- [ ] CLI usage text updated for CLI changes
+## Verification Checklist (mark as you complete)
+- [ ] README.md updated  
+- [ ] README.id.md updated (identical content)  
+- [ ] CONTRIBUTING.md updated  
+- [ ] CONTRIBUTING.id.md updated (identical content)  
+- [ ] GoDoc in both docs.go files updated  
+- [ ] Examples directory updated and tested  
+- [ ] CLI usage text updated  
+- [ ] `make test-verbose` passes
