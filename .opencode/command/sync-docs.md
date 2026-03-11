@@ -5,6 +5,7 @@ description: Synchronize all documentation sources
 # sync-docs
 
 ## Context for AI
+
 This command is used exclusively by opencode.ai to keep documentation consistent after changes to the nawala-checker codebase. When a human runs `/sync-docs`, you (the AI) must proactively analyze changes and update every documentation source while maintaining perfect bilingual consistency.
 
 ## When to Run
@@ -18,20 +19,25 @@ Invoke this process whenever changes involve:
 ## Documentation Sources to Sync
 
 ### 1. Primary Documentation Files
+
 - `README.md` (English – source of truth)
 - `README.id.md` (Indonesian – must stay semantically identical)
 
 ### 2. Package-Level GoDoc
+
 - `src/nawala/docs.go` (SDK package)
 - `internal/cli/docs.go` (CLI package)
 
 ### 3. Code Examples
+
 - `examples/` directory (must remain executable)
 
 ### 4. CLI Usage Text
+
 - `internal/cli/usage/` directory (embedded help text)
 
 ### 5. Contributing Guides
+
 - `CONTRIBUTING.md` (English)
 - `CONTRIBUTING.id.md` (Indonesian)
 
@@ -71,6 +77,7 @@ Update all files in `internal/cli/usage/` to reflect any CLI changes.
 ## Commit Message (use exactly this format)
 
 Use conventional commit format:
+
 ```
 docs: sync documentation for [description]
 
@@ -82,9 +89,10 @@ docs: sync documentation for [description]
 ```
 
 > [!NOTE]
-> When question tools are enabled, always ask the human whether the commit should be created by the AI or left for them.
+> When **question tools** are enabled, **always use the question tool** to ask the human whether the commit should be created by the AI or left for them.
 
 ## Verification Checklist (mark as you complete)
+
 - [ ] README.md updated  
 - [ ] README.id.md updated (identical content)  
 - [ ] CONTRIBUTING.md updated  
