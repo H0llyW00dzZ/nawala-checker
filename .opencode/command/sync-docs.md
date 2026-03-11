@@ -26,6 +26,10 @@ Run this command when your changes involve:
 ### 4. CLI Usage Text
 - `internal/cli/usage/` directory - Embedded CLI help text
 
+### 5. Contributing Guides
+- `CONTRIBUTING.md` - English contributing guidelines
+- `CONTRIBUTING.id.md` - Indonesian contributing guidelines (localized)
+
 ## Sync Process
 
 ### Step 1: Identify Changes
@@ -56,11 +60,9 @@ Add or modify examples in `examples/` directory to demonstrate new features.
 For CLI changes, update embedded usage text in `internal/cli/usage/`.
 
 ### Step 6: Verify Consistency
-Run tests and ensure all documentation sources are technically accurate:
+Run tests to ensure all documentation sources are technically accurate:
 ```bash
 make test-verbose
-make build
-# Test CLI help: ./bin/nawala --help
 ```
 
 ## Multilingual Requirements
@@ -77,6 +79,7 @@ Use conventional commit format:
 docs: sync documentation for [description]
 
 - [+] Update README.md with changes
+- [+] Update CONTRIBUTING.md and CONTRIBUTING.id.md
 - [+] Update GoDoc in docs.go
 - [+] Add/modify examples if needed
 - [+] Update CLI usage text
@@ -86,6 +89,8 @@ docs: sync documentation for [description]
 
 - [ ] README.md updated with new features/changes
 - [ ] README.id.md updated (Indonesian)
+- [ ] CONTRIBUTING.md updated
+- [ ] CONTRIBUTING.id.md updated (Indonesian)
 - [ ] GoDoc in docs.go files updated
 - [ ] Examples directory updated if needed
 - [ ] CLI usage text updated for CLI changes
