@@ -74,7 +74,12 @@ Since this project maintains both English and Indonesian documentation:
 
 Use conventional commit format:
 ```
-docs: sync documentation for [feature/fix description]
+docs: sync documentation for [description]
+
+- [+] Update README.md with changes
+- [+] Update GoDoc in docs.go
+- [+] Add/modify examples if needed
+- [+] Update CLI usage text
 ```
 
 ## Verification Checklist
