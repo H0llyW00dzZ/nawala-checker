@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "tools": {
+    "todowrite": true,
+    "todoread": true,
+    "question": true
+  },
+  "mcp": {
+    "gopls": {
+      "type": "local",
+      "command": [
+        "gopls",
+        "mcp"
+      ],
+      "environment": {
+        "GOPLS_MCP_PORT": "8096",
+        "GOPLS_MCP_HOST": "localhost"
+      },
+      "enabled": true
+    },
+    "deepwiki": {
+      "type": "remote",
+      "url": "https://mcp.deepwiki.com/mcp",
+      "enabled": true
+    }
+  }
+}
