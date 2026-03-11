@@ -77,7 +77,7 @@ return fmt.Errorf("failed to query %s: %w", domain, err)
 ```
 
 ### Types and Structs
-- Define clear, minimal struct types in `types.go`
+- Define clear, minimal struct types in appropriate source files (e.g., `result.go` for result-related types, `dns.go` for DNS-related types)
 - Use meaningful field names with proper JSON tags when needed
 - Implement interfaces cleanly (e.g., `Cache` interface)
 
