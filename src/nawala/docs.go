@@ -272,9 +272,12 @@
 //	nawala_checker:<domain>:<server>:<keyword>:<qtype>
 //
 // When [WithDigests] is configured, the raw components are passed to the
-// provided hash function and the returned string becomes the key body:
+// provided hash function and the returned string (which may include
+// sub-namespaces for hierarchical caching) becomes the key body:
 //
 //	nawala_checker:<digest>
+//
+// Where <digest> may include sub-namespaces like "environment:<hash>".
 //
 // Example — SHA-256 digested keys:
 //
@@ -290,11 +293,21 @@
 //	    }),
 //	)
 //
+// Example — with sub-namespace for hierarchical keys:
+//
+//	c := nawala.New(
+//	    nawala.WithDigests(func(data string) string {
+//	        sum := sha256.Sum256([]byte(data))
+//	        return "environment:" + hex.EncodeToString(sum[:])
+//	    }),
+//	)
+//
 // Use [WithDigests] when:
 //
 //   - The cache backend enforces a maximum key length.
 //   - Internal server addresses must not appear in cache keys in plain text.
 //   - A consistent, fixed-width key format is required (e.g., 64-char hex).
+//   - Hierarchical caching is required (e.g., environment-specific keys).
 //
 // # How Blocking Works
 //

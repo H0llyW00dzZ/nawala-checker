@@ -411,11 +411,13 @@ Semua kunci cache diberi awalan `nawala_checker:` untuk mencegah tabrakan saat b
 nawala_checker:<domain>:<server>:<keyword>:<qtype>
 ```
 
-Ketika `WithDigests` dikonfigurasi, komponen mentah di-hash dan digest menjadi isi kunci:
+Ketika `WithDigests` dikonfigurasi, komponen mentah di-hash dan digest (yang mungkin menyertakan sub-namespace untuk caching hierarkis) menjadi isi kunci:
 
 ```
 nawala_checker:<digest>
 ```
+
+Dimana `<digest>` mungkin menyertakan sub-namespace seperti `environment:<hash>` atau `version:v1:<hash>`.
 
 Dua fungsi hash siap pakai:
 
@@ -438,8 +440,15 @@ func digestDoubleSHA256(data string) string {
     return hex.EncodeToString(second[:])
 }
 
+// Atau dengan sub-namespace untuk caching hierarkis:
+func digestDenganSubNamespace(data string) string {
+    sum := sha256.Sum256([]byte(data))
+    return "environment:" + hex.EncodeToString(sum[:])
+}
+
 c := nawala.New(
-    nawala.WithDigests(digestSHA256),        // atau digestDoubleSHA256
+    nawala.WithDigests(digestSHA256),          // atau digestDoubleSHA256
+    // nawala.WithDigests(digestDenganSubNamespace), // untuk kunci hierarkis
 )
 ```
 
@@ -447,6 +456,7 @@ Gunakan `WithDigests` saat:
 - Backend cache membatasi panjang kunci
 - Alamat server internal tidak boleh muncul dalam plain text di kunci cache
 - Diperlukan format kunci lebar tetap yang konsisten (hex 64 karakter)
+- Backend cache memerlukan struktur kunci hierarkis atau sub-namespacing
 
 ## 📁 Contoh
 
@@ -458,6 +468,8 @@ Contoh yang dapat dijalankan tersedia di direktori [`examples/`](examples/):
 | [`custom`](examples/custom) | Konfigurasi lanjutan dengan server kustom, timeout, percobaan ulang, dan caching |
 | [`status`](examples/status) | Pantau kesehatan dan latensi server DNS |
 | [`hotreload`](examples/hotreload) | Perbarui server DNS dengan aman secara konkurensi saat pemeriksaan berjalan |
+| [`streaming`](examples/streaming) | Streaming domain melalui pipeline channel untuk operasi memori konstan |
+| [`pooling`](examples/pooling) | Pooling koneksi untuk TCP/TLS untuk menghilangkan overhead handshake |
 
 Jalankan contoh (membutuhkan kloning repositori):
 
