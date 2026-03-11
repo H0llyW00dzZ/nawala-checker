@@ -26,51 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// startBlockingDNSServer starts a local DNS server that responds with a CNAME
-// to "internetpositif.id." to simulate Nawala blocking behavior.
-func startBlockingDNSServer(t *testing.T) (string, func()) {
-	t.Helper()
-
-	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
-		m := new(dns.Msg)
-		m.SetReply(r)
-		m.Answer = append(m.Answer, &dns.CNAME{
-			Hdr: dns.RR_Header{
-				Name:   r.Question[0].Name,
-				Rrtype: dns.TypeCNAME,
-				Class:  dns.ClassINET,
-				Ttl:    60,
-			},
-			Target: "internetpositif.id.",
-		})
-		_ = w.WriteMsg(m)
-	})
-
-	return startTestDNSServer(t, handler)
-}
-
-// startNormalDNSServer starts a local DNS server that responds normally (not blocked).
-func startNormalDNSServer(t *testing.T) (string, func()) {
-	t.Helper()
-
-	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
-		m := new(dns.Msg)
-		m.SetReply(r)
-		m.Answer = append(m.Answer, &dns.A{
-			Hdr: dns.RR_Header{
-				Name:   r.Question[0].Name,
-				Rrtype: dns.TypeA,
-				Class:  dns.ClassINET,
-				Ttl:    60,
-			},
-			A: net.ParseIP("93.184.216.34"),
-		})
-		_ = w.WriteMsg(m)
-	})
-
-	return startTestDNSServer(t, handler)
-}
-
 func TestCheckConcurrent(t *testing.T) {
 	addr, cleanup := startNormalDNSServer(t)
 	defer cleanup()

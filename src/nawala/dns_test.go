@@ -110,46 +110,6 @@ func TestContainsKeyword(t *testing.T) {
 	})
 }
 
-// startTestDNSServer starts a local DNS server that responds with configurable answers.
-// It returns the server address (ip:port) and a cleanup function.
-func startTestDNSServer(t *testing.T, handler dns.HandlerFunc) (string, func()) {
-	t.Helper()
-
-	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
-	require.NoError(t, err, "failed to listen")
-
-	server := &dns.Server{
-		PacketConn: pc,
-		Handler:    handler,
-	}
-
-	started := make(chan error, 1)
-	go func() {
-		server.NotifyStartedFunc = func() { started <- nil }
-		if err := server.ActivateAndServe(); err != nil {
-			// If the channel is not full, it means startup failed (NotifyStartedFunc didn't run).
-			// If full (or drained continuously), we try to send.
-			// Ideally, we only want to signal startup failure.
-			select {
-			case started <- err:
-			default:
-				// Startup already signaled (success) or channel full.
-				// Just log the error as it happened after start.
-				t.Logf("DNS server error: %v", err)
-			}
-		}
-	}()
-
-	if err := <-started; err != nil {
-		require.NoError(t, err, "failed to start server")
-	}
-	addr := pc.LocalAddr().String()
-
-	return addr, func() {
-		_ = server.Shutdown()
-	}
-}
-
 func TestQueryDNS(t *testing.T) {
 	t.Run("successful query", func(t *testing.T) {
 		handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {

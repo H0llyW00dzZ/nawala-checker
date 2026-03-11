@@ -124,6 +124,7 @@ func TestIsValidDomain(t *testing.T) {
 - Test both success and error cases
 - Use `t.Parallel()` for independent tests
 - Mock external dependencies when possible
+- Use `helper_test.go` files to share common test helpers (e.g., DNS server setups) across test files in the same package to avoid duplication
 
 ### Project Structure
 
