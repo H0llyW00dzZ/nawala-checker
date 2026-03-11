@@ -21,6 +21,8 @@ pemeriksa pemblokiran domain berbasis DNS untuk filter DNS ISP Indonesia
 | [`custom/`](custom/main.go) | Konfigurasi lanjutan: server kustom, timeout, percobaan ulang, caching, dan kunci cache berbasis digest |
 | [`status/`](status/main.go) | Pantau kesehatan dan latensi server DNS |
 | [`hotreload/`](hotreload/main.go) | Perbarui server DNS dengan aman secara konkurensi saat pemeriksaan berjalan |
+| [`streaming/`](streaming/main.go) | Pemeriksaan domain dengan memori konstan menggunakan API CheckStream |
+| [`pooling/`](pooling/main.go) | Pooling koneksi TCP/TLS untuk performa yang lebih baik |
 
 ## Prasyarat
 
@@ -48,6 +50,8 @@ go run ./examples/basic
 go run ./examples/custom
 go run ./examples/status
 go run ./examples/hotreload
+go run ./examples/streaming
+go run ./examples/pooling
 ```
 
 ---
@@ -318,3 +322,127 @@ server DNS dan kata kuncinya di latar belakang.
   memastikan kode tidak pernah panic pada *race condition*.
 - Anda dapat sepenuhnya menimpa properti server yang ada (seperti `Keyword`
   atau `QueryType`) jika meneruskan konfigurasi server dengan `Address` yang identik.
+
+---
+
+## `streaming` — Pemeriksaan Domain dengan Memori Konstan
+
+[`streaming/main.go`](streaming/main.go) mendemonstrasikan API `CheckStream` untuk
+memproses daftar domain besar dengan penggunaan memori konstan, terlepas dari ukuran input.
+
+```go
+c := nawala.New()
+
+// Buat kanal bidirectional untuk streaming.
+in := make(chan string)
+out := make(chan nawala.Result, c.Concurrency())
+
+// Beri makan domain ke kanal input.
+go func() {
+    defer close(in)
+    domains := []string{"google.com", "reddit.com", "github.com"}
+    for _, domain := range domains {
+        in <- domain
+    }
+}()
+
+// Proses hasil saat tiba.
+go func() {
+    for result := range out {
+        status := "tidak diblokir"
+        if result.Blocked {
+            status = "DIBLOKIR"
+        }
+        fmt.Printf("  %-20s %s\n", result.Domain, status)
+    }
+}()
+
+// Lakukan pemeriksaan streaming.
+err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+```
+
+**Output yang diharapkan** (dari jaringan Indonesia):
+
+```
+=== Nawala DNS Streaming Check ===
+Processing 6 domains with constant memory usage...
+
+  exam_ple.com         error: nawala: nxdomain: domain does not exist (NXDOMAIN) (server: 180.131.144.144)
+  google.com           tidak diblokir (server: 180.131.144.144)
+  reddit.com           DIBLOKIR (server: 180.131.144.144)
+  github.com           tidak diblokir (server: 180.131.144.144)
+  stackoverflow.com    tidak diblokir (server: 180.131.144.144)
+  youtube.com          tidak diblokir (server: 180.131.144.144)
+
+Streaming check completed successfully!
+```
+
+**Yang ditunjukkan contoh ini:**
+
+- `CheckStream` memproses domain dari kanal input dan mengirim hasil ke kanal output
+- Penggunaan memori tetap konstan terlepas dari jumlah domain — cocok untuk jutaan domain
+- Hasil tiba secara asinkron saat pemeriksaan selesai, memungkinkan pemrosesan real-time
+- Penutupan kanal input menandakan akhir stream domain
+- Buffering kanal output mencegah blocking dengan `c.Concurrency()` sebagai ukuran buffer
+
+---
+
+## `pooling` — Pooling Koneksi TCP/TLS
+
+[`pooling/main.go`](pooling/main.go) menunjukkan cara mengaktifkan pooling koneksi TCP
+untuk performa yang lebih baik dengan koneksi persisten ke server DNS.
+
+```go
+c := nawala.New(
+    // Gunakan transport TCP untuk reuse koneksi.
+    nawala.WithProtocol("tcp"),
+
+    // Aktifkan pooling koneksi (ukuran menyesuaikan ke min(concurrency, 10)).
+    nawala.WithKeepAlive(0),
+
+    // Konfigurasikan server DNS yang mendukung TCP.
+    nawala.WithServers([]nawala.DNSServer{{
+        Address:   "8.8.8.8", // Google Public DNS over TCP
+        Keyword:   "blocked",
+        QueryType: "A",
+    }}),
+)
+
+// Periksa domain - koneksi di-pool dan digunakan kembali.
+results, err := c.Check(ctx, "google.com", "github.com")
+
+// Bersihkan pool koneksi saat selesai.
+c.Close()
+```
+
+**Output yang diharapkan** (menggunakan server TCP mock):
+
+```
+=== Nawala DNS TCP Connection Pooling ===
+Checking 4 domains using TCP with connection pooling on mock server...
+
+First batch (connection establishment):
+  example.com          tidak diblokir (server: 127.0.0.1:xxxxx)
+  test.com             tidak diblokir (server: 127.0.0.1:xxxxx)
+  demo.com             tidak diblokir (server: 127.0.0.1:xxxxx)
+  sample.com           tidak diblokir (server: 127.0.0.1:xxxxx)
+
+Second batch (connection reuse from pool):
+  example.com          tidak diblokir (server: 127.0.0.1:xxxxx)
+  test.com             tidak diblokir (server: 127.0.0.1:xxxxx)
+  demo.com             tidak diblokir (server: 127.0.0.1:xxxxx)
+  sample.com           tidak diblokir (server: 127.0.0.1:xxxxx)
+
+Connection pooling example completed!
+Note: Performance improvement is most noticeable with DNS over TLS (DoT)
+and servers that support persistent TCP connections.
+```
+
+**Yang ditunjukkan contoh ini:**
+
+- `WithKeepAlive(poolSize)` mengaktifkan pooling koneksi untuk protokol TCP/TCP-TLS
+- Ukuran pool `0` menggunakan default cerdas: `min(concurrency, 10)`
+- Koneksi secara otomatis digunakan kembali, mengurangi overhead handshake
+- Koneksi yang stale secara transparan di-redial saat error (EOF, timeout)
+- `c.Close()` menguras koneksi idle untuk cleanup yang benar
+- Paling bermanfaat dengan server DoT (RFC 7858) dan resolver DNS TCP modern

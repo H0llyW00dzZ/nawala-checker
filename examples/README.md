@@ -21,6 +21,8 @@ DNS-based domain blocking checker for Indonesian ISP DNS filters
 | [`custom/`](custom/main.go) | Advanced configuration: custom servers, timeouts, retries, caching, and digest-based cache keys |
 | [`status/`](status/main.go) | Monitor DNS server health and latency |
 | [`hotreload/`](hotreload/main.go) | Safely update DNS servers while concurrent checks are running |
+| [`streaming/`](streaming/main.go) | Constant-memory domain checking with CheckStream API |
+| [`pooling/`](pooling/main.go) | TCP/TLS connection pooling for improved performance |
 
 ## Prerequisites
 
@@ -48,6 +50,8 @@ go run ./examples/basic
 go run ./examples/custom
 go run ./examples/status
 go run ./examples/hotreload
+go run ./examples/streaming
+go run ./examples/pooling
 ```
 
 ---
@@ -320,3 +324,127 @@ their keywords.
   ensuring it never panics on race conditions.
 - You can completely overwrite an existing server's properties (like `Keyword`
   or `QueryType`) if you pass a server config with an identical `Address`.
+
+---
+
+## `streaming` — Constant-Memory Domain Checking
+
+[`streaming/main.go`](streaming/main.go) demonstrates the `CheckStream` API for
+processing large domain lists with constant memory usage, regardless of input size.
+
+```go
+c := nawala.New()
+
+// Create bidirectional channels for streaming.
+in := make(chan string)
+out := make(chan nawala.Result, c.Concurrency())
+
+// Feed domains to input channel.
+go func() {
+    defer close(in)
+    domains := []string{"google.com", "reddit.com", "github.com"}
+    for _, domain := range domains {
+        in <- domain
+    }
+}()
+
+// Process results as they arrive.
+go func() {
+    for result := range out {
+        status := "not blocked"
+        if result.Blocked {
+            status = "BLOCKED"
+        }
+        fmt.Printf("  %-20s %s\n", result.Domain, status)
+    }
+}()
+
+// Perform streaming check.
+err := c.CheckStream(ctx, nawala.Stream{In: in, Out: out})
+```
+
+**Expected output** (from an Indonesian network):
+
+```
+=== Nawala DNS Streaming Check ===
+Processing 6 domains with constant memory usage...
+
+  exam_ple.com         error: nawala: nxdomain: domain does not exist (NXDOMAIN) (server: 180.131.144.144)
+  google.com           not blocked (server: 180.131.144.144)
+  reddit.com           BLOCKED (server: 180.131.144.144)
+  github.com           not blocked (server: 180.131.144.144)
+  stackoverflow.com    not blocked (server: 180.131.144.144)
+  youtube.com          not blocked (server: 180.131.144.144)
+
+Streaming check completed successfully!
+```
+
+**What this demonstrates:**
+
+- `CheckStream` processes domains from an input channel and sends results to an output channel
+- Memory usage remains constant regardless of domain count — suitable for millions of domains
+- Results arrive asynchronously as checks complete, enabling real-time processing
+- Input channel closure signals end of domain stream
+- Output channel buffering prevents blocking with `c.Concurrency()` as buffer size
+
+---
+
+## `pooling` — TCP/TLS Connection Pooling
+
+[`pooling/main.go`](pooling/main.go) shows how to enable TCP connection pooling
+for improved performance with persistent connections to DNS servers.
+
+```go
+c := nawala.New(
+    // Use TCP transport for connection reuse.
+    nawala.WithProtocol("tcp"),
+
+    // Enable connection pooling (size auto-adjusts to min(concurrency, 10)).
+    nawala.WithKeepAlive(0),
+
+    // Configure a TCP-supporting DNS server.
+    nawala.WithServers([]nawala.DNSServer{{
+        Address:   "8.8.8.8", // Google Public DNS over TCP
+        Keyword:   "blocked",
+        QueryType: "A",
+    }}),
+)
+
+// Check domains - connections are pooled and reused.
+results, err := c.Check(ctx, "google.com", "github.com")
+
+// Clean up connection pools when done.
+c.Close()
+```
+
+**Expected output** (using mock TCP server):
+
+```
+=== Nawala DNS TCP Connection Pooling ===
+Checking 4 domains using TCP with connection pooling on mock server...
+
+First batch (connection establishment):
+  example.com          not blocked (server: 127.0.0.1:xxxxx)
+  test.com             not blocked (server: 127.0.0.1:xxxxx)
+  demo.com             not blocked (server: 127.0.0.1:xxxxx)
+  sample.com           not blocked (server: 127.0.0.1:xxxxx)
+
+Second batch (connection reuse from pool):
+  example.com          not blocked (server: 127.0.0.1:xxxxx)
+  test.com             not blocked (server: 127.0.0.1:xxxxx)
+  demo.com             not blocked (server: 127.0.0.1:xxxxx)
+  sample.com           not blocked (server: 127.0.0.1:xxxxx)
+
+Connection pooling example completed!
+Note: Performance improvement is most noticeable with DNS over TLS (DoT)
+and servers that support persistent TCP connections.
+```
+
+**What this demonstrates:**
+
+- `WithKeepAlive(poolSize)` enables connection pooling for TCP/TCP-TLS protocols
+- Pool size of `0` uses intelligent defaults: `min(concurrency, 10)`
+- Connections are automatically reused, reducing handshake overhead
+- Stale connections are transparently redialed on errors (EOF, timeouts)
+- `c.Close()` drains idle connections for proper cleanup
+- Most beneficial with DoT servers (RFC 7858) and modern TCP DNS resolvers
