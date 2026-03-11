@@ -260,15 +260,25 @@ func WithTLSSkipVerify() Option {
 //
 //	nawala_checker:<digest>
 //
+// The digest can be a simple hash or include sub-namespaces for hierarchical
+// keys (e.g. "environment:<hash>" becomes "nawala_checker:environment:<hash>").
+//
 // The hash function receives the raw key string and must return a
 // deterministic, collision-resistant representation of it, for example:
 //
 //	import "crypto/sha256"
 //	import "encoding/hex"
 //
+//	// Simple hash digest
 //	nawala.WithDigests(func(data string) string {
 //	    sum := sha256.Sum256([]byte(data))
 //	    return hex.EncodeToString(sum[:])
+//	})
+//
+//	// Digest with sub-namespace
+//	nawala.WithDigests(func(data string) string {
+//	    hash := sha256.Sum256([]byte(data))
+//	    return "environment:" + hex.EncodeToString(hash[:])
 //	})
 //
 // Passing nil is a no-op; the default prefixed-but-unhashed key is kept.
@@ -278,6 +288,7 @@ func WithTLSSkipVerify() Option {
 //   - Sensitive information (e.g. internal server addresses) must not appear
 //     in cache keys in plain text.
 //   - A consistent fixed-width key format is desired (e.g. hex SHA-256).
+//   - Hierarchical cache keys are needed (e.g. by environment, region, or version).
 func WithDigests(hash func(data string) string) Option {
 	return func(c *Checker) {
 		if hash != nil {

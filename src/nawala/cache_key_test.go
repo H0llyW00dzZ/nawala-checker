@@ -361,6 +361,67 @@ func TestWithDigestsCacheHitDoubleSHA256(t *testing.T) {
 		"expected no new DNS queries on second call (cache hit via double-SHA-256 digest key)")
 }
 
+// TestWithDigestsSubKey verifies that [WithDigests] supports hierarchical
+// sub-keys by allowing the digest function to return a formatted string
+// containing a sub-namespace prefix before the actual digest.
+//
+// This enables cache key hierarchies like:
+//
+//	nawala_checker:environment:<sha256>
+//	nawala_checker:version:v1:<sha256>
+//	nawala_checker:region:us-west:<sha256>
+//
+// The digest function can return any deterministic string; it doesn't need to be
+// a raw hex digest. This provides flexibility for advanced caching strategies
+// while maintaining the SDK's namespace prefix.
+func TestWithDigestsSubKey(t *testing.T) {
+	addr, cleanup := startSimpleDNSServer(t)
+	defer cleanup()
+
+	// Digest function that adds a sub-key prefix.
+	digestWithSubKey := func(data string) string {
+		hash := hashSHA256(data)
+		return "environment:" + hash
+	}
+
+	wrapped, captured := newCapturedCache(5 * time.Minute)
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithCache(wrapped),
+		WithDigests(digestWithSubKey),
+	)
+
+	ctx := context.Background()
+	_, err := c.CheckOne(ctx, "example.com")
+	require.NoError(t, err)
+
+	keys := captured.snapshot()
+	require.NotEmpty(t, keys, "expected at least one cache Set call")
+
+	// Check that all keys start with the SDK prefix.
+	for _, key := range keys {
+		assert.True(t, len(key) > len(cacheKeyPrefix),
+			"cache key %q is too short to contain prefix %q", key, cacheKeyPrefix)
+		assert.Equal(t, cacheKeyPrefix, key[:len(cacheKeyPrefix)],
+			"cache key must start with SDK namespace prefix %q", cacheKeyPrefix)
+	}
+
+	// Verify the key contains the expected sub-key structure.
+	require.Len(t, keys, 1)
+	key := keys[0]
+	// The raw key format is "domain:server:keyword:qtype" where qtype is int (1 for A)
+	rawKey := "example.com:" + addr + ":internetpositif:1"
+	expectedDigest := digestWithSubKey(rawKey)
+	expectedKey := cacheKeyPrefix + expectedDigest
+	assert.Equal(t, expectedKey, key,
+		"cache key must match expected sub-key format")
+	assert.Contains(t, key, "nawala_checker:environment:",
+		"cache key must contain SDK prefix followed by sub-key")
+}
+
 // TestWithDigestsDeterminism verifies that both SHA-256 and double-SHA-256
 // hash functions are deterministic: the same input always produces the same
 // digest, so cache lookups are reproducible across calls.
