@@ -18,7 +18,7 @@ nawala-checker/
 │   └── cli/          # Perintah CLI, pemuatan konfigurasi, format output, dan teks penggunaan.
 ├── src/
 │   └── nawala/       # Logika pengecekan DNS, opsi-opsi, tipe structs, dan cache.
-├── examples/         # Contoh kode yang dapat dijalankan (basic, custom, status, hotreload).
+├── examples/         # Contoh kode yang dapat dijalankan (basic, custom, status, hotreload, streaming, pooling).
 ├── .github/          # Alur kerja (workflows) CI/CD dan template GitHub.
 ├── Makefile          # Perintah untuk build, test, dan coverage.
 ├── README.md         # Dokumentasi utama (Bahasa Inggris).

@@ -551,7 +551,7 @@ nawala-checker/
 ├── .github/            # Alur kerja CI dan konfigurasi Dependabot
 ├── cmd/
 │   └── nawala/         # Titik masuk CLI
-├── examples/           # Contoh penggunaan yang dapat dijalankan (basic, custom, status)
+├── examples/           # Contoh penggunaan yang dapat dijalankan (basic, custom, status, hotreload, streaming, pooling)
 ├── internal/
 │   └── cli/            # Paket CLI (perintah, konfigurasi, output)
 ├── Makefile            # Pintasan build dan test
