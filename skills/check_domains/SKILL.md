@@ -87,6 +87,9 @@ nawala check --format json --config config.json google.com
 
 ### Method 2: Go SDK (Go-based AI Tools)
 
+> [!WARNING]
+> This method is a **programmatic interface** and requires an **advanced AI agent setup** with a properly configured Go development environment. Your AI framework must be able to compile and run Go code natively. If unsure, use **Method 1 (CLI)** instead.
+
 Import the SDK directly for native performance and streaming support.
 
 #### Installation

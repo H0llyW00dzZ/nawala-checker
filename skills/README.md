@@ -94,6 +94,9 @@ Each skill supports two integration approaches:
 | **CLI** | Any | Python, TypeScript, or any non-Go AI framework |
 | **Go SDK** | Go | Go-based AI tools (opencode, openclaw, crush, etc.) |
 
+> [!WARNING]
+> The **Go SDK** method is a programmatic interface and requires **advanced AI agent setup** with a properly configured Go development environment. Your AI framework (e.g., openclaw, opencode) must be able to compile and run Go code natively. For most users, the **CLI method is recommended** as it works out of the box with any AI agent that can execute shell commands.
+
 ### CLI Example
 
 ```bash

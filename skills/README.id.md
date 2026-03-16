@@ -94,6 +94,9 @@ Setiap skill mendukung dua pendekatan integrasi:
 | **CLI** | Semua | Python, TypeScript, atau framework AI non-Go |
 | **Go SDK** | Go | Tool AI berbasis Go (opencode, openclaw, crush, dll.) |
 
+> [!WARNING]
+> Metode **Go SDK** adalah antarmuka programatik dan membutuhkan **pengaturan agen AI tingkat lanjut** dengan lingkungan pengembangan Go yang dikonfigurasi dengan benar. Framework AI Anda (misalnya openclaw, opencode) harus dapat mengompilasi dan menjalankan kode Go secara native. Untuk sebagian besar pengguna, **metode CLI disarankan** karena langsung berfungsi dengan agen AI apa pun yang dapat menjalankan perintah shell.
+
 ### Contoh CLI
 
 ```bash

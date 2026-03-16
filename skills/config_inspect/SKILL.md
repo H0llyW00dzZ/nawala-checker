@@ -81,6 +81,9 @@ This writes the effective config to `myconfig.json`, which can then be customize
 
 ### Method 2: Go SDK (Go-based AI Tools)
 
+> [!WARNING]
+> This method is a **programmatic interface** and requires an **advanced AI agent setup** with a properly configured Go development environment. Your AI framework must be able to compile and run Go code natively. If unsure, use **Method 1 (CLI)** instead.
+
 The Go SDK uses functional options for configuration. There is no "inspect" method — configuration is set at construction time.
 
 #### Default configuration
