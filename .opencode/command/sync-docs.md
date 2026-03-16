@@ -41,6 +41,16 @@ Invoke this process whenever changes involve:
 - `CONTRIBUTING.md` (English)
 - `CONTRIBUTING.id.md` (Indonesian)
 
+### 6. AI Skills Definitions
+
+- `skills/README.md` (English)
+- `skills/README.id.md` (Indonesian)
+- `skills/check_domains/SKILL.md` (domain blocking check)
+- `skills/dns_status/SKILL.md` (DNS server health)
+- `skills/config_inspect/SKILL.md` (configuration inspection)
+
+When new features are added (CLI commands, SDK methods, config options), update the relevant SKILL.md files to reflect the new capabilities. Ensure both README files in skills/ stay consistent.
+
 ## Your Sync Workflow (follow exactly)
 
 ### Step 0: Analyze Changes
@@ -63,7 +73,11 @@ Add or modify files in `examples/` so they demonstrate new behavior. Ensure ever
 
 Update all files in `internal/cli/usage/` to reflect any CLI changes.
 
-### Step 5: Verify Consistency & Correctness
+### Step 5: Update Skills (if feature change)
+
+If the change introduces new CLI commands, SDK methods, config options, or modifies existing ones, update the relevant `skills/*/SKILL.md` files and both `skills/README.md` and `skills/README.id.md`.
+
+### Step 6: Verify Consistency & Correctness
 
 - Run `make test-verbose` (or equivalent) to confirm examples and CLI help still work.
 - Double-check that English and Indonesian versions are semantically identical.
@@ -86,6 +100,7 @@ docs: sync documentation for [description]
 - [+] Update GoDoc in docs.go
 - [+] Add/modify examples if needed
 - [+] Update CLI usage text
+- [+] Update skills definitions if feature change
 ```
 
 > [!NOTE]
@@ -100,4 +115,5 @@ docs: sync documentation for [description]
 - [ ] GoDoc in both docs.go files updated  
 - [ ] Examples directory updated and tested  
 - [ ] CLI usage text updated  
+- [ ] Skills definitions updated (if feature change)  
 - [ ] `make test-verbose` passes
