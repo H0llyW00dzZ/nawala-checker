@@ -9,7 +9,13 @@ Check one or more domains against Indonesian ISP DNS filters and return structur
 
 ## Prerequisites
 
-Install the `nawala` CLI:
+Before using this skill, verify that the `nawala` CLI is installed:
+
+```bash
+nawala --version
+```
+
+If the command is not found, install it:
 
 ```bash
 go install github.com/H0llyW00dzZ/nawala-checker/cmd/nawala@latest

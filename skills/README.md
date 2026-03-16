@@ -37,15 +37,27 @@ go get github.com/H0llyW00dzZ/nawala-checker
 
 ## Setup
 
-### 1. Point Your AI Agent at the Skills Directory
+### 1. Clone the Repository
 
-Most AI coding assistants support skill directories. Configure your agent to read from this `skills/` directory:
+Clone the nawala-checker repository to get the skills directory:
 
-- **[opencode](https://opencode.ai)** — Place skills in your project's `skills/` directory (auto-discovered)
-- **[openclaw](https://openclaw.ai)** — Reference the skills directory in your agent config
-- **Generic agents** — Point the agent at each `SKILL.md` file as a tool definition
+```bash
+git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+```
 
-### 2. Verify the CLI is Available
+### 2. Point Your AI Agent at the Skills Directory
+
+Configure your AI framework to read from the cloned `skills/` directory:
+
+- **[openclaw](https://openclaw.ai)** — Add the skills directory path to your agent config:
+  ```
+  nawala-checker/skills/
+  ```
+- **[opencode](https://opencode.ai)** — Copy or symlink the `skills/` directory into your project (auto-discovered)
+- **[crush](https://github.com/charmbracelet/crush)** — Reference each `SKILL.md` as a tool definition
+- **Generic agents** — Point the agent at the `skills/` directory or individual `SKILL.md` files
+
+### 3. Verify the CLI is Available
 
 Ensure the `nawala` binary is on your `PATH`:
 
@@ -53,7 +65,13 @@ Ensure the `nawala` binary is on your `PATH`:
 nawala --version
 ```
 
-### 3. Start Using Skills
+If the command is not found, install it:
+
+```bash
+go install github.com/H0llyW00dzZ/nawala-checker/cmd/nawala@latest
+```
+
+### 4. Start Using Skills
 
 Ask your AI agent to check domains:
 

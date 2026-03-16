@@ -37,15 +37,27 @@ go get github.com/H0llyW00dzZ/nawala-checker
 
 ## Cara Pengaturan
 
-### 1. Arahkan Agen AI ke Direktori Skills
+### 1. Clone Repositori
 
-Sebagian besar asisten coding AI mendukung direktori skill. Konfigurasikan agen Anda untuk membaca dari direktori `skills/` ini:
+Clone repositori nawala-checker untuk mendapatkan direktori skill:
 
-- **[opencode](https://opencode.ai)** — Letakkan skill di direktori `skills/` proyek Anda (otomatis ditemukan)
-- **[openclaw](https://openclaw.ai)** — Referensikan direktori skill di konfigurasi agen
-- **Agen umum** — Arahkan agen ke setiap file `SKILL.md` sebagai definisi tool
+```bash
+git clone https://github.com/H0llyW00dzZ/nawala-checker.git
+```
 
-### 2. Verifikasi CLI Tersedia
+### 2. Arahkan Agen AI ke Direktori Skills
+
+Konfigurasikan framework AI Anda untuk membaca dari direktori `skills/` yang sudah di-clone:
+
+- **[openclaw](https://openclaw.ai)** — Tambahkan path direktori skill ke konfigurasi agen:
+  ```
+  nawala-checker/skills/
+  ```
+- **[opencode](https://opencode.ai)** — Salin atau buat symlink direktori `skills/` ke proyek Anda (otomatis ditemukan)
+- **[crush](https://github.com/charmbracelet/crush)** — Referensikan setiap `SKILL.md` sebagai definisi tool
+- **Agen umum** — Arahkan agen ke direktori `skills/` atau file `SKILL.md` individual
+
+### 3. Verifikasi CLI Tersedia
 
 Pastikan binary `nawala` ada di `PATH` Anda:
 
@@ -53,7 +65,13 @@ Pastikan binary `nawala` ada di `PATH` Anda:
 nawala --version
 ```
 
-### 3. Mulai Menggunakan Skill
+Jika perintah tidak ditemukan, instal terlebih dahulu:
+
+```bash
+go install github.com/H0llyW00dzZ/nawala-checker/cmd/nawala@latest
+```
+
+### 4. Mulai Menggunakan Skill
 
 Minta agen AI Anda untuk memeriksa domain:
 
