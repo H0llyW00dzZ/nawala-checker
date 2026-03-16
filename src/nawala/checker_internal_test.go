@@ -1840,6 +1840,52 @@ func TestCheckStreamPanicRecovery_ContextCancelled(t *testing.T) {
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
+// TestCheckStreamResultSend_ContextCancelled covers the normal result-send
+// select inside CheckStream (checker.go line 326-329). After checkSingle
+// completes successfully, the goroutine tries to send the result to
+// stream.Out. If the Out channel is blocked and the context is cancelled,
+// the select falls through to the ctx.Done branch (L327).
+//
+// Strategy: use an unbuffered Out with no reader so the send blocks after
+// checkSingle returns, then cancel the context.
+func TestCheckStreamResultSend_ContextCancelled(t *testing.T) {
+	addr, cleanup := startNormalDNSServer(t)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithConcurrency(100),
+		WithMaxRetries(0),
+		WithTimeout(5*time.Second),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	in := make(chan string, 1)
+	out := make(chan Result) // Unbuffered — nobody reads, goroutine blocks on send
+	in <- "example.com"
+	close(in)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.CheckStream(ctx, Stream{In: in, Out: out})
+	}()
+
+	// checkSingle completes (fast local DNS), goroutine blocks trying to
+	// send the result to the unbuffered Out. Cancel so ctx.Done fires at L327.
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+
+	err := <-errCh
+	close(out)
+
+	t.Logf("CheckStream error: %v", err)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
 // TestDNSStatusContextCancellation_SemaphoreAcquire covers the semaphore-
 // acquire select branch in DNSStatus (checker.go line 376-384) that fires
 // when the context is cancelled while waiting for a semaphore slot.
