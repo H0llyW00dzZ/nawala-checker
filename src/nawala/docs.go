@@ -77,6 +77,8 @@
 //     persistent TCP/TLS connections, avoiding per-query handshake overhead
 //   - Runtime hot-reload — safely add, replace, or remove DNS servers
 //     concurrently without restarting
+//   - Agentic AI skills — ready-to-use skill definitions for integration
+//     with opencode, openclaw, crush and other LLM agents (see skills/)
 //
 // # Quick Start
 //

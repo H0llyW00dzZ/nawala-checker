@@ -37,6 +37,7 @@ SDK Go untuk memeriksa apakah domain diblokir oleh filter DNS ISP Indonesia (Naw
 - **Error yang diketik** — error sentinel untuk pencocokan `errors.Is` (lihat [Error](#error))
 - **Pooling koneksi** — gunakan kembali koneksi TCP/TLS yang sudah terbentuk via `WithKeepAlive` untuk menghilangkan overhead handshake
 - **Hot-reload runtime** — tambah, ganti, atau hapus server DNS dengan aman secara serentak tanpa perlu diulang (restart)
+- **Keterampilan AI Agentic** — definisi `SKILL.md` siap pakai untuk integrasi mulus dengan [opencode](https://opencode.ai), [openclaw](https://openclaw.ai), [crush](https://github.com/charmbracelet/crush) dan agen LLM lainnya (lihat [skills/](skills/))
 
 ## 🚀 Performa
 

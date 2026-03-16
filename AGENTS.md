@@ -134,6 +134,7 @@ nawala-checker/
 ├── cmd/
 │   └── nawala/         # CLI entry point
 ├── examples/           # Runnable usage examples (basic, custom, status, hotreload, streaming, pooling)
+├── skills/             # AI agent skill definitions (for opencode, openclaw, crush, etc.)
 ├── internal/
 │   └── cli/            # CLI package (commands, config, output)
 ├── Makefile            # Build and test shortcuts
