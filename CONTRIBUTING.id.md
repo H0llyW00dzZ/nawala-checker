@@ -19,6 +19,7 @@ nawala-checker/
 ├── src/
 │   └── nawala/       # Logika pengecekan DNS, opsi-opsi, tipe structs, dan cache.
 ├── examples/         # Contoh kode yang dapat dijalankan (basic, custom, status, hotreload, streaming, pooling).
+├── skills/           # Definisi keterampilan AI agent (SKILL.md untuk opencode, openclaw, crush, dll).
 ├── .github/          # Alur kerja (workflows) CI/CD dan template GitHub.
 ├── Makefile          # Perintah untuk build, test, dan coverage.
 ├── README.md         # Dokumentasi utama (Bahasa Inggris).

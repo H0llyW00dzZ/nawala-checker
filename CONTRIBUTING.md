@@ -19,6 +19,7 @@ nawala-checker/
 ├── src/
 │   └── nawala/       # Core DNS checking logic, options, typed structs, and cache.
 ├── examples/         # Executable examples (basic, custom, status, hotreload, streaming, pooling).
+├── skills/           # AI agent skill definitions (SKILL.md for opencode, openclaw, crush, etc.).
 ├── .github/          # CI/CD workflows and GitHub templates.
 ├── Makefile          # Build, test, and coverage commands.
 ├── README.md         # Primary English documentation.

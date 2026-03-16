@@ -37,6 +37,7 @@ A Go SDK for checking whether domains are blocked by Indonesian ISP DNS filters 
 - **Typed errors** — sentinel errors for `errors.Is` matching (see [Errors](#errors))
 - **Connection pooling** — reuse established TCP/TLS connections via `WithKeepAlive` to eliminate handshake overhead
 - **Runtime hot-reload** — safely add, replace, or remove DNS servers concurrently without restarting
+- **Agentic AI skills** — ready-to-use `SKILL.md` definitions for seamless integration with [opencode](https://opencode.ai), [openclaw](https://openclaw.ai), [crush](https://github.com/charmbracelet/crush) and other LLM agents (see [skills/](skills/))
 
 ## 🚀 Performance
 
