@@ -20,6 +20,7 @@ on:
       - 'CONTRIBUTING.md'
       - 'CONTRIBUTING.id.md'
       - 'examples/*'
+      - 'skills/*'
   pull_request:
     branches: [ master ]
     paths-ignore:
@@ -34,6 +35,7 @@ on:
       - 'CONTRIBUTING.md'
       - 'CONTRIBUTING.id.md'
       - 'examples/*'
+      - 'skills/*'
 jobs:
   coverage:
     name: 🔢 Vet & Test Coverage on ${{ matrix.os }} (Go ${{ matrix.go-version }})
