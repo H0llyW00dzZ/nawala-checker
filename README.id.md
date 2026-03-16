@@ -553,6 +553,7 @@ nawala-checker/
 ├── cmd/
 │   └── nawala/         # Titik masuk CLI
 ├── examples/           # Contoh penggunaan yang dapat dijalankan (basic, custom, status, hotreload, streaming, pooling)
+├── skills/             # Definisi keterampilan agen AI (untuk opencode, openclaw, crush, dll.)
 ├── internal/
 │   └── cli/            # Paket CLI (perintah, konfigurasi, output)
 ├── Makefile            # Pintasan build dan test
