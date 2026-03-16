@@ -1707,3 +1707,270 @@ func TestCheckStreamPanicRecovery(t *testing.T) {
 	assert.ErrorIs(t, results[0].Error, ErrInternalPanic,
 		"expected ErrInternalPanic from recovered goroutine, got: %v", results[0].Error)
 }
+
+// TestCheckStreamContextCancellation_PriorityCheck exercises the priority-
+// check select inside CheckStream (checker.go line 289-291) that fires when
+// a domain has been read from stream.In but the context is already done.
+//
+// Strategy: pre-cancel the context and put a domain in a buffered channel.
+// The main select (L280) has both ctx.Done and stream.In ready — Go picks
+// randomly. When stream.In wins, the priority check at L289 sees ctx.Done
+// and breaks out. We loop to ensure statistical coverage of this branch.
+func TestCheckStreamContextCancellation_PriorityCheck(t *testing.T) {
+	addr, cleanup := startNormalDNSServer(t)
+	defer cleanup()
+
+	for range 50 {
+		c := New(
+			WithServers([]DNSServer{
+				{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+			}),
+			WithConcurrency(100),
+		)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Pre-cancel
+
+		in := make(chan string, 1)
+		out := make(chan Result, 1)
+		in <- "example.com"
+		close(in)
+
+		err := c.CheckStream(ctx, Stream{In: in, Out: out})
+		close(out)
+		assert.ErrorIs(t, err, context.Canceled)
+	}
+}
+
+// TestCheckStreamContextCancellation_SemaphoreAcquire exercises the semaphore-
+// acquire select inside CheckStream (checker.go line 297-299) that fires when
+// the context is cancelled while waiting for a semaphore slot.
+func TestCheckStreamContextCancellation_SemaphoreAcquire(t *testing.T) {
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		time.Sleep(200 * time.Millisecond) // Hold the semaphore
+		m := new(dns.Msg)
+		m.SetReply(r)
+		m.Answer = append(m.Answer, &dns.A{
+			Hdr: dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
+			A:   net.ParseIP("1.2.3.4"),
+		})
+		_ = w.WriteMsg(m)
+	})
+	addr, cleanup := startTestDNSServer(t, handler)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithConcurrency(1), // Single slot — second domain blocks on sem
+		WithMaxRetries(0),
+		WithTimeout(5*time.Second),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	in := make(chan string, 2)
+	out := make(chan Result, 10)
+
+	in <- "first.com"
+	in <- "second.com"
+	close(in)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.CheckStream(ctx, Stream{In: in, Out: out})
+		close(out)
+	}()
+
+	// Wait for the first domain to occupy the semaphore, then cancel.
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	err := <-errCh
+	t.Logf("CheckStream error: %v", err)
+	assert.ErrorIs(t, err, context.Canceled,
+		"CheckStream should return context.Canceled")
+}
+
+// TestCheckStreamPanicRecovery_ContextCancelled covers the panic-recovery
+// send path inside CheckStream (checker.go line 316-320). When a goroutine
+// panics and recovers, it tries to send the error result to stream.Out. If
+// the Out channel is blocked and the context is cancelled, the select falls
+// through to the ctx.Done branch (L318).
+//
+// Strategy: use an unbuffered Out channel (nobody reads) so the goroutine
+// blocks on the send. The goroutine must actually spawn first (context alive),
+// then we cancel after it blocks.
+func TestCheckStreamPanicRecovery_ContextCancelled(t *testing.T) {
+	addr, cleanup := startNormalDNSServer(t)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithCache(&panicCache{}), // triggers panic inside checkSingle
+		WithConcurrency(100),     // semaphore won't block
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	in := make(chan string, 1)
+	out := make(chan Result) // Unbuffered — nobody reads, goroutine blocks on send
+	in <- "example.com"
+	close(in)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.CheckStream(ctx, Stream{In: in, Out: out})
+	}()
+
+	// The goroutine panics (panicCache), recovers, and blocks trying to
+	// send the error result to the unbuffered Out. Give it time to reach
+	// that point, then cancel so ctx.Done unblocks the select at L318.
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	err := <-errCh
+	close(out)
+
+	t.Logf("CheckStream error: %v", err)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+// TestCheckStreamResultSend_ContextCancelled covers the normal result-send
+// select inside CheckStream (checker.go line 326-329). After checkSingle
+// completes successfully, the goroutine tries to send the result to
+// stream.Out. If the Out channel is blocked and the context is cancelled,
+// the select falls through to the ctx.Done branch (L327).
+//
+// Strategy: use an unbuffered Out with no reader so the send blocks after
+// checkSingle returns, then cancel the context.
+func TestCheckStreamResultSend_ContextCancelled(t *testing.T) {
+	addr, cleanup := startNormalDNSServer(t)
+	defer cleanup()
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr, Keyword: "internetpositif", QueryType: "A"},
+		}),
+		WithConcurrency(100),
+		WithMaxRetries(0),
+		WithTimeout(5*time.Second),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	in := make(chan string, 1)
+	out := make(chan Result) // Unbuffered — nobody reads, goroutine blocks on send
+	in <- "example.com"
+	close(in)
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- c.CheckStream(ctx, Stream{In: in, Out: out})
+	}()
+
+	// checkSingle completes (fast local DNS), goroutine blocks trying to
+	// send the result to the unbuffered Out. Cancel so ctx.Done fires at L327.
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+
+	err := <-errCh
+	close(out)
+
+	t.Logf("CheckStream error: %v", err)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+// TestDNSStatusContextCancellation_SemaphoreAcquire covers the semaphore-
+// acquire select branch in DNSStatus (checker.go line 376-384) that fires
+// when the context is cancelled while waiting for a semaphore slot.
+//
+// Strategy: use concurrency=1 with two different server addresses. Inject a
+// custom queryFunc that blocks the first server long enough for the second
+// iteration to be waiting on semaphore when we cancel the context.
+func TestDNSStatusContextCancellation_SemaphoreAcquire(t *testing.T) {
+	addr1, cleanup1 := startNormalDNSServer(t)
+	defer cleanup1()
+	addr2, cleanup2 := startNormalDNSServer(t)
+	defer cleanup2()
+
+	// Replace queryFunc with a version that sleeps on the first call to hold
+	// the semaphore long enough for the second iteration to block.
+	var calls atomic.Int32
+	origQueryFunc := queryFunc
+	defer func() { queryFunc = origQueryFunc }()
+	queryFunc = func(ctx context.Context, q dnsQuery) (*dns.Msg, error) {
+		n := calls.Add(1)
+		if n == 1 {
+			time.Sleep(500 * time.Millisecond) // Hold semaphore
+		}
+		return origQueryFunc(ctx, q)
+	}
+
+	c := New(
+		WithServers([]DNSServer{
+			{Address: addr1, Keyword: "test", QueryType: "A"},
+			{Address: addr2, Keyword: "test2", QueryType: "A"},
+		}),
+		WithConcurrency(1), // Only one slot — second server blocks on sem
+		WithTimeout(5*time.Second),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := c.DNSStatus(ctx)
+		errCh <- err
+	}()
+
+	// Wait for the first server to acquire the semaphore and the for-loop to
+	// advance to the second server (which blocks on sem), then cancel.
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+
+	err := <-errCh
+	t.Logf("DNSStatus error: %v", err)
+	assert.ErrorIs(t, err, context.Canceled,
+		"DNSStatus should return context.Canceled when semaphore acquire is cancelled")
+}
+
+// TestQueryDNSContextDeadlineExceeded ensures the queryDNS function wraps
+// a context.DeadlineExceeded error with ErrDNSTimeout. This specifically
+// targets the first error-handling branch in queryDNS (dns.go line 95-97)
+// where ctx.Err() == context.DeadlineExceeded.
+func TestQueryDNSContextDeadlineExceeded(t *testing.T) {
+	handler := dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		// Never respond — let the context deadline expire.
+		time.Sleep(5 * time.Second)
+	})
+	addr, cleanup := startTestDNSServer(t, handler)
+	defer cleanup()
+
+	// Very short deadline — context fires first, client timeout is large.
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+
+	client := &dns.Client{
+		Timeout: 30 * time.Second, // Large client timeout so ctx fires first
+		Net:     "udp",
+	}
+
+	_, err := queryDNS(ctx, dnsQuery{
+		client:    client,
+		domain:    "example.com",
+		server:    addr,
+		qtype:     dns.TypeA,
+		edns0Size: 1232,
+	})
+
+	require.Error(t, err)
+	t.Logf("queryDNS error: %v", err)
+	assert.ErrorIs(t, err, ErrDNSTimeout,
+		"expected ErrDNSTimeout when context deadline exceeded")
+}

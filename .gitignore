@@ -30,6 +30,6 @@ tmp/
 
 # Project build
 bin
-changelog.md
+changelog.*
 coverage.*
 e2e_test_*
