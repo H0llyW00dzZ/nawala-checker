@@ -133,7 +133,7 @@ nawala-checker/
 ├── .github/            # CI workflows and Dependabot configuration
 ├── cmd/
 │   └── nawala/         # CLI entry point
-├── examples/           # Runnable usage examples (basic, custom, status)
+├── examples/           # Runnable usage examples (basic, custom, status, hotreload, streaming, pooling)
 ├── internal/
 │   └── cli/            # CLI package (commands, config, output)
 ├── Makefile            # Build and test shortcuts

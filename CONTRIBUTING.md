@@ -18,7 +18,7 @@ nawala-checker/
 │   └── cli/          # CLI commands, config loading, output formatting, and usage text.
 ├── src/
 │   └── nawala/       # Core DNS checking logic, options, typed structs, and cache.
-├── examples/         # Executable examples (basic, custom, status, hotreload).
+├── examples/         # Executable examples (basic, custom, status, hotreload, streaming, pooling).
 ├── .github/          # CI/CD workflows and GitHub templates.
 ├── Makefile          # Build, test, and coverage commands.
 ├── README.md         # Primary English documentation.

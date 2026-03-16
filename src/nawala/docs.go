@@ -366,12 +366,14 @@
 //
 // Runnable examples are available in the [examples/] directory:
 //
-//   - [examples/basic]  — Check multiple domains with default configuration
-//   - [examples/custom] — Advanced configuration with custom servers,
-//     timeouts, retries, and caching
-//   - [examples/status] — Monitor DNS server health and latency
+//   - [examples/basic]     — Check multiple domains with default configuration
+//   - [examples/custom]    — Advanced configuration with custom servers,
+//     timeouts, retries, caching and digest-based keys
+//   - [examples/status]    — Monitor DNS server health and latency
 //   - [examples/hotreload] — Safely update DNS servers while concurrent
 //     checks are running
+//   - [examples/streaming] — Constant-memory domain checking via CheckStream
+//   - [examples/pooling]   — TCP/TLS connection pooling with WithKeepAlive
 //
 // Run an example (requires cloning the repository first):
 //
@@ -383,6 +385,8 @@
 // [examples/custom]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/custom/main.go
 // [examples/status]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/status/main.go
 // [examples/hotreload]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/hotreload/main.go
+// [examples/streaming]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/streaming/main.go
+// [examples/pooling]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples/pooling/main.go
 // [examples/]: https://github.com/H0llyW00dzZ/nawala-checker/blob/master/examples
 // [k8s]: https://kubernetes.io
 // [idiomatic Go]: https://go.dev/doc/effective_go
