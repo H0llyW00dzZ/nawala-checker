@@ -11,10 +11,9 @@ updates:
     # Optional: Open pull requests only for the main branch
     target-branch: "master"
 
-    # Optional: Limit the number of open pull requests Dependabot can have at any one time
-    # open-pull-requests-limit: 5
-
-    # Optional: Configure commit message options
-    # commit-message:
-    #   prefix: "chore"
-    #   include: "scope"
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "master"
