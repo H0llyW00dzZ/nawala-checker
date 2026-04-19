@@ -57,6 +57,7 @@ jobs:
           - '1.25.8'
           - '1.26.0'
           - '1.26.1'
+          - '1.26.2'
     
     steps:
     - name: Checkout code
@@ -84,7 +85,7 @@ jobs:
       shell: bash
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v5
       # Only upload coverage for the starter/minimum Go version (1.25.6)
       if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.25.6'
       # continue-on-error: true
