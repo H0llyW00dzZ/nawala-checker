@@ -84,7 +84,7 @@ jobs:
       shell: bash
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       # Only upload coverage for the starter/minimum Go version (1.25.6)
       if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.25.6'
       # continue-on-error: true
